@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -215,11 +216,16 @@ func (s *Server) CreateSpeech(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var responseFormat *string
+	if createSpeechRequest.ResponseFormat != nil {
+		responseFormat = (*string)(createSpeechRequest.ResponseFormat)
+	}
+
 	//nolint:govet
 	newSpeech := &db.Speech{
 		createSpeechRequest.Input,
 		datatypes.NewJSONType(createSpeechRequest.Model),
-		(*string)(createSpeechRequest.ResponseFormat),
+		responseFormat,
 		createSpeechRequest.Speed,
 		string(createSpeechRequest.Voice),
 	}
@@ -250,12 +256,23 @@ func (s *Server) CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// FIXME: The correct response here is the audio for the speech.
-	if err := db.Create(s.db.DB, createCompletionRequest); err != nil {
+	ccr := new(db.ChatCompletionRequest)
+	if err := ccr.FromPublic(createCompletionRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		return
+	}
+
+	ccr.CreatedAt = int(time.Now().Unix())
+	ccr.ID = uuid.New().String()
+
+	if err := db.Create(s.db.DB, ccr); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
 		return
 	}
+
+	waitForAndWriteResponse(r.Context(), w, s.db.DB, ccr.ID, ccr, new(db.ChatCompletionResponse))
 }
 
 func (s *Server) CreateCompletion(w http.ResponseWriter, r *http.Request) {
@@ -921,6 +938,41 @@ func deleteAndRespond[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter, i
 	}
 
 	writeObjectToResponse(w, resp)
+}
+
+func waitForResponse(ctx context.Context, gormDB *gdb.DB, id string, obj db.JobRunner, respObj any) error {
+	gormDB = gormDB.WithContext(ctx)
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			if err := db.Get(gormDB.Model(obj), obj, id); err != nil {
+				return err
+			}
+
+			if obj.GetResponseID() == "" {
+				time.Sleep(time.Second)
+				continue
+			}
+
+			return db.Get(gormDB.Model(respObj), respObj, obj.GetResponseID())
+		}
+	}
+}
+
+func waitForAndWriteResponse(ctx context.Context, w http.ResponseWriter, gormDB *gdb.DB, id string, obj db.JobRunner, respObj db.JobResponder) {
+	if err := waitForResponse(ctx, gormDB, id, obj, respObj); err != nil {
+		if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		}
+	} else if errStr := respObj.GetErrorString(); errStr != "" {
+		w.WriteHeader(respObj.GetStatusCode())
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, errStr)))
+	} else {
+		writeObjectToResponse(w, respObj.ToPublic())
+	}
 }
 
 // transposeObject will marshal the first object and unmarshal it into the second object.

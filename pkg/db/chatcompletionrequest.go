@@ -6,7 +6,7 @@ import (
 	"gorm.io/datatypes"
 )
 
-type ChatCompletion struct {
+type ChatCompletionRequest struct {
 	FrequencyPenalty *float32                                                     `json:"frequency_penalty"`
 	LogitBias        datatypes.JSONType[map[string]int]                           `json:"logit_bias"`
 	Logprobs         *bool                                                        `json:"logprobs"`
@@ -25,9 +25,22 @@ type ChatCompletion struct {
 	TopLogprobs      *int                                                         `json:"top_logprobs"`
 	TopP             *float32                                                     `json:"top_p"`
 	User             *string                                                      `json:"user,omitempty"`
+	// This is not part of the OpenAI API
+	JobRequest `json:",inline"`
 }
 
-func (c *ChatCompletion) ToPublic() any {
+func (c *ChatCompletionRequest) ToPublic() any {
+	var responseFormat *struct {
+		Type *openai.CreateChatCompletionRequestResponseFormatType `json:"type,omitempty"`
+	}
+
+	if c.ResponseFormat != nil {
+		responseFormat = &struct {
+			Type *openai.CreateChatCompletionRequestResponseFormatType `json:"type,omitempty"`
+		}{
+			Type: (*openai.CreateChatCompletionRequestResponseFormatType)(c.ResponseFormat),
+		}
+	}
 	//nolint:govet
 	return &openai.CreateChatCompletionRequest{
 		c.FrequencyPenalty,
@@ -43,11 +56,7 @@ func (c *ChatCompletion) ToPublic() any {
 		c.Model.Data(),
 		c.N,
 		c.PresencePenalty,
-		&struct {
-			Type *openai.CreateChatCompletionRequestResponseFormatType `json:"type,omitempty"`
-		}{
-			Type: (*openai.CreateChatCompletionRequestResponseFormatType)(c.ResponseFormat),
-		},
+		responseFormat,
 		c.Seed,
 		c.Stop.Data(),
 		c.Stream,
@@ -60,15 +69,19 @@ func (c *ChatCompletion) ToPublic() any {
 	}
 }
 
-func (c *ChatCompletion) FromPublic(obj any) error {
+func (c *ChatCompletionRequest) FromPublic(obj any) error {
 	o, ok := obj.(*openai.CreateChatCompletionRequest)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
 	}
 
 	if o != nil && c != nil {
+		var responseFormatType *string
+		if o.ResponseFormat != nil {
+			responseFormatType = (*string)(o.ResponseFormat.Type)
+		}
 		//nolint:govet
-		*c = ChatCompletion{
+		*c = ChatCompletionRequest{
 			o.FrequencyPenalty,
 			datatypes.NewJSONType(z.Dereference(o.LogitBias)),
 			o.Logprobs,
@@ -77,7 +90,7 @@ func (c *ChatCompletion) FromPublic(obj any) error {
 			datatypes.NewJSONType(o.Model),
 			o.N,
 			o.PresencePenalty,
-			(*string)(o.ResponseFormat.Type),
+			responseFormatType,
 			o.Seed,
 			datatypes.NewJSONType(o.Stop),
 			o.Stream,
@@ -87,6 +100,7 @@ func (c *ChatCompletion) FromPublic(obj any) error {
 			o.TopLogprobs,
 			o.TopP,
 			o.User,
+			JobRequest{},
 		}
 	}
 

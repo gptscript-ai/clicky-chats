@@ -23,7 +23,7 @@ func GetPublicObject[T Transformer](db *gdb.DB, id string) (any, error) {
 }
 
 // Get gets an object from the database by ID.
-func Get(db *gdb.DB, dataObj Transformer, id string) error {
+func Get(db *gdb.DB, dataObj any, id string) error {
 	slog.Debug("Getting", "id", id)
 	return db.First(dataObj, "id = ?", id).Error
 }

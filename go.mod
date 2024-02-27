@@ -3,7 +3,7 @@ module github.com/thedadams/clicky-chats
 go 1.22.0
 
 replace (
-	github.com/gptscript-ai/gptscript => github.com/thedadams/gptscript v0.0.0-20240227124508-d5eb3576fb8c
+	github.com/gptscript-ai/gptscript => github.com/thedadams/gptscript v0.0.0-20240227144629-436cdffd0d04
 	github.com/sashabaranov/go-openai => github.com/gptscript-ai/go-openai v0.0.0-20240206232711-45b6e096246a
 )
 

@@ -34,7 +34,7 @@ func New(dsn string, autoMigrate bool) (*DB, error) {
 		Logger: logger.New(log.Default(), logger.Config{
 			SlowThreshold: 200 * time.Millisecond,
 			Colorful:      true,
-			LogLevel:      logger.Warn,
+			LogLevel:      logger.Silent,
 		}),
 	})
 	if err != nil {
@@ -72,7 +72,8 @@ func (db *DB) AutoMigrate() error {
 		FineTuningJob{},
 		Model{},
 		Speech{},
-		ChatCompletion{},
+		ChatCompletionRequest{},
+		ChatCompletionResponse{},
 	)
 }
 
