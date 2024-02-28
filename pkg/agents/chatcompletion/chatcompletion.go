@@ -23,7 +23,7 @@ type Config struct {
 	APIURL, APIKey, AgentID          string
 }
 
-func Start(ctx context.Context, gdb *gdb.DB, cfg Config) error {
+func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 	a, err := newAgent(gdb, cfg)
 	if err != nil {
 		return err
@@ -36,10 +36,10 @@ func Start(ctx context.Context, gdb *gdb.DB, cfg Config) error {
 type agent struct {
 	id, apiKey, url string
 	client          *http.Client
-	db              *gdb.DB
+	db              *db.DB
 }
 
-func newAgent(db *gdb.DB, cfg Config) (*agent, error) {
+func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	return &agent{
 		client: http.DefaultClient,
 		apiKey: cfg.APIKey,
@@ -60,7 +60,7 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 				slog.Debug("Checking for a chat completion request")
 				// Look for a new chat completion request and claim it.
 				cc := new(db.ChatCompletionRequest)
-				if err := c.db.Model(cc).Transaction(func(tx *gdb.DB) error {
+				if err := c.db.WithContext(ctx).Model(cc).Transaction(func(tx *gdb.DB) error {
 					if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND response_id IS NULL", c.id).Order("created_at desc").First(cc).Error; err != nil {
 						return err
 					}
@@ -74,7 +74,7 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 					if !errors.Is(err, gdb.ErrRecordNotFound) {
 						slog.Error("Failed to get chat completion", "err", err)
 					}
-					time.Sleep(5 * time.Second)
+					time.Sleep(pollingInterval)
 					continue
 				}
 
@@ -84,13 +84,13 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 				ccr, err := c.makeChatCompletionRequest(ctx, cc)
 				if err != nil {
 					slog.Error("Failed to make chat completion request", "err", err)
-					time.Sleep(5 * time.Second)
+					time.Sleep(pollingInterval)
 					continue
 				}
 
 				slog.Debug("Made chat completion request", "status_code", ccr.StatusCode)
 
-				if err = c.db.Transaction(func(tx *gdb.DB) error {
+				if err = c.db.WithContext(ctx).Transaction(func(tx *gdb.DB) error {
 					if err = tx.Create(ccr).Error; err != nil {
 						return err
 					}
@@ -112,7 +112,7 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 				slog.Debug("Looking for completed chat completions")
 				// Look for a new chat completion request and claim it.
 				var ccs []db.ChatCompletionRequest
-				if err := c.db.Transaction(func(tx *gdb.DB) error {
+				if err := c.db.WithContext(ctx).Transaction(func(tx *gdb.DB) error {
 					if err := tx.Model(new(db.ChatCompletionRequest)).Where("response_id IS NOT NULL").Order("created_at desc").Find(&ccs).Error; err != nil {
 						return err
 					}

@@ -46,6 +46,7 @@ func (s *Server) Run(ctx context.Context, config Config) error {
 	swagger.Components.Schemas["CreateMessageRequest"].Value.Properties["file_ids"].Value.MinItems = 0
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /healthz", s.db.Check)
 
 	openai.HandlerWithOptions(s, openai.StdHTTPServerOptions{
 		BaseURL:    config.APIBase,

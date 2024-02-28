@@ -15,7 +15,7 @@ import (
 	gdb "gorm.io/gorm"
 )
 
-func Start(ctx context.Context, db *gdb.DB) error {
+func Start(ctx context.Context, db *db.DB) error {
 	controller, err := newController(db)
 	if err != nil {
 		return err
@@ -27,11 +27,11 @@ func Start(ctx context.Context, db *gdb.DB) error {
 
 type controller struct {
 	runner      *runner.Runner
-	db          *gdb.DB
+	db          *db.DB
 	broadcaster *broadcaster.Broadcaster[server.Event]
 }
 
-func newController(db *gdb.DB) (*controller, error) {
+func newController(db *db.DB) (*controller, error) {
 	caster := broadcaster.New[server.Event]()
 	noCacheRunner, err := runner.New(runner.Options{
 		CacheOptions: runner.CacheOptions{
@@ -75,11 +75,11 @@ func (c *controller) Start(ctx context.Context) {
 				return
 			case <-time.After(5 * time.Second):
 				run := &db.Run{}
-				if db := c.db.Where("started_at = 0").Order("created_at desc").Limit(1).Find(run); db.Error != nil {
-					if errors.Is(db.Error, gdb.ErrRecordNotFound) {
+				if err := c.db.WithContext(ctx).Where("started_at = 0").Order("created_at desc").Limit(1).Find(run).Error; err != nil {
+					if errors.Is(err, gdb.ErrRecordNotFound) {
 						continue
 					}
-					slog.Error("Failed to find run", "err", db.Error)
+					slog.Error("Failed to find run", "err", err)
 					continue
 				} else if run.ID == "" || len(run.FileIDs) == 0 {
 					continue
@@ -103,7 +103,7 @@ func (c *controller) Start(ctx context.Context) {
 					}()
 
 					slog.Info("Running", "run_id", run.ID)
-					if err := c.db.Model(run).Update("started_at", time.Now().Unix()).Error; err != nil {
+					if err = c.db.WithContext(ctx).Model(run).Update("started_at", time.Now().Unix()).Error; err != nil {
 						slog.Error("Failed to update run", "run_id", run.ID, "err", err)
 						return
 					}
@@ -111,7 +111,7 @@ func (c *controller) Start(ctx context.Context) {
 					output, err := c.runner.Run(server.ContextWithNewID(ctx), prg, os.Environ(), run.Instructions)
 					if err != nil {
 						slog.Error("Failed to run", "run_id", run.ID, "err", err)
-						if err := c.db.Model(run).Update("failed_at", time.Now().Unix()).Error; err != nil {
+						if err = c.db.WithContext(ctx).Model(run).Update("failed_at", time.Now().Unix()).Error; err != nil {
 							slog.Error("Failed to update run", "run_id", run.ID, "err", err)
 						}
 						return
@@ -119,7 +119,7 @@ func (c *controller) Start(ctx context.Context) {
 
 					slog.Info("Finished running", "run_id", run.ID, "output", output)
 
-					if err := c.db.Model(run).Update("completed_at", time.Now().Unix()).Error; err != nil {
+					if err = c.db.WithContext(ctx).Model(run).Update("completed_at", time.Now().Unix()).Error; err != nil {
 						slog.Error("Failed to update run", "run_id", run.ID, "err", err)
 					}
 				}()

@@ -1,6 +1,8 @@
 package db
 
 import (
+	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"strings"
@@ -13,7 +15,8 @@ import (
 )
 
 type DB struct {
-	*gorm.DB
+	gormDB      *gorm.DB
+	sqlDB       *sql.DB
 	autoMigrate bool
 }
 
@@ -51,7 +54,8 @@ func New(dsn string, autoMigrate bool) (*DB, error) {
 	sqlDB.SetMaxOpenConns(conns)
 
 	return &DB{
-		DB:          db,
+		gormDB:      db,
+		sqlDB:       sqlDB,
 		autoMigrate: autoMigrate,
 	}, nil
 }
@@ -61,7 +65,7 @@ func (db *DB) AutoMigrate() error {
 		return nil
 	}
 
-	return db.DB.AutoMigrate(
+	return db.gormDB.AutoMigrate(
 		Thread{},
 		Message{},
 		Run{},
@@ -78,17 +82,19 @@ func (db *DB) AutoMigrate() error {
 }
 
 func (db *DB) Check(w http.ResponseWriter, _ *http.Request) {
-	sqlDB, err := db.DB.DB()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(err.Error()))
-		return
-	}
-	if err = sqlDB.Ping(); err != nil {
+	if err := db.sqlDB.Ping(); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	_, _ = w.Write([]byte("ok"))
+}
+
+func (db *DB) Close() error {
+	return db.sqlDB.Close()
+}
+
+func (db *DB) WithContext(ctx context.Context) *gorm.DB {
+	return db.gormDB.WithContext(ctx)
 }

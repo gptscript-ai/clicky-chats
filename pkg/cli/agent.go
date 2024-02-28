@@ -43,7 +43,7 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 		AgentID:         s.AgentID,
 	}
 
-	if err = chatcompletion.Start(cmd.Context(), gormDB.DB, cfg); err != nil {
+	if err = chatcompletion.Start(cmd.Context(), gormDB, cfg); err != nil {
 		return err
 	}
 
