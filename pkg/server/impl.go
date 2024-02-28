@@ -23,8 +23,8 @@ const (
 	notFoundError       = "not found"
 )
 
-func (s *Server) ListAssistants(w http.ResponseWriter, _ *http.Request, params openai.ListAssistantsParams) {
-	gormDB, err := processAssistantsAPIListParams[*db.Assistant](s.db.DB, params.Limit, params.Before, params.After, params.Order)
+func (s *Server) ListAssistants(w http.ResponseWriter, r *http.Request, params openai.ListAssistantsParams) {
+	gormDB, err := processAssistantsAPIListParams[*db.Assistant](s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
@@ -73,20 +73,20 @@ func (s *Server) CreateAssistant(w http.ResponseWriter, r *http.Request) {
 		tools,
 	}
 
-	createAndRespond(s.db.DB, w, new(db.Assistant), publicAssistant)
+	createAndRespond(s.db.WithContext(r.Context()), w, new(db.Assistant), publicAssistant)
 }
 
-func (s *Server) DeleteAssistant(w http.ResponseWriter, _ *http.Request, assistantID string) {
+func (s *Server) DeleteAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
 	//nolint:govet
-	deleteAndRespond[*db.Assistant](s.db.DB, w, assistantID, openai.DeleteAssistantResponse{
+	deleteAndRespond[*db.Assistant](s.db.WithContext(r.Context()), w, assistantID, openai.DeleteAssistantResponse{
 		true,
 		assistantID,
 		openai.AssistantDeleted,
 	})
 }
 
-func (s *Server) GetAssistant(w http.ResponseWriter, _ *http.Request, assistantID string) {
-	getAndRespond(s.db.DB, w, new(db.Assistant), assistantID)
+func (s *Server) GetAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
+	getAndRespond(s.db.WithContext(r.Context()), w, new(db.Assistant), assistantID)
 }
 
 func (s *Server) ModifyAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
@@ -141,17 +141,17 @@ func (s *Server) ModifyAssistant(w http.ResponseWriter, r *http.Request, assista
 		tools,
 	}
 
-	modify(s.db.DB, w, new(db.Assistant), assistantID, publicAssistant)
+	modify(s.db.WithContext(r.Context()), w, new(db.Assistant), assistantID, publicAssistant)
 }
 
-func (s *Server) ListAssistantFiles(w http.ResponseWriter, _ *http.Request, assistantID string, params openai.ListAssistantFilesParams) {
+func (s *Server) ListAssistantFiles(w http.ResponseWriter, r *http.Request, assistantID string, params openai.ListAssistantFilesParams) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "assistant_id", "list"))))
 		return
 	}
 
-	gormDB, err := processAssistantsAPIListParams[*db.AssistantFile](s.db.DB.Where("assistant_id = ?", assistantID), params.Limit, params.Before, params.After, params.Order)
+	gormDB, err := processAssistantsAPIListParams[*db.AssistantFile](s.db.WithContext(r.Context()).Where("assistant_id = ?", assistantID), params.Limit, params.Before, params.After, params.Order)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
@@ -175,7 +175,7 @@ func (s *Server) CreateAssistantFile(w http.ResponseWriter, r *http.Request, ass
 	}
 
 	//nolint:govet
-	createAndRespond(s.db.DB, w, new(db.AssistantFile), &openai.AssistantFileObject{
+	createAndRespond(s.db.WithContext(r.Context()), w, new(db.AssistantFile), &openai.AssistantFileObject{
 		assistantID,
 		0,
 		"",
@@ -183,7 +183,7 @@ func (s *Server) CreateAssistantFile(w http.ResponseWriter, r *http.Request, ass
 	})
 }
 
-func (s *Server) DeleteAssistantFile(w http.ResponseWriter, _ *http.Request, assistantID string, fileID string) {
+func (s *Server) DeleteAssistantFile(w http.ResponseWriter, r *http.Request, assistantID string, fileID string) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "assistant_id", "delete"))))
@@ -191,21 +191,21 @@ func (s *Server) DeleteAssistantFile(w http.ResponseWriter, _ *http.Request, ass
 	}
 
 	//nolint:govet
-	deleteAndRespond[*db.AssistantFile](s.db.DB.Where("assistant_id = ?", assistantID), w, fileID, openai.DeleteAssistantFileResponse{
+	deleteAndRespond[*db.AssistantFile](s.db.WithContext(r.Context()).Where("assistant_id = ?", assistantID), w, fileID, openai.DeleteAssistantFileResponse{
 		true,
 		fileID,
 		openai.AssistantFileDeleted,
 	})
 }
 
-func (s *Server) GetAssistantFile(w http.ResponseWriter, _ *http.Request, assistantID string, fileID string) {
+func (s *Server) GetAssistantFile(w http.ResponseWriter, r *http.Request, assistantID string, fileID string) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "assistant_id", "get"))))
 		return
 	}
 
-	getAndRespond(s.db.DB.Where("assistant_id = ?", assistantID), w, new(db.AssistantFile), fileID)
+	getAndRespond(s.db.WithContext(r.Context()).Where("assistant_id = ?", assistantID), w, new(db.AssistantFile), fileID)
 }
 
 func (s *Server) CreateSpeech(w http.ResponseWriter, r *http.Request) {
@@ -231,7 +231,7 @@ func (s *Server) CreateSpeech(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// FIXME: The correct response here is the audio for the speech.
-	if err := db.CreateAny(s.db.DB, newSpeech); err != nil {
+	if err := db.CreateAny(s.db.WithContext(r.Context()), newSpeech); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
 		return
@@ -263,13 +263,14 @@ func (s *Server) CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := db.Create(s.db.DB, ccr); err != nil {
+	gormDB := s.db.WithContext(r.Context())
+	if err := db.Create(gormDB, ccr); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
 		return
 	}
 
-	waitForAndWriteResponse(r.Context(), w, s.db.DB, ccr.ID, ccr, new(db.ChatCompletionResponse))
+	waitForAndWriteResponse(r.Context(), w, gormDB, ccr.ID, ccr, new(db.ChatCompletionResponse))
 }
 
 func (s *Server) CreateCompletion(w http.ResponseWriter, r *http.Request) {
@@ -283,9 +284,9 @@ func (s *Server) CreateEmbedding(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) ListFiles(w http.ResponseWriter, r *http.Request, params openai.ListFilesParams) {
-	gormDB := s.db.DB
+	gormDB := s.db.WithContext(r.Context())
 	if z.Dereference(params.Purpose) != "" {
-		gormDB = s.db.Where("purpose = ?", *params.Purpose)
+		gormDB = gormDB.Where("purpose = ?", *params.Purpose)
 	}
 	listAndRespond[*db.File](gormDB, w)
 }
@@ -334,7 +335,7 @@ func (s *Server) CreateFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = db.CreateAny(s.db.DB, file); err != nil {
+	if err = db.CreateAny(s.db.WithContext(r.Context()), file); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
 		return
@@ -355,15 +356,15 @@ func (s *Server) CreateFile(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) DeleteFile(w http.ResponseWriter, r *http.Request, fileID string) {
 	//nolint:govet
-	deleteAndRespond[*db.File](s.db.DB, w, fileID, openai.DeleteFileResponse{
+	deleteAndRespond[*db.File](s.db.WithContext(r.Context()), w, fileID, openai.DeleteFileResponse{
 		true,
 		fileID,
 		openai.DeleteFileResponseObjectFile,
 	})
 }
 
-func (s *Server) RetrieveFile(w http.ResponseWriter, _ *http.Request, fileID string) {
-	getAndRespond(s.db.DB, w, new(db.File), fileID)
+func (s *Server) RetrieveFile(w http.ResponseWriter, r *http.Request, fileID string) {
+	getAndRespond(s.db.WithContext(r.Context()), w, new(db.File), fileID)
 }
 
 func (s *Server) DownloadFile(w http.ResponseWriter, r *http.Request, fileID string) {
@@ -382,7 +383,7 @@ func (s *Server) CreateFineTuningJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) RetrieveFineTuningJob(w http.ResponseWriter, r *http.Request, fineTuningJobID string) {
-	getAndRespond(s.db.DB, w, new(db.FineTuningJob), fineTuningJobID)
+	getAndRespond(s.db.WithContext(r.Context()), w, new(db.FineTuningJob), fineTuningJobID)
 }
 
 func (s *Server) CancelFineTuningJob(w http.ResponseWriter, r *http.Request, fineTuningJobID string) {
@@ -410,21 +411,21 @@ func (s *Server) CreateImageVariation(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ListModels(w http.ResponseWriter, _ *http.Request) {
-	listAndRespond[*db.Model](s.db.DB, w)
+func (s *Server) ListModels(w http.ResponseWriter, r *http.Request) {
+	listAndRespond[*db.Model](s.db.WithContext(r.Context()), w)
 }
 
-func (s *Server) DeleteModel(w http.ResponseWriter, _ *http.Request, modelID string) {
+func (s *Server) DeleteModel(w http.ResponseWriter, r *http.Request, modelID string) {
 	//nolint:govet
-	deleteAndRespond[*db.Model](s.db.DB, w, modelID, openai.DeleteModelResponse{
+	deleteAndRespond[*db.Model](s.db.WithContext(r.Context()), w, modelID, openai.DeleteModelResponse{
 		true,
 		modelID,
 		string(openai.ModelObjectModel),
 	})
 }
 
-func (s *Server) RetrieveModel(w http.ResponseWriter, _ *http.Request, modelID string) {
-	getAndRespond(s.db.DB, w, new(db.Model), modelID)
+func (s *Server) RetrieveModel(w http.ResponseWriter, r *http.Request, modelID string) {
+	getAndRespond(s.db.WithContext(r.Context()), w, new(db.Model), modelID)
 }
 
 func (s *Server) CreateModeration(w http.ResponseWriter, r *http.Request) {
@@ -456,7 +457,7 @@ func (s *Server) CreateThread(w http.ResponseWriter, r *http.Request) {
 		openai.Thread,
 	}
 
-	createAndRespond(s.db.DB, w, new(db.Thread), publicThread)
+	createAndRespond(s.db.WithContext(r.Context()), w, new(db.Thread), publicThread)
 }
 
 func (s *Server) CreateThreadAndRun(w http.ResponseWriter, r *http.Request) {
@@ -464,17 +465,17 @@ func (s *Server) CreateThreadAndRun(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) DeleteThread(w http.ResponseWriter, _ *http.Request, threadID string) {
+func (s *Server) DeleteThread(w http.ResponseWriter, r *http.Request, threadID string) {
 	//nolint:govet
-	deleteAndRespond[*db.Thread](s.db.DB, w, threadID, openai.DeleteThreadResponse{
+	deleteAndRespond[*db.Thread](s.db.WithContext(r.Context()), w, threadID, openai.DeleteThreadResponse{
 		true,
 		threadID,
 		openai.ThreadDeleted,
 	})
 }
 
-func (s *Server) GetThread(w http.ResponseWriter, _ *http.Request, threadID string) {
-	getAndRespond(s.db.DB, w, new(db.Thread), threadID)
+func (s *Server) GetThread(w http.ResponseWriter, r *http.Request, threadID string) {
+	getAndRespond(s.db.WithContext(r.Context()), w, new(db.Thread), threadID)
 }
 
 func (s *Server) ModifyThread(w http.ResponseWriter, r *http.Request, threadID string) {
@@ -491,17 +492,17 @@ func (s *Server) ModifyThread(w http.ResponseWriter, r *http.Request, threadID s
 		return
 	}
 
-	modify(s.db.DB, w, new(db.Thread), threadID, map[string]interface{}{"metadata": reqBody.Metadata})
+	modify(s.db.WithContext(r.Context()), w, new(db.Thread), threadID, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
-func (s *Server) ListMessages(w http.ResponseWriter, _ *http.Request, threadID string, params openai.ListMessagesParams) {
+func (s *Server) ListMessages(w http.ResponseWriter, r *http.Request, threadID string, params openai.ListMessagesParams) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "list"))))
 		return
 	}
 
-	gormDB, err := processAssistantsAPIListParams[*db.Message](s.db.DB.Where("thread_id = ?", threadID), params.Limit, params.Before, params.After, params.Order)
+	gormDB, err := processAssistantsAPIListParams[*db.Message](s.db.WithContext(r.Context()).Where("thread_id = ?", threadID), params.Limit, params.Before, params.After, params.Order)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
@@ -554,17 +555,17 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request, threadID 
 		threadID,
 	}
 
-	createAndRespond(s.db.DB, w, new(db.Message), publicMessage)
+	createAndRespond(s.db.WithContext(r.Context()), w, new(db.Message), publicMessage)
 }
 
-func (s *Server) GetMessage(w http.ResponseWriter, _ *http.Request, threadID string, messageID string) {
+func (s *Server) GetMessage(w http.ResponseWriter, r *http.Request, threadID string, messageID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "get"))))
 		return
 	}
 
-	getAndRespond(s.db.Where("thread_id = ?", threadID), w, new(db.Message), messageID)
+	getAndRespond(s.db.WithContext(r.Context()).Where("thread_id = ?", threadID), w, new(db.Message), messageID)
 }
 
 func (s *Server) ModifyMessage(w http.ResponseWriter, r *http.Request, threadID string, messageID string) {
@@ -587,7 +588,7 @@ func (s *Server) ModifyMessage(w http.ResponseWriter, r *http.Request, threadID 
 		return
 	}
 
-	modify(s.db.DB, w, new(db.Message), messageID, map[string]interface{}{"metadata": reqBody.Metadata})
+	modify(s.db.WithContext(r.Context()), w, new(db.Message), messageID, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
 func (s *Server) ListMessageFiles(w http.ResponseWriter, r *http.Request, threadID string, messageID string, params openai.ListMessageFilesParams) {
@@ -602,7 +603,7 @@ func (s *Server) ListMessageFiles(w http.ResponseWriter, r *http.Request, thread
 		return
 	}
 
-	gormDB, err := processAssistantsAPIListParams[*db.MessageFile](s.db.Where("thread_id = ? AND message_id = ?", threadID, messageID), params.Limit, params.Before, params.After, params.Order)
+	gormDB, err := processAssistantsAPIListParams[*db.MessageFile](s.db.WithContext(r.Context()).Where("thread_id = ? AND message_id = ?", threadID, messageID), params.Limit, params.Before, params.After, params.Order)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
@@ -624,7 +625,7 @@ func (s *Server) GetMessageFile(w http.ResponseWriter, r *http.Request, threadID
 		return
 	}
 
-	getAndRespond(s.db.Where("thread_id = ? AND message_id = ?", threadID, messageID), w, new(db.MessageFile), fileID)
+	getAndRespond(s.db.WithContext(r.Context()).Where("thread_id = ? AND message_id = ?", threadID, messageID), w, new(db.MessageFile), fileID)
 }
 
 func (s *Server) ListRuns(w http.ResponseWriter, r *http.Request, threadID string, params openai.ListRunsParams) {
@@ -634,7 +635,7 @@ func (s *Server) ListRuns(w http.ResponseWriter, r *http.Request, threadID strin
 		return
 	}
 
-	gormDB, err := processAssistantsAPIListParams[*db.Run](s.db.Where("thread_id = ?", threadID), params.Limit, params.Before, params.After, params.Order)
+	gormDB, err := processAssistantsAPIListParams[*db.Run](s.db.WithContext(r.Context()).Where("thread_id = ?", threadID), params.Limit, params.Before, params.After, params.Order)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
@@ -701,7 +702,7 @@ func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, threadID stri
 		nil,
 	}
 
-	createAndRespond(s.db.DB, w, new(db.Run), publicRun)
+	createAndRespond(s.db.WithContext(r.Context()), w, new(db.Run), publicRun)
 }
 
 func (s *Server) GetRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
@@ -711,7 +712,7 @@ func (s *Server) GetRun(w http.ResponseWriter, r *http.Request, threadID string,
 		return
 	}
 
-	getAndRespond(s.db.Where("thread_id = ?", threadID), w, new(db.Run), runID)
+	getAndRespond(s.db.WithContext(r.Context()).Where("thread_id = ?", threadID), w, new(db.Run), runID)
 }
 
 func (s *Server) ModifyRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
@@ -734,7 +735,7 @@ func (s *Server) ModifyRun(w http.ResponseWriter, r *http.Request, threadID stri
 		return
 	}
 
-	modify(s.db.DB, w, new(db.Run), runID, map[string]interface{}{"metadata": reqBody.Metadata})
+	modify(s.db.WithContext(r.Context()), w, new(db.Run), runID, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
 func (s *Server) CancelRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
@@ -750,7 +751,7 @@ func (s *Server) CancelRun(w http.ResponseWriter, r *http.Request, threadID stri
 		return
 	}
 
-	publicRun, err := db.CancelRun(s.db.Where("thread_id = ?", threadID), runID)
+	publicRun, err := db.CancelRun(s.db.WithContext(r.Context()).Where("thread_id = ?", threadID), runID)
 	if err != nil {
 		if errors.Is(err, gdb.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
