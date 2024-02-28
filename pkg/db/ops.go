@@ -11,17 +11,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// GetPublicObject gets an object from the database by ID.
-func GetPublicObject[T Transformer](db *gdb.DB, id string) (any, error) {
-	var obj T
-	slog.Debug("Getting", "id", id)
-	if err := db.First(obj, "id = ?", id).Error; err != nil {
-		return nil, err
-	}
-
-	return obj.ToPublic(), nil
-}
-
 // Get gets an object from the database by ID.
 func Get(db *gdb.DB, dataObj any, id string) error {
 	slog.Debug("Getting", "id", id)
@@ -29,45 +18,23 @@ func Get(db *gdb.DB, dataObj any, id string) error {
 }
 
 // ListPublicObjects lists objects from the database.
-func ListPublicObjects[T Transformer](db *gdb.DB) ([]any, error) {
-	var objs []T
+func ListPublicObjects[T Transformer](db *gdb.DB, objs []T) error {
 	slog.Debug("Getting all objects", "type", fmt.Sprintf("%T", objs))
-	if err := db.Find(&objs).Error; err != nil {
-		return nil, err
-	}
-
-	validObjs := make([]any, 0, len(objs))
-	for _, o := range objs {
-		validObjs = append(validObjs, o.ToPublic())
-	}
-
-	return validObjs, nil
+	return db.Find(&objs).Error
 }
 
-// CreateFromPublic creates an object from a public object and saves it to the database.
-// The Transformer object passed here will be used to convert the public object to the database object.
+// Create saves an object to the database. It will first set the ID and CreatedAt fields.
 // It is the responsibility of the caller to validate the object before calling this function.
-func CreateFromPublic[T Transformer](db *gdb.DB, publicObj any) (any, error) {
-	var obj T
-	if err := obj.FromPublic(publicObj); err != nil {
-		return nil, err
-	}
-
+func Create(db *gdb.DB, obj Storer) error {
 	obj.SetID(uuid.New().String())
 	obj.SetCreatedAt(int(time.Now().Unix()))
 
 	slog.Debug("Creating", "id", obj.GetID())
-	if err := db.Transaction(func(tx *gdb.DB) error {
-		return tx.Create(obj).Error
-	}); err != nil {
-		return nil, err
-	}
-
-	return obj.ToPublic(), nil
+	return CreateAny(db, obj)
 }
 
-// Create creates an object from the database type. This should only be used for objects that cannot be retrieved after creation.
-func Create(db *gdb.DB, dataObj any) error {
+// CreateAny creates an object from the database type. This should only be used for objects that cannot be retrieved after creation.
+func CreateAny(db *gdb.DB, dataObj any) error {
 	slog.Debug("Creating", "type", fmt.Sprintf("%T", dataObj))
 	return db.Transaction(func(tx *gdb.DB) error {
 		return tx.Create(dataObj).Error
@@ -75,7 +42,7 @@ func Create(db *gdb.DB, dataObj any) error {
 }
 
 // Delete deletes an object from the database by ID.
-func Delete[T Transformer](db *gdb.DB, id string) error {
+func Delete[T any](db *gdb.DB, id string) error {
 	slog.Debug("Deleting", "id", id)
 	return db.Transaction(func(tx *gdb.DB) error {
 		return tx.Delete(*new(T), "id = ?", id).Error
@@ -83,16 +50,11 @@ func Delete[T Transformer](db *gdb.DB, id string) error {
 }
 
 // Modify modifies the object in the database. All validation should be done before calling this function.
-func Modify[T Transformer](db *gdb.DB, id string, updates any) (any, error) {
-	var dataObj T
-	slog.Debug("Modifying", "type", fmt.Sprintf("%T", dataObj), "id", id, "updates", updates)
-	if err := db.Transaction(func(tx *gdb.DB) error {
-		return tx.Model(dataObj).Clauses(clause.Returning{}).Where("id = ?", id).Updates(updates).Error
-	}); err != nil {
-		return nil, err
-	}
-
-	return dataObj.ToPublic(), nil
+func Modify(db *gdb.DB, obj any, id string, updates any) error {
+	slog.Debug("Modifying", "type", fmt.Sprintf("%T", obj), "id", id, "updates", updates)
+	return db.Transaction(func(tx *gdb.DB) error {
+		return tx.Model(obj).Clauses(clause.Returning{}).Where("id = ?", id).Updates(updates).Error
+	})
 }
 
 // CancelRun cancels a run that is in progress. If the run is not in progress, it will return an error.

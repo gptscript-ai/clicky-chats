@@ -73,7 +73,7 @@ func (s *Server) CreateAssistant(w http.ResponseWriter, r *http.Request) {
 		tools,
 	}
 
-	createAndRespond[*db.Assistant](s.db.DB, w, publicAssistant)
+	createAndRespond(s.db.DB, w, new(db.Assistant), publicAssistant)
 }
 
 func (s *Server) DeleteAssistant(w http.ResponseWriter, _ *http.Request, assistantID string) {
@@ -86,7 +86,7 @@ func (s *Server) DeleteAssistant(w http.ResponseWriter, _ *http.Request, assista
 }
 
 func (s *Server) GetAssistant(w http.ResponseWriter, _ *http.Request, assistantID string) {
-	getAndRespond[*db.Assistant](s.db.DB, w, assistantID)
+	getAndRespond(s.db.DB, w, new(db.Assistant), assistantID)
 }
 
 func (s *Server) ModifyAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
@@ -141,7 +141,7 @@ func (s *Server) ModifyAssistant(w http.ResponseWriter, r *http.Request, assista
 		tools,
 	}
 
-	modify[*db.Assistant](s.db.DB, w, assistantID, publicAssistant)
+	modify(s.db.DB, w, new(db.Assistant), assistantID, publicAssistant)
 }
 
 func (s *Server) ListAssistantFiles(w http.ResponseWriter, _ *http.Request, assistantID string, params openai.ListAssistantFilesParams) {
@@ -175,7 +175,7 @@ func (s *Server) CreateAssistantFile(w http.ResponseWriter, r *http.Request, ass
 	}
 
 	//nolint:govet
-	createAndRespond[*db.AssistantFile](s.db.DB, w, &openai.AssistantFileObject{
+	createAndRespond(s.db.DB, w, new(db.AssistantFile), &openai.AssistantFileObject{
 		assistantID,
 		0,
 		"",
@@ -205,7 +205,7 @@ func (s *Server) GetAssistantFile(w http.ResponseWriter, _ *http.Request, assist
 		return
 	}
 
-	getAndRespond[*db.AssistantFile](s.db.DB.Where("assistant_id = ?", assistantID), w, fileID)
+	getAndRespond(s.db.DB.Where("assistant_id = ?", assistantID), w, new(db.AssistantFile), fileID)
 }
 
 func (s *Server) CreateSpeech(w http.ResponseWriter, r *http.Request) {
@@ -231,7 +231,7 @@ func (s *Server) CreateSpeech(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// FIXME: The correct response here is the audio for the speech.
-	if err := db.Create(s.db.DB, newSpeech); err != nil {
+	if err := db.CreateAny(s.db.DB, newSpeech); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
 		return
@@ -262,9 +262,6 @@ func (s *Server) CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
 		return
 	}
-
-	ccr.CreatedAt = int(time.Now().Unix())
-	ccr.ID = uuid.New().String()
 
 	if err := db.Create(s.db.DB, ccr); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -337,7 +334,7 @@ func (s *Server) CreateFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = db.Create(s.db.DB, file); err != nil {
+	if err = db.CreateAny(s.db.DB, file); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
 		return
@@ -366,7 +363,7 @@ func (s *Server) DeleteFile(w http.ResponseWriter, r *http.Request, fileID strin
 }
 
 func (s *Server) RetrieveFile(w http.ResponseWriter, _ *http.Request, fileID string) {
-	getAndRespond[*db.File](s.db.DB, w, fileID)
+	getAndRespond(s.db.DB, w, new(db.File), fileID)
 }
 
 func (s *Server) DownloadFile(w http.ResponseWriter, r *http.Request, fileID string) {
@@ -385,7 +382,7 @@ func (s *Server) CreateFineTuningJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) RetrieveFineTuningJob(w http.ResponseWriter, r *http.Request, fineTuningJobID string) {
-	getAndRespond[*db.FineTuningJob](s.db.DB, w, fineTuningJobID)
+	getAndRespond(s.db.DB, w, new(db.FineTuningJob), fineTuningJobID)
 }
 
 func (s *Server) CancelFineTuningJob(w http.ResponseWriter, r *http.Request, fineTuningJobID string) {
@@ -427,7 +424,7 @@ func (s *Server) DeleteModel(w http.ResponseWriter, _ *http.Request, modelID str
 }
 
 func (s *Server) RetrieveModel(w http.ResponseWriter, _ *http.Request, modelID string) {
-	getAndRespond[*db.Model](s.db.DB, w, modelID)
+	getAndRespond(s.db.DB, w, new(db.Model), modelID)
 }
 
 func (s *Server) CreateModeration(w http.ResponseWriter, r *http.Request) {
@@ -459,7 +456,7 @@ func (s *Server) CreateThread(w http.ResponseWriter, r *http.Request) {
 		openai.Thread,
 	}
 
-	createAndRespond[*db.Thread](s.db.DB, w, publicThread)
+	createAndRespond(s.db.DB, w, new(db.Thread), publicThread)
 }
 
 func (s *Server) CreateThreadAndRun(w http.ResponseWriter, r *http.Request) {
@@ -477,7 +474,7 @@ func (s *Server) DeleteThread(w http.ResponseWriter, _ *http.Request, threadID s
 }
 
 func (s *Server) GetThread(w http.ResponseWriter, _ *http.Request, threadID string) {
-	getAndRespond[*db.Thread](s.db.DB, w, threadID)
+	getAndRespond(s.db.DB, w, new(db.Thread), threadID)
 }
 
 func (s *Server) ModifyThread(w http.ResponseWriter, r *http.Request, threadID string) {
@@ -494,7 +491,7 @@ func (s *Server) ModifyThread(w http.ResponseWriter, r *http.Request, threadID s
 		return
 	}
 
-	modify[*db.Thread](s.db.DB, w, threadID, map[string]interface{}{"metadata": reqBody.Metadata})
+	modify(s.db.DB, w, new(db.Thread), threadID, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
 func (s *Server) ListMessages(w http.ResponseWriter, _ *http.Request, threadID string, params openai.ListMessagesParams) {
@@ -557,7 +554,7 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request, threadID 
 		threadID,
 	}
 
-	createAndRespond[*db.Message](s.db.DB, w, publicMessage)
+	createAndRespond(s.db.DB, w, new(db.Message), publicMessage)
 }
 
 func (s *Server) GetMessage(w http.ResponseWriter, _ *http.Request, threadID string, messageID string) {
@@ -567,7 +564,7 @@ func (s *Server) GetMessage(w http.ResponseWriter, _ *http.Request, threadID str
 		return
 	}
 
-	getAndRespond[*db.Message](s.db.Where("thread_id = ?", threadID), w, messageID)
+	getAndRespond(s.db.Where("thread_id = ?", threadID), w, new(db.Message), messageID)
 }
 
 func (s *Server) ModifyMessage(w http.ResponseWriter, r *http.Request, threadID string, messageID string) {
@@ -590,7 +587,7 @@ func (s *Server) ModifyMessage(w http.ResponseWriter, r *http.Request, threadID 
 		return
 	}
 
-	modify[*db.Message](s.db.DB, w, messageID, map[string]interface{}{"metadata": reqBody.Metadata})
+	modify(s.db.DB, w, new(db.Message), messageID, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
 func (s *Server) ListMessageFiles(w http.ResponseWriter, r *http.Request, threadID string, messageID string, params openai.ListMessageFilesParams) {
@@ -627,7 +624,7 @@ func (s *Server) GetMessageFile(w http.ResponseWriter, r *http.Request, threadID
 		return
 	}
 
-	getAndRespond[*db.MessageFile](s.db.Where("thread_id = ? AND message_id = ?", threadID, messageID), w, fileID)
+	getAndRespond(s.db.Where("thread_id = ? AND message_id = ?", threadID, messageID), w, new(db.MessageFile), fileID)
 }
 
 func (s *Server) ListRuns(w http.ResponseWriter, r *http.Request, threadID string, params openai.ListRunsParams) {
@@ -704,7 +701,7 @@ func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, threadID stri
 		nil,
 	}
 
-	createAndRespond[*db.Run](s.db.DB, w, publicRun)
+	createAndRespond(s.db.DB, w, new(db.Run), publicRun)
 }
 
 func (s *Server) GetRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
@@ -714,7 +711,7 @@ func (s *Server) GetRun(w http.ResponseWriter, r *http.Request, threadID string,
 		return
 	}
 
-	getAndRespond[*db.Run](s.db.Where("thread_id = ?", threadID), w, runID)
+	getAndRespond(s.db.Where("thread_id = ?", threadID), w, new(db.Run), runID)
 }
 
 func (s *Server) ModifyRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
@@ -737,7 +734,7 @@ func (s *Server) ModifyRun(w http.ResponseWriter, r *http.Request, threadID stri
 		return
 	}
 
-	modify[*db.Run](s.db.DB, w, runID, map[string]interface{}{"metadata": reqBody.Metadata})
+	modify(s.db.DB, w, new(db.Run), runID, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
 func (s *Server) CancelRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
@@ -805,15 +802,14 @@ func writeObjectToResponse(w http.ResponseWriter, obj any) {
 	}
 }
 
-func getAndRespond[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter, id string) {
+func getAndRespond(gormDB *gdb.DB, w http.ResponseWriter, obj db.Transformer, id string) {
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "id", "get"))))
 		return
 	}
 
-	publicObj, err := db.GetPublicObject[T](gormDB, id)
-	if err != nil {
+	if err := db.Get(gormDB, obj, id); err != nil {
 		if errors.Is(err, gdb.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, notFoundError)))
@@ -825,13 +821,17 @@ func getAndRespond[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter, id s
 		return
 	}
 
-	writeObjectToResponse(w, publicObj)
+	writeObjectToResponse(w, obj.ToPublic())
 }
 
-func createAndRespond[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter, publicObj any) {
-	var err error
-	publicObj, err = db.CreateFromPublic[T](gormDB, publicObj)
-	if err != nil {
+func createAndRespond(gormDB *gdb.DB, w http.ResponseWriter, obj db.Transformer, publicObj any) {
+	if err := obj.FromPublic(publicObj); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		return
+	}
+
+	if err := db.Create(gormDB, obj); err != nil {
 		if errors.Is(err, gdb.ErrDuplicatedKey) {
 			w.WriteHeader(http.StatusConflict)
 			_, _ = w.Write([]byte(`{"error": "already exists"}`))
@@ -843,7 +843,7 @@ func createAndRespond[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter, p
 		return
 	}
 
-	writeObjectToResponse(w, publicObj)
+	writeObjectToResponse(w, obj.ToPublic())
 }
 
 func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gdb.DB, limit *int, before, after *string, order *O) (*gdb.DB, error) {
@@ -891,19 +891,23 @@ func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gdb.DB,
 }
 
 func listAndRespond[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter) {
-	publicObjs, err := db.ListPublicObjects[T](gormDB)
-	if err != nil {
+	var objs []T
+	if err := db.ListPublicObjects(gormDB, objs); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
 		return
 	}
 
+	publicObjs := make([]any, 0, len(objs))
+	for _, o := range objs {
+		publicObjs = append(publicObjs, o.ToPublic())
+	}
+
 	writeObjectToResponse(w, map[string]any{"object": "list", "data": publicObjs})
 }
 
-func modify[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter, id string, updates any) {
-	publicObj, err := db.Modify[T](gormDB, id, updates)
-	if err != nil {
+func modify(gormDB *gdb.DB, w http.ResponseWriter, obj db.Transformer, id string, updates any) {
+	if err := db.Modify(gormDB, obj, id, updates); err != nil {
 		if errors.Is(err, gdb.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, notFoundError)))
@@ -915,7 +919,7 @@ func modify[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter, id string, 
 		return
 	}
 
-	writeObjectToResponse(w, publicObj)
+	writeObjectToResponse(w, obj.ToPublic())
 }
 
 func deleteAndRespond[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter, id string, resp any) {

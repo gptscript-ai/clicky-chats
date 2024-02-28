@@ -83,8 +83,7 @@ func (t *ThreadChild) GetThreadID() string {
 }
 
 type JobRequest struct {
-	ID         string  `json:"id,omitempty"`
-	CreatedAt  int     `json:"created_at,omitempty"`
+	Base       `json:",inline"`
 	ResponseID *string `json:"response_id,omitempty"`
 	ClaimedBy  *string `json:"claimed_by,omitempty"`
 }

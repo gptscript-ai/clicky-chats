@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/getkin/kin-openapi/openapi3filter"
+	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
 	"github.com/thedadams/clicky-chats/pkg/db"
 	"github.com/thedadams/clicky-chats/pkg/generated/openai"
 )
@@ -40,19 +42,23 @@ func (s *Server) Run(ctx context.Context, config Config) error {
 
 	swagger.Servers = openapi3.Servers{&openapi3.Server{URL: fmt.Sprintf("%s:%s%s", config.ServerURL, config.Port, config.APIBase)}}
 
+	// The file_ids field is not required for CreateMessageRequest, but the OpenAPI spec has minItems of 1. This doesn't make sense.
+	swagger.Components.Schemas["CreateMessageRequest"].Value.Properties["file_ids"].Value.MinItems = 0
+
 	mux := http.NewServeMux()
 
 	openai.HandlerWithOptions(s, openai.StdHTTPServerOptions{
-		BaseURL:     config.APIBase,
-		BaseRouter:  mux,
+		BaseURL:    config.APIBase,
+		BaseRouter: mux,
 		Middlewares: []openai.MiddlewareFunc{
-			// The OpenAPI spec has some errors in it. It would be great if we could use the spec to validate requests.
-			//nethttpmiddleware.OapiRequestValidatorWithOptions(swagger, &nethttpmiddleware.Options{
-			//	SilenceServersWarning: true,
-			//	Options: openapi3filter.Options{
-			//		AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
-			//	},
-			//}),
+			nethttpmiddleware.OapiRequestValidatorWithOptions(swagger, &nethttpmiddleware.Options{
+				SilenceServersWarning: true,
+				Options: openapi3filter.Options{
+					AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
+				},
+			}),
+			SetContentType("application/json"),
+			LogRequest(slog.Default()),
 		},
 	})
 
@@ -61,7 +67,7 @@ func (s *Server) Run(ctx context.Context, config Config) error {
 		BaseContext: func(net.Listener) context.Context {
 			return ctx
 		},
-		Handler: LogRequest(slog.Default(), SetContentType("application/json", RequireContentType("application/json", mux))),
+		Handler: mux,
 	}
 
 	go func() {
