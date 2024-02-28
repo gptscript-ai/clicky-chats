@@ -45,7 +45,7 @@ func CreateAny(db *gdb.DB, dataObj any) error {
 func Delete[T any](db *gdb.DB, id string) error {
 	slog.Debug("Deleting", "id", id)
 	return db.Transaction(func(tx *gdb.DB) error {
-		return tx.Delete(*new(T), "id = ?", id).Error
+		return tx.Delete(new(T), "id = ?", id).Error
 	})
 }
 
