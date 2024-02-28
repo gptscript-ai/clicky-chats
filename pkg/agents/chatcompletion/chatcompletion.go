@@ -9,7 +9,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/acorn-io/z"
@@ -19,37 +18,38 @@ import (
 	gdb "gorm.io/gorm"
 )
 
-const (
-	openAIAPIURL             = "https://api.openai.com/v1"
-	openAIChatCompletionsURL = openAIAPIURL + "/chat/completions"
-)
+type Config struct {
+	PollingInterval, CleanupTickTime time.Duration
+	APIURL, APIKey, AgentID          string
+}
 
-func Start(ctx context.Context, gdb *gdb.DB, cleanupTickTime time.Duration) error {
-	controller, err := newController(gdb)
+func Start(ctx context.Context, gdb *gdb.DB, cfg Config) error {
+	a, err := newAgent(gdb, cfg)
 	if err != nil {
 		return err
 	}
 
-	controller.Start(ctx, cleanupTickTime)
+	a.Start(ctx, cfg.PollingInterval, cfg.CleanupTickTime)
 	return nil
 }
 
-type controller struct {
-	id, apiKey string
-	client     *http.Client
-	db         *gdb.DB
+type agent struct {
+	id, apiKey, url string
+	client          *http.Client
+	db              *gdb.DB
 }
 
-func newController(db *gdb.DB) (*controller, error) {
-	return &controller{
+func newAgent(db *gdb.DB, cfg Config) (*agent, error) {
+	return &agent{
 		client: http.DefaultClient,
-		apiKey: os.Getenv("OPENAI_API_KEY"),
+		apiKey: cfg.APIKey,
 		db:     db,
-		id:     "cha boy",
+		id:     cfg.AgentID,
+		url:    cfg.APIURL,
 	}, nil
 }
 
-func (c *controller) Start(ctx context.Context, cleanupTickTime time.Duration) {
+func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanupTickTime time.Duration) {
 	// Start the "job runner"
 	go func() {
 		for {
@@ -79,9 +79,6 @@ func (c *controller) Start(ctx context.Context, cleanupTickTime time.Duration) {
 				}
 
 				chatCompletionID := cc.ID
-
-				// Reset job information so that it doesn't get included in the request.
-				cc.JobRequest = db.JobRequest{}
 
 				slog.Debug("Found chat completion", "cc", cc, "id", chatCompletionID)
 				ccr, err := c.makeChatCompletionRequest(ctx, cc)
@@ -143,7 +140,7 @@ func (c *controller) Start(ctx context.Context, cleanupTickTime time.Duration) {
 	}()
 }
 
-func (c *controller) makeChatCompletionRequest(ctx context.Context, cc *db.ChatCompletionRequest) (*db.ChatCompletionResponse, error) {
+func (c *agent) makeChatCompletionRequest(ctx context.Context, cc *db.ChatCompletionRequest) (*db.ChatCompletionResponse, error) {
 	b, err := json.Marshal(cc.ToPublic())
 	if err != nil {
 		return nil, err
@@ -151,7 +148,7 @@ func (c *controller) makeChatCompletionRequest(ctx context.Context, cc *db.ChatC
 
 	slog.Debug("Making chat completion request", "request", string(b))
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, openAIChatCompletionsURL, bytes.NewReader(b))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url, bytes.NewReader(b))
 	if err != nil {
 		return nil, err
 	}

@@ -2,7 +2,7 @@ package cli
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/thedadams/clicky-chats/pkg/controllers"
+	"github.com/thedadams/clicky-chats/pkg/agents"
 	"github.com/thedadams/clicky-chats/pkg/db"
 	"github.com/thedadams/clicky-chats/pkg/server"
 )
@@ -25,7 +25,7 @@ func (s *Server) Run(cmd *cobra.Command, _ []string) error {
 	}
 
 	if s.WithAgent {
-		if err = controllers.Start(cmd.Context(), gormDB.DB); err != nil {
+		if err = agents.Start(cmd.Context(), gormDB.DB); err != nil {
 			return err
 		}
 	}
