@@ -10,8 +10,8 @@ type Run struct {
 	ThreadChild    `json:",inline"`
 	AssistantID    string                                           `json:"assistant_id"`
 	Status         string                                           `json:"status"`
-	RequiredAction datatypes.JSONType[RunRequiredAction]            `json:"required_action"`
-	LastError      datatypes.JSONType[RunLastError]                 `json:"last_error"`
+	RequiredAction datatypes.JSONType[*RunRequiredAction]           `json:"required_action"`
+	LastError      datatypes.JSONType[*RunLastError]                `json:"last_error"`
 	ExpiresAt      int                                              `json:"expires_at,omitempty"`
 	StartedAt      *int                                             `json:"started_at,omitempty"`
 	CancelledAt    *int                                             `json:"cancelled_at,omitempty"`
@@ -22,11 +22,12 @@ type Run struct {
 	Tools          datatypes.JSONSlice[openai.RunObject_Tools_Item] `json:"tools"`
 	FileIDs        datatypes.JSONSlice[string]                      `json:"file_ids,omitempty"`
 	Usage          datatypes.JSONType[*openai.RunCompletionUsage]   `json:"usage"`
+
+	// These are not part of the public API
+	ClaimedBy *string `json:"claimed_by,omitempty"`
 }
 
 func (r *Run) ToPublic() any {
-	lastError := r.LastError.Data()
-
 	//nolint:govet
 	return &openai.RunObject{
 		r.AssistantID,
@@ -38,29 +39,11 @@ func (r *Run) ToPublic() any {
 		r.FileIDs,
 		r.ID,
 		r.Instructions,
-		&struct {
-			Code    openai.RunObjectLastErrorCode `json:"code"`
-			Message string                        `json:"message"`
-		}{
-			Code:    lastError.Code,
-			Message: lastError.Message,
-		},
+		r.LastError.Data().toPublic(),
 		z.Pointer[map[string]interface{}](r.Metadata.Metadata),
 		r.Model,
 		openai.ThreadRun,
-		&struct {
-			SubmitToolOutputs struct {
-				ToolCalls []openai.RunToolCallObject `json:"tool_calls"`
-			} `json:"submit_tool_outputs"`
-			Type openai.RunObjectRequiredActionType `json:"type"`
-		}{
-			SubmitToolOutputs: struct {
-				ToolCalls []openai.RunToolCallObject `json:"tool_calls"`
-			}{
-				ToolCalls: r.RequiredAction.Data().SubmitToolOutputs.ToolCalls,
-			},
-			Type: openai.SubmitToolOutputs,
-		},
+		r.RequiredAction.Data().toPublic(),
 		r.StartedAt,
 		openai.RunObjectStatus(r.Status),
 		r.ThreadID,
@@ -79,19 +62,17 @@ func (r *Run) FromPublic(obj any) error {
 		if o.Status == "" {
 			o.Status = openai.RunObjectStatusQueued
 		}
-		var requiredAction RunRequiredAction
+		var requiredAction *RunRequiredAction
 		if o.RequiredAction != nil {
-			requiredAction = RunRequiredAction{
-				SubmitToolOutputs: SubmitToolOutputs{
-					ToolCalls: o.RequiredAction.SubmitToolOutputs.ToolCalls,
-				},
-				Type: o.RequiredAction.Type,
+			requiredAction = &RunRequiredAction{
+				SubmitToolOutputs: o.RequiredAction.SubmitToolOutputs.ToolCalls,
+				Type:              o.RequiredAction.Type,
 			}
 		}
-		var lastError RunLastError
+		var lastError *RunLastError
 		if o.LastError != nil {
-			lastError = RunLastError{
-				Code:    o.LastError.Code,
+			lastError = &RunLastError{
+				Code:    string(o.LastError.Code),
 				Message: o.LastError.Message,
 			}
 		}
@@ -122,6 +103,8 @@ func (r *Run) FromPublic(obj any) error {
 			datatypes.NewJSONSlice(o.Tools),
 			o.FileIds,
 			datatypes.NewJSONType(o.Usage),
+
+			nil,
 		}
 	}
 
@@ -129,15 +112,53 @@ func (r *Run) FromPublic(obj any) error {
 }
 
 type RunLastError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func (r *RunLastError) toPublic() *struct {
 	Code    openai.RunObjectLastErrorCode `json:"code"`
 	Message string                        `json:"message"`
+} {
+	if r == nil {
+		return nil
+	}
+
+	return &struct {
+		Code    openai.RunObjectLastErrorCode `json:"code"`
+		Message string                        `json:"message"`
+	}{
+		Code:    openai.RunObjectLastErrorCode(r.Code),
+		Message: r.Message,
+	}
 }
 
 type RunRequiredAction struct {
-	SubmitToolOutputs SubmitToolOutputs                  `json:"submit_tool_outputs"`
+	SubmitToolOutputs []openai.RunToolCallObject         `json:"submit_tool_outputs"`
 	Type              openai.RunObjectRequiredActionType `json:"type"`
 }
 
-type SubmitToolOutputs struct {
-	ToolCalls []openai.RunToolCallObject `json:"tool_calls"`
+func (r *RunRequiredAction) toPublic() *struct {
+	SubmitToolOutputs struct {
+		ToolCalls []openai.RunToolCallObject `json:"tool_calls"`
+	} `json:"submit_tool_outputs"`
+	Type openai.RunObjectRequiredActionType `json:"type"`
+} {
+	if r == nil {
+		return nil
+	}
+
+	return &struct {
+		SubmitToolOutputs struct {
+			ToolCalls []openai.RunToolCallObject `json:"tool_calls"`
+		} `json:"submit_tool_outputs"`
+		Type openai.RunObjectRequiredActionType `json:"type"`
+	}{
+		SubmitToolOutputs: struct {
+			ToolCalls []openai.RunToolCallObject `json:"tool_calls"`
+		}{
+			ToolCalls: r.SubmitToolOutputs,
+		},
+		Type: r.Type,
+	}
 }

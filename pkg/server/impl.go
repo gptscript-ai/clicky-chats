@@ -8,14 +8,14 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/acorn-io/z"
-	"github.com/google/uuid"
 	"github.com/thedadams/clicky-chats/pkg/db"
 	"github.com/thedadams/clicky-chats/pkg/generated/openai"
 	"gorm.io/datatypes"
-	gdb "gorm.io/gorm"
+	"gorm.io/gorm"
 )
 
 const (
@@ -318,7 +318,7 @@ func (s *Server) CreateFile(w http.ResponseWriter, r *http.Request) {
 		Filename: fh.Filename,
 		Purpose:  r.FormValue("purpose"),
 	}
-	file.SetID(uuid.New().String())
+	file.SetID(db.NewID())
 	file.SetCreatedAt(int(time.Now().Unix()))
 
 	uploadedFile, err := fh.Open()
@@ -526,16 +526,8 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request, threadID 
 		return
 	}
 
-	content := new(openai.MessageObject_Content_Item)
-	if err := content.FromMessageContentTextObject(openai.MessageContentTextObject{
-		Text: struct {
-			Annotations []openai.MessageContentTextObject_Text_Annotations_Item `json:"annotations"`
-			Value       string                                                  `json:"value"`
-		}{
-			Value: createMessageRequest.Content,
-		},
-		Type: openai.MessageContentTextObjectTypeText,
-	}); err != nil {
+	content, err := db.MessageContentFromString(createMessageRequest.Content)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "error processing content: %v"}`, err)))
 		return
@@ -659,6 +651,26 @@ func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, threadID stri
 		return
 	}
 
+	gormDB := s.db.WithContext(r.Context())
+	// If the thread is locked by another run, then return an error.
+	thread := new(db.Thread)
+	if err := gormDB.Where("id = ?", threadID).First(thread).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf("thread with id %s not found", threadID))))
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		return
+	}
+
+	if thread.LockedByRunID != "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf("run with id %s is already running for thread %s", thread.LockedByRunID, threadID))))
+		return
+	}
+
 	if err := validateMetadata(createRunRequest.Metadata); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
@@ -696,13 +708,38 @@ func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, threadID stri
 		openai.ThreadRun,
 		nil,
 		nil,
-		"",
+		openai.RunObjectStatusQueued,
 		threadID,
 		tools,
 		nil,
 	}
 
-	createAndRespond(s.db.WithContext(r.Context()), w, new(db.Run), publicRun)
+	run := new(db.Run)
+	if err := run.FromPublic(publicRun); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		return
+	}
+
+	if err := gormDB.Transaction(func(tx *gorm.DB) error {
+		if err := db.Create(tx, run); err != nil {
+			return err
+		}
+
+		return tx.Model(thread).Update("locked_by_run_id", run.ID).Error
+	}); err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"error": "already exists"}`))
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		return
+	}
+
+	writeObjectToResponse(w, run.ToPublic())
 }
 
 func (s *Server) GetRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
@@ -753,7 +790,7 @@ func (s *Server) CancelRun(w http.ResponseWriter, r *http.Request, threadID stri
 
 	publicRun, err := db.CancelRun(s.db.WithContext(r.Context()).Where("thread_id = ?", threadID), runID)
 	if err != nil {
-		if errors.Is(err, gdb.ErrRecordNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, notFoundError)))
 			return
@@ -768,18 +805,126 @@ func (s *Server) CancelRun(w http.ResponseWriter, r *http.Request, threadID stri
 }
 
 func (s *Server) ListRunSteps(w http.ResponseWriter, r *http.Request, threadID string, runID string, params openai.ListRunStepsParams) {
-	//TODO implement me
-	w.WriteHeader(http.StatusNotImplemented)
+	if threadID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "list"))))
+		return
+	}
+	if runID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "run_id", "list"))))
+		return
+	}
+
+	gormDB, err := processAssistantsAPIListParams[*db.RunStep](s.db.WithContext(r.Context()).Where("run_id = ?", runID), params.Limit, params.Before, params.After, params.Order)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		return
+	}
+
+	listAndRespond[*db.RunStep](gormDB, w)
 }
 
 func (s *Server) GetRunStep(w http.ResponseWriter, r *http.Request, threadID string, runID string, stepID string) {
-	//TODO implement me
-	w.WriteHeader(http.StatusNotImplemented)
+	if threadID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "get"))))
+		return
+	}
+	if runID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "run_id", "get"))))
+		return
+	}
+
+	getAndRespond(s.db.WithContext(r.Context()).Where("thread_id = ?", threadID).Where("run_id = ?", runID), w, new(db.RunStep), stepID)
 }
 
 func (s *Server) SubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
-	//TODO implement me
-	w.WriteHeader(http.StatusNotImplemented)
+	if threadID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "submit"))))
+		return
+	}
+	if runID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "run_id", "submit"))))
+		return
+	}
+
+	outputs := new(openai.SubmitToolOutputsRunRequest)
+	if err := readObjectFromRequest(r, outputs); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		return
+	}
+
+	// Get the latest run step.
+	var runSteps []*db.RunStep
+	if err := db.List(s.db.WithContext(r.Context()).Where("run_id = ?", runID).Where("status = ?", string(openai.InProgress)).Order("created_at desc").Limit(1), &runSteps); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		return
+	}
+	if len(runSteps) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"error": "run step not found"}`))
+		return
+	}
+
+	runStep := runSteps[0]
+
+	runStepFunctionCalls, err := runStep.GetRunStepFunctionCalls()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "failed getting run step tool calls: %v"}`, err)))
+		return
+	}
+	if runStep.Status != string(openai.InProgress) || len(runStepFunctionCalls) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, "run is not waiting on a tool output")))
+		return
+	}
+	if len(runStepFunctionCalls) != len(outputs.ToolOutputs) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, fmt.Sprintf("missing tool calls, expecting %d, got %d", len(runStepFunctionCalls), len(outputs.ToolOutputs)))))
+		return
+	}
+
+	// All expected tool calls must have been submitted.
+	for _, output := range outputs.ToolOutputs {
+		toolCallID := z.Dereference(output.ToolCallId)
+		idx := slices.IndexFunc(runStepFunctionCalls, func(toolCall openai.RunStepDetailsToolCallsFunctionObject) bool {
+			return toolCall.Id == toolCallID
+		})
+		if idx == -1 {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, fmt.Sprintf("unexpected tool call with id %s", toolCallID))))
+			return
+		}
+
+		runStepFunctionCalls[idx].Function.Output = new(string)
+		*runStepFunctionCalls[idx].Function.Output = *output.Output
+	}
+
+	stepDetailsHack := map[string]any{
+		"tool_calls": runStepFunctionCalls,
+		"type":       openai.ToolCalls,
+	}
+	if err := s.db.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(runStep).Where("id = ?", runStep.ID).Updates(map[string]interface{}{"status": string(openai.RunObjectStatusCompleted), "step_details": datatypes.NewJSONType(stepDetailsHack)}).Error; err != nil {
+			return err
+		}
+
+		return tx.Model(new(db.Run)).Where("id = ?", runID).Updates(map[string]interface{}{"status": string(openai.RunObjectStatusQueued), "required_action": nil}).Error
+	}); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		return
+	}
+
+	writeObjectToResponse(w, runStep.ToPublic())
 }
 
 func readObjectFromRequest(r *http.Request, obj any) error {
@@ -803,7 +948,7 @@ func writeObjectToResponse(w http.ResponseWriter, obj any) {
 	}
 }
 
-func getAndRespond(gormDB *gdb.DB, w http.ResponseWriter, obj db.Transformer, id string) {
+func getAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, id string) {
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "id", "get"))))
@@ -811,7 +956,7 @@ func getAndRespond(gormDB *gdb.DB, w http.ResponseWriter, obj db.Transformer, id
 	}
 
 	if err := db.Get(gormDB, obj, id); err != nil {
-		if errors.Is(err, gdb.ErrRecordNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, notFoundError)))
 			return
@@ -825,7 +970,7 @@ func getAndRespond(gormDB *gdb.DB, w http.ResponseWriter, obj db.Transformer, id
 	writeObjectToResponse(w, obj.ToPublic())
 }
 
-func createAndRespond(gormDB *gdb.DB, w http.ResponseWriter, obj db.Transformer, publicObj any) {
+func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, publicObj any) {
 	if err := obj.FromPublic(publicObj); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
@@ -833,7 +978,7 @@ func createAndRespond(gormDB *gdb.DB, w http.ResponseWriter, obj db.Transformer,
 	}
 
 	if err := db.Create(gormDB, obj); err != nil {
-		if errors.Is(err, gdb.ErrDuplicatedKey) {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			w.WriteHeader(http.StatusConflict)
 			_, _ = w.Write([]byte(`{"error": "already exists"}`))
 			return
@@ -847,7 +992,7 @@ func createAndRespond(gormDB *gdb.DB, w http.ResponseWriter, obj db.Transformer,
 	writeObjectToResponse(w, obj.ToPublic())
 }
 
-func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gdb.DB, limit *int, before, after *string, order *O) (*gdb.DB, error) {
+func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gorm.DB, limit *int, before, after *string, order *O) (*gorm.DB, error) {
 	if limit == nil || *limit == 0 {
 		limit = z.Pointer(20)
 	} else if *limit < 1 || *limit > 100 {
@@ -891,9 +1036,9 @@ func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gdb.DB,
 	return gormDB, nil
 }
 
-func listAndRespond[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter) {
+func listAndRespond[T db.Transformer](gormDB *gorm.DB, w http.ResponseWriter) {
 	var objs []T
-	if err := db.ListPublicObjects(gormDB, objs); err != nil {
+	if err := db.List(gormDB, &objs); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
 		return
@@ -907,9 +1052,9 @@ func listAndRespond[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter) {
 	writeObjectToResponse(w, map[string]any{"object": "list", "data": publicObjs})
 }
 
-func modify(gormDB *gdb.DB, w http.ResponseWriter, obj db.Transformer, id string, updates any) {
+func modify(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, id string, updates any) {
 	if err := db.Modify(gormDB, obj, id, updates); err != nil {
-		if errors.Is(err, gdb.ErrRecordNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, notFoundError)))
 			return
@@ -923,7 +1068,7 @@ func modify(gormDB *gdb.DB, w http.ResponseWriter, obj db.Transformer, id string
 	writeObjectToResponse(w, obj.ToPublic())
 }
 
-func deleteAndRespond[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter, id string, resp any) {
+func deleteAndRespond[T db.Transformer](gormDB *gorm.DB, w http.ResponseWriter, id string, resp any) {
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "id", "delete"))))
@@ -931,7 +1076,7 @@ func deleteAndRespond[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter, i
 	}
 
 	if err := db.Delete[T](gormDB, id); err != nil {
-		if errors.Is(err, gdb.ErrRecordNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, notFoundError)))
 			return
@@ -945,7 +1090,7 @@ func deleteAndRespond[T db.Transformer](gormDB *gdb.DB, w http.ResponseWriter, i
 	writeObjectToResponse(w, resp)
 }
 
-func waitForResponse(ctx context.Context, gormDB *gdb.DB, id string, obj db.JobRunner, respObj any) error {
+func waitForResponse(ctx context.Context, gormDB *gorm.DB, id string, obj db.JobRunner, respObj any) error {
 	gormDB = gormDB.WithContext(ctx)
 	for {
 		select {
@@ -966,7 +1111,7 @@ func waitForResponse(ctx context.Context, gormDB *gdb.DB, id string, obj db.JobR
 	}
 }
 
-func waitForAndWriteResponse(ctx context.Context, w http.ResponseWriter, gormDB *gdb.DB, id string, obj db.JobRunner, respObj db.JobResponder) {
+func waitForAndWriteResponse(ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string, obj db.JobRunner, respObj db.JobResponder) {
 	if err := waitForResponse(ctx, gormDB, id, obj, respObj); err != nil {
 		if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 			w.WriteHeader(http.StatusInternalServerError)

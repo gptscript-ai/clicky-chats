@@ -7,6 +7,8 @@ import (
 
 type Thread struct {
 	Metadata `json:",inline"`
+	// This is not part of the public API
+	LockedByRunID string `json:"locked_by_run_id"`
 }
 
 func (t *Thread) SetThreadID(string) error { return nil }
@@ -32,13 +34,14 @@ func (t *Thread) FromPublic(obj any) error {
 	if o != nil && t != nil {
 		//nolint:govet
 		*t = Thread{
-			Metadata: Metadata{
-				Base: Base{
+			Metadata{
+				Base{
 					o.Id,
 					o.CreatedAt,
 				},
-				Metadata: z.Dereference(o.Metadata),
+				z.Dereference(o.Metadata),
 			},
+			"",
 		}
 	}
 

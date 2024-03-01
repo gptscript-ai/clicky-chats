@@ -44,6 +44,10 @@ func (s *Server) Run(ctx context.Context, config Config) error {
 
 	// The file_ids field is not required for CreateMessageRequest, but the OpenAPI spec has minItems of 1. This doesn't make sense.
 	swagger.Components.Schemas["CreateMessageRequest"].Value.Properties["file_ids"].Value.MinItems = 0
+	// There is not "thread_id" field for a run, it is taken from the paths.
+	swagger.Components.Schemas["CreateRunRequest"].Value.Required = []string{"assistant_id"}
+	// Tools is nullable in the CreateChatCompletionRequest
+	swagger.Components.Schemas["CreateChatCompletionRequest"].Value.Properties["tools"].Value.Nullable = true
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.db.Check)

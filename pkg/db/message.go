@@ -94,3 +94,16 @@ func (m *MessageFile) FromPublic(obj any) error {
 
 	return nil
 }
+
+func MessageContentFromString(message string) (*openai.MessageObject_Content_Item, error) {
+	content := new(openai.MessageObject_Content_Item)
+	return content, content.FromMessageContentTextObject(openai.MessageContentTextObject{
+		Text: struct {
+			Annotations []openai.MessageContentTextObject_Text_Annotations_Item `json:"annotations"`
+			Value       string                                                  `json:"value"`
+		}{
+			Value: message,
+		},
+		Type: openai.MessageContentTextObjectTypeText,
+	})
+}

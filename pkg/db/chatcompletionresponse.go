@@ -97,7 +97,8 @@ func (pc publicChoice) toDBChoice() Choice {
 
 type choices []Choice
 
-func (c choices) toPublic() (choices publicChoices) {
+func (c choices) toPublic() publicChoices {
+	choices := make(publicChoices, 0, len(c))
 	for _, choice := range c {
 		choices = append(choices, choice.toPublic())
 	}

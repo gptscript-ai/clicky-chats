@@ -1,10 +1,17 @@
 package db
 
 import (
+	"time"
+
 	"github.com/acorn-io/z"
+	"github.com/google/uuid"
 	"github.com/thedadams/clicky-chats/pkg/types"
 	"gorm.io/datatypes"
 )
+
+func NewID() string {
+	return uuid.New().String()
+}
 
 type Storer interface {
 	SetID(string)
@@ -38,6 +45,13 @@ type JobResponder interface {
 	FromPublic(any) error
 }
 
+func NewBase() Base {
+	return Base{
+		ID:        NewID(),
+		CreatedAt: int(time.Now().Unix()),
+	}
+}
+
 type Base struct {
 	ID        string `json:"id" gorm:"primarykey"`
 	CreatedAt int    `json:"created_at,omitempty"`
@@ -59,9 +73,23 @@ func (b *Base) GetCreatedAt() int {
 	return b.CreatedAt
 }
 
+func NewMetadata(metadata map[string]any) Metadata {
+	return Metadata{
+		Base:     NewBase(),
+		Metadata: metadata,
+	}
+}
+
 type Metadata struct {
 	Base     `json:",inline"`
 	Metadata datatypes.JSONMap `json:"metadata,omitempty"`
+}
+
+func NewThreadChild(threadID string, metadata map[string]any) ThreadChild {
+	return ThreadChild{
+		Metadata: NewMetadata(metadata),
+		ThreadID: threadID,
+	}
 }
 
 type ThreadChild struct {

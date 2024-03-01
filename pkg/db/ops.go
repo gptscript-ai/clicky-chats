@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/thedadams/clicky-chats/pkg/generated/openai"
 	gdb "gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -17,16 +16,16 @@ func Get(db *gdb.DB, dataObj any, id string) error {
 	return db.First(dataObj, "id = ?", id).Error
 }
 
-// ListPublicObjects lists objects from the database.
-func ListPublicObjects[T Transformer](db *gdb.DB, objs []T) error {
-	slog.Debug("Getting all objects", "type", fmt.Sprintf("%T", objs))
-	return db.Find(&objs).Error
+// List lists objects from the database.
+func List[T Transformer](db *gdb.DB, objs *[]T) error {
+	slog.Debug("Getting all objects", "type", fmt.Sprintf("%T", *objs))
+	return db.Find(objs).Error
 }
 
 // Create saves an object to the database. It will first set the ID and CreatedAt fields.
 // It is the responsibility of the caller to validate the object before calling this function.
 func Create(db *gdb.DB, obj Storer) error {
-	obj.SetID(uuid.New().String())
+	obj.SetID(NewID())
 	obj.SetCreatedAt(int(time.Now().Unix()))
 
 	slog.Debug("Creating", "id", obj.GetID())
@@ -65,16 +64,20 @@ func CancelRun(db *gdb.DB, id string) (*openai.RunObject, error) {
 			return err
 		}
 
-		if run.Status != string(openai.InProgress) {
-			return fmt.Errorf("cannot cancel run with status %s, must be %s", run.Status, openai.InProgress)
+		if run.Status != string(openai.RunObjectStatusInProgress) || run.Status != string(openai.RunObjectStatusRequiresAction) || run.Status != string(openai.RunObjectStatusQueued) {
+			return fmt.Errorf("cannot cancel run with status %s", run.Status)
 		}
 
-		update := map[string]interface{}{
+		update := map[string]any{
 			"status":       string(openai.Cancelled),
 			"cancelled_at": int(time.Now().Unix()),
 		}
 
-		return tx.Model(run).Clauses(clause.Returning{}).Updates(update).Error
+		if err := tx.Model(run).Clauses(clause.Returning{}).Updates(update).Error; err != nil {
+			return err
+		}
+
+		return tx.Model(new(RunStep)).Where("run_id = ?", run.ID).Where("status = ?", string(openai.InProgress)).Updates(update).Error
 	}); err != nil {
 		return nil, err
 	}

@@ -1,17 +1,24 @@
 package agents
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/acorn-io/broadcaster"
+	"github.com/acorn-io/z"
 	"github.com/gptscript-ai/gptscript/pkg/loader"
 	"github.com/gptscript-ai/gptscript/pkg/runner"
 	"github.com/gptscript-ai/gptscript/pkg/server"
 	"github.com/thedadams/clicky-chats/pkg/db"
+	"github.com/thedadams/clicky-chats/pkg/generated/openai"
 	gdb "gorm.io/gorm"
 )
 
@@ -50,6 +57,80 @@ func newController(db *db.DB) (*controller, error) {
 	}, nil
 }
 
+func MakeChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, cc *db.ChatCompletionRequest) (*db.ChatCompletionResponse, error) {
+	b, err := json.Marshal(cc.ToPublic())
+	if err != nil {
+		return nil, err
+	}
+
+	l.Debug("Making chat completion request", "request", string(b))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	if apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+
+	resp := new(openai.CreateChatCompletionResponse)
+
+	// Wait to process this error until after we have the DB object.
+	code, err := sendRequest(client, req, resp)
+
+	ccr := new(db.ChatCompletionResponse)
+	// err here should be shadowed.
+	if err := ccr.FromPublic(resp); err != nil {
+		l.Error("Failed to create chat completion", "err", err)
+	}
+
+	// Process the request error here.
+	if err != nil {
+		l.Error("Failed to create chat completion", "err", err)
+		ccr.Error = z.Pointer(err.Error())
+	}
+
+	ccr.StatusCode = code
+	ccr.Base = db.Base{
+		ID:        db.NewID(),
+		CreatedAt: int(time.Now().Unix()),
+	}
+
+	return ccr, nil
+}
+
+func sendRequest(client *http.Client, req *http.Request, respObj any) (int, error) {
+	res, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+
+	defer res.Body.Close()
+
+	statusCode := res.StatusCode
+	if statusCode < http.StatusOK || statusCode >= http.StatusBadRequest {
+		return statusCode, decodeError(res)
+	}
+
+	if err = json.NewDecoder(res.Body).Decode(respObj); err != nil {
+		return http.StatusInternalServerError, err
+	}
+
+	return statusCode, nil
+}
+
+func decodeError(resp *http.Response) error {
+	s, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read body for error response: %w", err)
+	}
+
+	return fmt.Errorf("%s", s)
+}
+
+// FIXME: This doesn't work and is leftover from an old implementation. Saving it for now to see if we can revive it.
 func (c *controller) Start(ctx context.Context) {
 	throttle := make(chan struct{}, 10)
 	go func() {

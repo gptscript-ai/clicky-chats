@@ -78,6 +78,7 @@ func (db *DB) AutoMigrate() error {
 		Speech{},
 		ChatCompletionRequest{},
 		ChatCompletionResponse{},
+		RunStep{},
 	)
 }
 
