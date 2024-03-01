@@ -56,151 +56,11 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 			case <-ctx.Done():
 				return
 			default:
-				slog.Debug("Checking for a run")
-				// Look for a new run and claim it. Also, query for the other objects we need.
-				run, assistant, messages, runSteps := new(db.Run), new(db.Assistant), make([]db.Message, 0), make([]db.RunStep, 0)
-				if err := c.db.WithContext(ctx).Model(run).Transaction(func(tx *gorm.DB) error {
-					if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND status = ?", c.id, openai.RunObjectStatusQueued).Order("created_at desc").First(run).Error; err != nil {
-						return err
-					}
-
-					thread := new(db.Thread)
-					if err := tx.Model(new(db.Thread)).Where("id = ?", run.ThreadID).First(thread).Error; err != nil {
-						return err
-					}
-
-					// If the thread is locked by another run, then return an error.
-					if thread.LockedByRunID != run.ID {
-						return fmt.Errorf("thread %s found to be locked by %s while processing run %s", run.ThreadID, thread.LockedByRunID, run.ID)
-					}
-
-					if err := tx.Model(assistant).Where("id = ?", run.AssistantID).First(assistant).Error; err != nil {
-						return err
-					}
-
-					if err := tx.Model(new(db.Message)).Where("thread_id = ?", run.ThreadID).Where("created_at <= ?", run.CreatedAt).Order("created_at asc").Find(&messages).Error; err != nil {
-						return err
-					}
-
-					if err := tx.Model(new(db.RunStep)).Where("run_id = ?", run.ID).Where("type = ?", openai.RunStepObjectTypeToolCalls).Where("created_at >= ?", run.CreatedAt).Order("created_at asc").Find(&runSteps).Error; err != nil {
-						return err
-					}
-
-					startedAt := run.StartedAt
-					if startedAt == nil {
-						startedAt = z.Pointer(int(time.Now().Unix()))
-					}
-
-					if err := tx.Model(run).Where("id = ?", run.ID).Updates(map[string]interface{}{"claimed_by": c.id, "status": openai.RunObjectStatusInProgress, "started_at": startedAt}).Error; err != nil {
-						return err
-					}
-
-					return nil
-				}); err != nil {
+				if err := c.run(ctx); err != nil {
 					if !errors.Is(err, gorm.ErrRecordNotFound) {
-						slog.Error("Failed to get run", "err", err)
+						slog.Error("failed run iteration", "err", err)
 					}
 					time.Sleep(pollingInterval)
-					continue
-				}
-
-				runID := run.ID
-				l := slog.With("type", "run", "id", runID)
-
-				l.Debug("Found run", "run", run)
-				cc, err := prepareChatCompletionRequest(run, assistant, messages, runSteps)
-				if err != nil {
-					l.Error("Failed to prepare chat completion request", "err", err)
-					failRun(l, c.db.WithContext(ctx), run, err, openai.RunObjectLastErrorCodeServerError)
-					continue
-				}
-
-				ccr, err := agents.MakeChatCompletionRequest(ctx, l, c.client, c.url, c.apiKey, cc)
-				if err != nil {
-					l.Error("Failed to make chat completion request from run", "err", err)
-					failRun(l, c.db.WithContext(ctx), run, err, openai.RunObjectLastErrorCodeServerError)
-					continue
-				}
-
-				l.Debug("Made chat completion request", "status_code", ccr.StatusCode)
-
-				// If the chat completion response asks for a tool to be called, then the run object needs to be put in the appropriate status.
-				// If the chat completion response just has a message, then a message should be added to the thread and the run should be put in the appropriate status.
-				// In the above two cases, a run step object should be created and the usage of the run updated.
-				// If anything errors, then the run should be put in a failed state.
-				// If the run reaches a terminal state, then unlock the thread.
-
-				var (
-					terminalState bool
-					newStatus     openai.RunObjectStatus
-					newRunSteps   []db.RunStep
-					newMessage    *db.Message
-				)
-
-				// If the chat completion request failed, then we should put the run in a failed state.
-				if ccr.StatusCode >= 400 || len(ccr.Choices) == 0 {
-					if ccr.StatusCode == http.StatusTooManyRequests {
-						l.Error("Chat completion request had too many requests, failing run", "status_code", ccr.StatusCode)
-						failRun(l, c.db.WithContext(ctx), run, fmt.Errorf(z.Dereference(ccr.Error)), openai.RunObjectLastErrorCodeRateLimitExceeded)
-					} else {
-						l.Error("Chat completion request had unexpected status code, failing run", "status_code", ccr.StatusCode, "choices", len(ccr.Choices))
-						failRun(l, c.db.WithContext(ctx), run, fmt.Errorf("unexpected status code: %d", ccr.StatusCode), openai.RunObjectLastErrorCodeServerError)
-					}
-					continue
-				}
-
-				// Act on the response from the chat completion request.
-				if ccr.Choices[0].Message.Data().ToolCalls != nil {
-					newStatus = openai.RunObjectStatusRequiresAction
-					newRunSteps, err = objectsForToolStep(run, ccr)
-				} else if ccr.Choices[0].Message.Data().Content != nil {
-					newStatus = openai.RunObjectStatusCompleted
-					terminalState = true
-					newRunSteps, newMessage, err = objectsForMessageStep(run, ccr)
-				} else {
-					err = fmt.Errorf("unexpected response from chat completion request: %+v", ccr)
-				}
-				// Handle possible errors from above if-else blocks.
-				if err != nil {
-					l.Error("Failed to create run objects", "err", err)
-					failRun(l, c.db.WithContext(ctx), run, err, openai.RunObjectLastErrorCodeServerError)
-					continue
-				}
-
-				// Create and update the objects in the database.
-				if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-					var completedAt *int
-					if terminalState {
-						if err := tx.Model(new(db.Thread)).Where("id = ?", run.ThreadID).Update("locked_by_run_id", nil).Error; err != nil {
-							return err
-						}
-
-						completedAt = z.Pointer(int(time.Now().Unix()))
-					}
-
-					if newMessage != nil {
-						// Don't use db.Create here because the messages should already have the ID and CreatedAt fields set.
-						if err := db.CreateAny(tx, newMessage); err != nil {
-							return err
-						}
-					}
-
-					for _, r := range newRunSteps {
-						if err := db.Create(tx, &r); err != nil {
-							return err
-						}
-					}
-
-					return tx.Model(run).Where("id = ?", run.ID).Updates(map[string]any{
-						"status":          newStatus,
-						"completed_at":    completedAt,
-						"usage":           run.Usage,
-						"required_action": run.RequiredAction,
-					}).Error
-				}); err != nil {
-					l.Error("Failed to update and create objects for run", "err", err)
-					failRun(l, c.db.WithContext(ctx), run, err, openai.RunObjectLastErrorCodeServerError)
-					continue
 				}
 			}
 		}
@@ -241,6 +101,159 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 			}
 		}
 	}()
+}
+
+func (c *agent) run(ctx context.Context) error {
+	slog.Debug("Checking for a run")
+	// Look for a new run and claim it. Also, query for the other objects we need.
+	run, assistant, messages, runSteps := new(db.Run), new(db.Assistant), make([]db.Message, 0), make([]db.RunStep, 0)
+	err := c.db.WithContext(ctx).Model(run).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND status = ?", c.id, openai.RunObjectStatusQueued).Order("created_at desc").First(run).Error; err != nil {
+			return err
+		}
+
+		thread := new(db.Thread)
+		if err := tx.Model(new(db.Thread)).Where("id = ?", run.ThreadID).First(thread).Error; err != nil {
+			return err
+		}
+
+		// If the thread is locked by another run, then return an error.
+		if thread.LockedByRunID != run.ID {
+			return fmt.Errorf("thread %s found to be locked by %s while processing run %s", run.ThreadID, thread.LockedByRunID, run.ID)
+		}
+
+		if err := tx.Model(assistant).Where("id = ?", run.AssistantID).First(assistant).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(new(db.Message)).Where("thread_id = ?", run.ThreadID).Where("created_at <= ?", run.CreatedAt).Order("created_at asc").Find(&messages).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(new(db.RunStep)).Where("run_id = ?", run.ID).Where("type = ?", openai.RunStepObjectTypeToolCalls).Where("created_at >= ?", run.CreatedAt).Order("created_at asc").Find(&runSteps).Error; err != nil {
+			return err
+		}
+
+		startedAt := run.StartedAt
+		if startedAt == nil {
+			startedAt = z.Pointer(int(time.Now().Unix()))
+		}
+
+		if err := tx.Model(run).Where("id = ?", run.ID).Updates(map[string]interface{}{"claimed_by": c.id, "status": openai.RunObjectStatusInProgress, "started_at": startedAt}).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("failed to get run: %w", err)
+		}
+		return err
+	}
+
+	runID := run.ID
+	l := slog.With("type", "run", "id", runID)
+
+	defer func() {
+		if err != nil {
+			failRun(l, c.db.WithContext(ctx), run, err, openai.RunObjectLastErrorCodeServerError)
+		}
+	}()
+
+	l.Debug("Found run", "run", run)
+	cc, err := prepareChatCompletionRequest(run, assistant, messages, runSteps)
+	if err != nil {
+		l.Error("Failed to prepare chat completion request", "err", err)
+		return err
+	}
+
+	ccr, err := agents.MakeChatCompletionRequest(ctx, l, c.client, c.url, c.apiKey, cc)
+	if err != nil {
+		l.Error("Failed to make chat completion request from run", "err", err)
+		return err
+	}
+
+	l.Debug("Made chat completion request", "status_code", ccr.StatusCode)
+
+	// If the chat completion response asks for a tool to be called, then the run object needs to be put in the appropriate status.
+	// If the chat completion response just has a message, then a message should be added to the thread and the run should be put in the appropriate status.
+	// In the above two cases, a run step object should be created and the usage of the run updated.
+	// If anything errors, then the run should be put in a failed state.
+	// If the run reaches a terminal state, then unlock the thread.
+
+	var (
+		terminalState bool
+		newStatus     openai.RunObjectStatus
+		newRunSteps   []db.RunStep
+		newMessage    *db.Message
+	)
+
+	// If the chat completion request failed, then we should put the run in a failed state.
+	if ccr.StatusCode >= 400 || len(ccr.Choices) == 0 {
+		if ccr.StatusCode == http.StatusTooManyRequests {
+			l.Error("Chat completion request had too many requests, failing run", "status_code", ccr.StatusCode)
+			failRun(l, c.db.WithContext(ctx), run, fmt.Errorf(z.Dereference(ccr.Error)), openai.RunObjectLastErrorCodeRateLimitExceeded)
+		} else {
+			l.Error("Chat completion request had unexpected status code, failing run", "status_code", ccr.StatusCode, "choices", len(ccr.Choices))
+			failRun(l, c.db.WithContext(ctx), run, fmt.Errorf("unexpected status code: %d", ccr.StatusCode), openai.RunObjectLastErrorCodeServerError)
+		}
+		return nil
+	}
+
+	// Act on the response from the chat completion request.
+	if ccr.Choices[0].Message.Data().ToolCalls != nil {
+		newStatus = openai.RunObjectStatusRequiresAction
+		newRunSteps, err = objectsForToolStep(run, ccr)
+	} else if ccr.Choices[0].Message.Data().Content != nil {
+		newStatus = openai.RunObjectStatusCompleted
+		terminalState = true
+		newRunSteps, newMessage, err = objectsForMessageStep(run, ccr)
+	} else {
+		err = fmt.Errorf("unexpected response from chat completion request: %+v", ccr)
+	}
+	// Handle possible errors from above if-else blocks.
+	if err != nil {
+		l.Error("Failed to create run objects", "err", err)
+		return err
+	}
+
+	// Create and update the objects in the database.
+	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var completedAt *int
+		if terminalState {
+			if err := tx.Model(new(db.Thread)).Where("id = ?", run.ThreadID).Update("locked_by_run_id", nil).Error; err != nil {
+				return err
+			}
+
+			completedAt = z.Pointer(int(time.Now().Unix()))
+		}
+
+		if newMessage != nil {
+			// Don't use db.Create here because the messages should already have the ID and CreatedAt fields set.
+			if err := db.CreateAny(tx, newMessage); err != nil {
+				return err
+			}
+		}
+
+		for _, r := range newRunSteps {
+			if err := db.Create(tx, &r); err != nil {
+				return err
+			}
+		}
+
+		return tx.Model(run).Where("id = ?", run.ID).Updates(map[string]any{
+			"status":          newStatus,
+			"completed_at":    completedAt,
+			"usage":           run.Usage,
+			"required_action": run.RequiredAction,
+		}).Error
+	}); err != nil {
+		l.Error("Failed to update and create objects for run", "err", err)
+		return err
+	}
+
+	return nil
 }
 
 func failRun(l *slog.Logger, gdb *gorm.DB, run *db.Run, err error, errorCode openai.RunObjectLastErrorCode) {
