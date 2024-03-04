@@ -406,7 +406,7 @@ func prepareChatCompletionRequest(run *db.Run, assistant *db.Assistant, messages
 	if run.Instructions != "" {
 		m := new(openai.ChatCompletionRequestMessage)
 		if err := m.FromChatCompletionRequestSystemMessage(openai.ChatCompletionRequestSystemMessage{
-			Role:    openai.System,
+			Role:    openai.ChatCompletionRequestSystemMessageRoleSystem,
 			Content: run.Instructions,
 		}); err != nil {
 			return nil, err
@@ -416,7 +416,7 @@ func prepareChatCompletionRequest(run *db.Run, assistant *db.Assistant, messages
 	} else if assistantInstructions := z.Dereference(assistant.Instructions); assistantInstructions != "" {
 		m := new(openai.ChatCompletionRequestMessage)
 		if err := m.FromChatCompletionRequestSystemMessage(openai.ChatCompletionRequestSystemMessage{
-			Role:    openai.System,
+			Role:    openai.ChatCompletionRequestSystemMessageRoleSystem,
 			Content: assistantInstructions,
 		}); err != nil {
 			return nil, err

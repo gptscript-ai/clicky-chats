@@ -1,6 +1,7 @@
 package agents
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -57,6 +58,35 @@ func newController(db *db.DB) (*controller, error) {
 	}, nil
 }
 
+func StreamChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, cc *db.ChatCompletionRequest) (<-chan db.ChatCompletionResponseChunk, error) {
+	b, err := json.Marshal(cc.ToPublic())
+	if err != nil {
+		return nil, err
+	}
+
+	l.Debug("Making stream chat completion request", "request", string(b))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Connection", "keep-alive")
+	if apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		l.Error("Failed to create chat completion", "err", err)
+		return nil, err
+	}
+
+	return streamResponses(ctx, resp), nil
+}
+
 func MakeChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, cc *db.ChatCompletionRequest) (*db.ChatCompletionResponse, error) {
 	b, err := json.Marshal(cc.ToPublic())
 	if err != nil {
@@ -69,8 +99,8 @@ func MakeChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
 	if apiKey != "" {
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	}
@@ -97,8 +127,88 @@ func MakeChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http
 		ID:        db.NewID(),
 		CreatedAt: int(time.Now().Unix()),
 	}
+	ccr.RequestID = cc.ID
+	ccr.Done = true
 
 	return ccr, nil
+}
+
+func streamResponses(ctx context.Context, response *http.Response) <-chan db.ChatCompletionResponseChunk {
+	var (
+		emptyMessagesCount int
+
+		dbResponse = new(db.ChatCompletionResponseChunk)
+		reader     = bufio.NewReader(response.Body)
+		stream     = make(chan db.ChatCompletionResponseChunk, 1)
+	)
+	go func() {
+		defer close(stream)
+		defer response.Body.Close()
+
+		for {
+			select {
+			case <-ctx.Done():
+				for range stream {
+					// drain
+				}
+				return
+			default:
+			}
+			rawLine, readErr := reader.ReadBytes('\n')
+			if readErr != nil {
+				stream <- db.ChatCompletionResponseChunk{
+					JobResponse: db.JobResponse{
+						Error: z.Pointer(readErr.Error()),
+					},
+				}
+				return
+			}
+
+			noSpaceLine := bytes.TrimSpace(rawLine)
+			if !bytes.HasPrefix(noSpaceLine, []byte(`data: `)) {
+				emptyMessagesCount++
+				if emptyMessagesCount > 300 {
+					stream <- db.ChatCompletionResponseChunk{
+						JobResponse: db.JobResponse{
+							Error: z.Pointer("stream has sent too many empty messages"),
+						},
+					}
+					return
+				}
+
+				continue
+			}
+
+			noPrefixLine := bytes.TrimPrefix(noSpaceLine, []byte(`data: `))
+			if string(noPrefixLine) == "[DONE]" {
+				return
+			}
+
+			resp := new(openai.CreateChatCompletionStreamResponse)
+			unmarshalErr := json.Unmarshal(noPrefixLine, resp)
+			if unmarshalErr != nil {
+				stream <- db.ChatCompletionResponseChunk{
+					JobResponse: db.JobResponse{
+						Error: z.Pointer(unmarshalErr.Error()),
+					},
+				}
+				return
+			}
+
+			if err := dbResponse.FromPublic(resp); err != nil {
+				stream <- db.ChatCompletionResponseChunk{
+					JobResponse: db.JobResponse{
+						Error: z.Pointer(err.Error()),
+					},
+				}
+				return
+			}
+
+			stream <- *dbResponse
+		}
+	}()
+
+	return stream
 }
 
 func sendRequest(client *http.Client, req *http.Request, respObj any) (int, error) {

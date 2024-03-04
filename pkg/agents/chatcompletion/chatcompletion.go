@@ -56,7 +56,7 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 				// Look for a new chat completion request and claim it.
 				cc := new(db.ChatCompletionRequest)
 				if err := c.db.WithContext(ctx).Model(cc).Transaction(func(tx *gorm.DB) error {
-					if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND response_id IS NULL", c.id).Order("created_at desc").First(cc).Error; err != nil {
+					if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND done = false", c.id).Order("created_at desc").First(cc).Error; err != nil {
 						return err
 					}
 
@@ -81,7 +81,23 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 					url = c.url
 				}
 
-				slog.Debug("Found chat completion", "cc", cc)
+				l.Debug("Found chat completion", "cc", cc)
+				if z.Dereference(cc.Stream) {
+					l.Debug("Streaming chat completion...")
+					stream, err := agents.StreamChatCompletionRequest(ctx, l, c.client, url, c.apiKey, cc)
+					if err != nil {
+						l.Error("Failed to stream chat completion request", "err", err)
+						time.Sleep(pollingInterval)
+						continue
+					}
+
+					if err = streamResponses(c.db.WithContext(ctx), chatCompletionID, stream); err != nil {
+						l.Error("Failed to stream chat completion responses", "err", err)
+					}
+
+					continue
+				}
+
 				ccr, err := agents.MakeChatCompletionRequest(ctx, l, c.client, url, c.apiKey, cc)
 				if err != nil {
 					l.Error("Failed to make chat completion request", "err", err)
@@ -95,7 +111,7 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 					if err = tx.Create(ccr).Error; err != nil {
 						return err
 					}
-					return tx.Model(cc).Where("id = ?", chatCompletionID).Update("response_id", ccr.ID).Error
+					return tx.Model(cc).Where("id = ?", chatCompletionID).Update("done", true).Error
 				}); err != nil {
 					l.Error("Failed to create chat completion response", "err", err)
 				}
@@ -112,31 +128,86 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 			case <-time.After(cleanupTickTime):
 				slog.Debug("Looking for completed chat completions")
 				// Look for a new chat completion request and claim it.
-				var ccs []db.ChatCompletionRequest
+				var (
+					ccs  []db.ChatCompletionResponse
+					cccs []db.ChatCompletionResponseChunk
+				)
 				if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-					if err := tx.Model(new(db.ChatCompletionRequest)).Where("response_id IS NOT NULL").Order("created_at desc").Find(&ccs).Error; err != nil {
+					if err := tx.Model(new(db.ChatCompletionResponse)).Order("created_at desc").Find(&ccs).Error; err != nil {
 						return err
 					}
-					if len(ccs) == 0 {
+					if err := tx.Model(new(db.ChatCompletionResponseChunk)).Order("created_at desc").Find(&cccs).Error; err != nil {
+						return err
+					}
+					if len(ccs)+len(cccs) == 0 {
 						return nil
 					}
 
-					responseIDs := make([]string, 0, len(ccs))
+					requestIDs := make([]string, 0, len(ccs)+len(cccs))
 					for _, cc := range ccs {
-						if id := z.Dereference(cc.ResponseID); id != "" {
-							responseIDs = append(responseIDs, id)
+						if id := cc.RequestID; id != "" {
+							requestIDs = append(requestIDs, id)
+						}
+					}
+					for _, ccc := range cccs {
+						if id := ccc.RequestID; id != "" {
+							requestIDs = append(requestIDs, id)
 						}
 					}
 
-					if err := tx.Delete(new(db.ChatCompletionResponse), "id IN ?", responseIDs).Error; err != nil {
+					if err := tx.Delete(new(db.ChatCompletionRequest), "id IN ? AND done = true", requestIDs).Error; err != nil {
 						return err
 					}
 
-					return tx.Delete(ccs).Error
+					if err := tx.Delete(new(db.ChatCompletionResponse), "id IN ?", requestIDs).Error; err != nil {
+						return err
+					}
+
+					if err := tx.Delete(new(db.ChatCompletionResponseChunk), "id IN ?", requestIDs).Error; err != nil {
+						return err
+					}
+
+					return nil
 				}); err != nil {
 					slog.Error("Failed to cleanup chat completions", "err", err)
 				}
 			}
 		}
 	}()
+}
+
+func streamResponses(gdb *gorm.DB, chatCompletionID string, stream <-chan db.ChatCompletionResponseChunk) error {
+	var (
+		index int
+		errs  []error
+	)
+	for chunk := range stream {
+		chunk.RequestID = chatCompletionID
+		chunk.ResponseIdx = index
+		index++
+		if err := db.Create(gdb, &chunk); err != nil {
+			slog.Error("Failed to create chat completion response chunk", "err", err)
+			errs = append(errs, err)
+		}
+	}
+
+	chunk := &db.ChatCompletionResponseChunk{
+		JobResponse: db.JobResponse{
+			RequestID: chatCompletionID,
+			Done:      true,
+		},
+		ResponseIdx: index,
+	}
+	if err := gdb.Transaction(func(tx *gorm.DB) error {
+		if err := db.Create(tx, chunk); err != nil {
+			return err
+		}
+
+		return tx.Model(new(db.ChatCompletionRequest)).Where("id = ?", chatCompletionID).Update("done", true).Error
+	}); err != nil {
+		slog.Error("Failed to create final chat completion response chunk", "err", err)
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
 }

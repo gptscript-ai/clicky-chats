@@ -270,7 +270,15 @@ func (s *Server) CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	waitForAndWriteResponse(r.Context(), w, gormDB, ccr.ID, ccr, new(db.ChatCompletionResponse))
+	if !z.Dereference(ccr.Stream) {
+		waitForAndWriteResponse(r.Context(), w, gormDB, ccr.ID, new(db.ChatCompletionResponse))
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	waitForAndStreamResponse[*db.ChatCompletionResponseChunk](r.Context(), w, gormDB, ccr.ID)
 }
 
 func (s *Server) CreateCompletion(w http.ResponseWriter, r *http.Request) {
@@ -1090,39 +1098,84 @@ func deleteAndRespond[T db.Transformer](gormDB *gorm.DB, w http.ResponseWriter, 
 	writeObjectToResponse(w, resp)
 }
 
-func waitForResponse(ctx context.Context, gormDB *gorm.DB, id string, obj db.JobRunner, respObj any) error {
-	gormDB = gormDB.WithContext(ctx)
+func waitForResponse(ctx context.Context, gormDB *gorm.DB, id string, obj db.JobRunner) error {
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			if err := db.Get(gormDB.Model(obj), obj, id); err != nil {
+			err := gormDB.Model(obj).Where("request_id = ?", id).First(obj).Error
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				return err
 			}
 
-			if obj.GetResponseID() == "" {
-				time.Sleep(time.Second)
-				continue
-			}
-
-			return db.Get(gormDB.Model(respObj), respObj, obj.GetResponseID())
+			time.Sleep(time.Second)
 		}
 	}
 }
 
-func waitForAndWriteResponse(ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string, obj db.JobRunner, respObj db.JobResponder) {
-	if err := waitForResponse(ctx, gormDB, id, obj, respObj); err != nil {
-		if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
-		}
-	} else if errStr := respObj.GetErrorString(); errStr != "" {
+func waitForAndWriteResponse(ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string, respObj db.JobResponder) {
+	if err := waitForResponse(ctx, gormDB, id, respObj); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		return
+	}
+
+	if errStr := respObj.GetErrorString(); errStr != "" {
 		w.WriteHeader(respObj.GetStatusCode())
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, errStr)))
 	} else {
 		writeObjectToResponse(w, respObj.ToPublic())
 	}
+}
+
+func waitForAndStreamResponse[T db.JobRespondStreamer](ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string) {
+	index := -1
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		respObj := *new(T)
+		if err := gormDB.Model(respObj).Where("request_id = ?", id).Where("response_idx > ?", index).Order("response_idx asc").First(&respObj).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+			time.Sleep(time.Second)
+			continue
+		} else if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(fmt.Sprintf(`data: {"error": "%v"}`, err)))
+			break
+		} else if errStr := respObj.GetErrorString(); errStr != "" {
+			_, _ = w.Write([]byte(fmt.Sprintf(`data: {"error": "%v"}`, errStr)))
+			break
+		} else {
+			index = respObj.GetIndex()
+			if respObj.IsDone() {
+				break
+			}
+
+			respObj.SetID(id)
+			body, err := json.Marshal(respObj.ToPublic())
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(fmt.Sprintf(`data: {"error": "%v"}`, err)))
+				break
+			}
+
+			d := make([]byte, 0, len(body)+8)
+			_, err = w.Write(append(append(append(d, []byte("data: ")...), body...), byte('\n')))
+			if err != nil {
+				_, _ = w.Write([]byte(fmt.Sprintf(`data: {"error": "%v"}`, err)))
+				break
+			}
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+		}
+	}
+
+	_, _ = w.Write([]byte("data: [DONE]\n"))
 }
 
 // transposeObject will marshal the first object and unmarshal it into the second object.

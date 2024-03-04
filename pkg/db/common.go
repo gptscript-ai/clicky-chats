@@ -1,6 +1,7 @@
 package db
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/acorn-io/z"
@@ -33,16 +34,24 @@ type Threader interface {
 }
 
 type JobRunner interface {
-	GetResponseID() string
 	ToPublic() any
 	FromPublic(any) error
+	IsDone() bool
 }
 
 type JobResponder interface {
+	GetRequestID() string
 	GetStatusCode() int
 	GetErrorString() string
 	ToPublic() any
 	FromPublic(any) error
+	IsDone() bool
+}
+
+type JobRespondStreamer interface {
+	Storer
+	JobResponder
+	GetIndex() int
 }
 
 func NewBase() Base {
@@ -111,24 +120,38 @@ func (t *ThreadChild) GetThreadID() string {
 }
 
 type JobRequest struct {
-	Base       `json:",inline"`
-	ResponseID *string `json:"response_id,omitempty"`
-	ClaimedBy  *string `json:"claimed_by,omitempty"`
+	Base      `json:",inline"`
+	ClaimedBy *string `json:"claimed_by,omitempty"`
+	Done      bool    `json:"done"`
 }
 
-func (j JobRequest) GetResponseID() string {
-	return z.Dereference(j.ResponseID)
+func (j JobRequest) IsDone() bool {
+	return j.Done
 }
 
 type JobResponse struct {
+	RequestID  string  `json:"request_id"`
 	Error      *string `json:"error"`
 	StatusCode int     `json:"status_code"`
+	Done       bool    `json:"done"`
 }
 
 func (j JobResponse) GetStatusCode() int {
-	return j.StatusCode
+	if j.StatusCode > 0 || j.Error == nil {
+		return j.StatusCode
+	}
+
+	return http.StatusInternalServerError
 }
 
 func (j JobResponse) GetErrorString() string {
 	return z.Dereference(j.Error)
+}
+
+func (j JobResponse) IsDone() bool {
+	return j.Done
+}
+
+func (j JobResponse) GetRequestID() string {
+	return j.RequestID
 }

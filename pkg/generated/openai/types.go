@@ -44,6 +44,11 @@ const (
 	ChatCompletionMessageToolCallTypeFunction ChatCompletionMessageToolCallType = "function"
 )
 
+// Defines values for ChatCompletionMessageToolCallChunkType.
+const (
+	ChatCompletionMessageToolCallChunkTypeFunction ChatCompletionMessageToolCallChunkType = "function"
+)
+
 // Defines values for ChatCompletionNamedToolChoiceType.
 const (
 	ChatCompletionNamedToolChoiceTypeFunction ChatCompletionNamedToolChoiceType = "function"
@@ -78,7 +83,7 @@ const (
 
 // Defines values for ChatCompletionRequestSystemMessageRole.
 const (
-	System ChatCompletionRequestSystemMessageRole = "system"
+	ChatCompletionRequestSystemMessageRoleSystem ChatCompletionRequestSystemMessageRole = "system"
 )
 
 // Defines values for ChatCompletionRequestToolMessageRole.
@@ -96,6 +101,23 @@ const (
 	ChatCompletionResponseMessageRoleAssistant ChatCompletionResponseMessageRole = "assistant"
 )
 
+// Defines values for ChatCompletionRole.
+const (
+	ChatCompletionRoleAssistant ChatCompletionRole = "assistant"
+	ChatCompletionRoleFunction  ChatCompletionRole = "function"
+	ChatCompletionRoleSystem    ChatCompletionRole = "system"
+	ChatCompletionRoleTool      ChatCompletionRole = "tool"
+	ChatCompletionRoleUser      ChatCompletionRole = "user"
+)
+
+// Defines values for ChatCompletionStreamResponseDeltaRole.
+const (
+	ChatCompletionStreamResponseDeltaRoleAssistant ChatCompletionStreamResponseDeltaRole = "assistant"
+	ChatCompletionStreamResponseDeltaRoleSystem    ChatCompletionStreamResponseDeltaRole = "system"
+	ChatCompletionStreamResponseDeltaRoleTool      ChatCompletionStreamResponseDeltaRole = "tool"
+	ChatCompletionStreamResponseDeltaRoleUser      ChatCompletionStreamResponseDeltaRole = "user"
+)
+
 // Defines values for ChatCompletionToolType.
 const (
 	ChatCompletionToolTypeFunction ChatCompletionToolType = "function"
@@ -105,6 +127,19 @@ const (
 const (
 	ChatCompletionToolChoiceOption0Auto ChatCompletionToolChoiceOption0 = "auto"
 	ChatCompletionToolChoiceOption0None ChatCompletionToolChoiceOption0 = "none"
+)
+
+// Defines values for CreateChatCompletionFunctionResponseChoicesFinishReason.
+const (
+	CreateChatCompletionFunctionResponseChoicesFinishReasonContentFilter CreateChatCompletionFunctionResponseChoicesFinishReason = "content_filter"
+	CreateChatCompletionFunctionResponseChoicesFinishReasonFunctionCall  CreateChatCompletionFunctionResponseChoicesFinishReason = "function_call"
+	CreateChatCompletionFunctionResponseChoicesFinishReasonLength        CreateChatCompletionFunctionResponseChoicesFinishReason = "length"
+	CreateChatCompletionFunctionResponseChoicesFinishReasonStop          CreateChatCompletionFunctionResponseChoicesFinishReason = "stop"
+)
+
+// Defines values for CreateChatCompletionFunctionResponseObject.
+const (
+	CreateChatCompletionFunctionResponseObjectChatCompletion CreateChatCompletionFunctionResponseObject = "chat.completion"
 )
 
 // Defines values for CreateChatCompletionRequestFunctionCall0.
@@ -151,7 +186,21 @@ const (
 
 // Defines values for CreateChatCompletionResponseObject.
 const (
-	ChatCompletion CreateChatCompletionResponseObject = "chat.completion"
+	CreateChatCompletionResponseObjectChatCompletion CreateChatCompletionResponseObject = "chat.completion"
+)
+
+// Defines values for CreateChatCompletionStreamResponseChoicesFinishReason.
+const (
+	CreateChatCompletionStreamResponseChoicesFinishReasonContentFilter CreateChatCompletionStreamResponseChoicesFinishReason = "content_filter"
+	CreateChatCompletionStreamResponseChoicesFinishReasonFunctionCall  CreateChatCompletionStreamResponseChoicesFinishReason = "function_call"
+	CreateChatCompletionStreamResponseChoicesFinishReasonLength        CreateChatCompletionStreamResponseChoicesFinishReason = "length"
+	CreateChatCompletionStreamResponseChoicesFinishReasonStop          CreateChatCompletionStreamResponseChoicesFinishReason = "stop"
+	CreateChatCompletionStreamResponseChoicesFinishReasonToolCalls     CreateChatCompletionStreamResponseChoicesFinishReason = "tool_calls"
+)
+
+// Defines values for CreateChatCompletionStreamResponseObject.
+const (
+	ChatCompletionChunk CreateChatCompletionStreamResponseObject = "chat.completion.chunk"
 )
 
 // Defines values for CreateCompletionRequestModel1.
@@ -363,6 +412,11 @@ const (
 // Defines values for DeleteFileResponseObject.
 const (
 	DeleteFileResponseObjectFile DeleteFileResponseObject = "file"
+)
+
+// Defines values for DeleteMessageResponseObject.
+const (
+	ThreadMessageDeleted DeleteMessageResponseObject = "thread.message.deleted"
 )
 
 // Defines values for DeleteThreadResponseObject.
@@ -752,6 +806,27 @@ type ChatCompletionMessageToolCall struct {
 // ChatCompletionMessageToolCallType The type of the tool. Currently, only `function` is supported.
 type ChatCompletionMessageToolCallType string
 
+// ChatCompletionMessageToolCallChunk defines model for ChatCompletionMessageToolCallChunk.
+type ChatCompletionMessageToolCallChunk struct {
+	Function *struct {
+		// Arguments The arguments to call the function with, as generated by the model in JSON format. Note that the model does not always generate valid JSON, and may hallucinate parameters not defined by your function schema. Validate the arguments in your code before calling your function.
+		Arguments *string `json:"arguments,omitempty"`
+
+		// Name The name of the function to call.
+		Name *string `json:"name,omitempty"`
+	} `json:"function,omitempty"`
+
+	// Id The ID of the tool call.
+	Id    *string `json:"id,omitempty"`
+	Index int     `json:"index"`
+
+	// Type The type of the tool. Currently, only `function` is supported.
+	Type *ChatCompletionMessageToolCallChunkType `json:"type,omitempty"`
+}
+
+// ChatCompletionMessageToolCallChunkType The type of the tool. Currently, only `function` is supported.
+type ChatCompletionMessageToolCallChunkType string
+
 // ChatCompletionMessageToolCalls The tool calls generated by the model, such as function calls.
 type ChatCompletionMessageToolCalls = []ChatCompletionMessageToolCall
 
@@ -935,6 +1010,32 @@ type ChatCompletionResponseMessage struct {
 // ChatCompletionResponseMessageRole The role of the author of this message.
 type ChatCompletionResponseMessageRole string
 
+// ChatCompletionRole The role of the author of a message
+type ChatCompletionRole string
+
+// ChatCompletionStreamResponseDelta A chat completion delta generated by streamed model responses.
+type ChatCompletionStreamResponseDelta struct {
+	// Content The contents of the chunk message.
+	Content *string `json:"content"`
+
+	// FunctionCall Deprecated and replaced by `tool_calls`. The name and arguments of a function that should be called, as generated by the model.
+	// Deprecated:
+	FunctionCall *struct {
+		// Arguments The arguments to call the function with, as generated by the model in JSON format. Note that the model does not always generate valid JSON, and may hallucinate parameters not defined by your function schema. Validate the arguments in your code before calling your function.
+		Arguments *string `json:"arguments,omitempty"`
+
+		// Name The name of the function to call.
+		Name *string `json:"name,omitempty"`
+	} `json:"function_call,omitempty"`
+
+	// Role The role of the author of this message.
+	Role      *ChatCompletionStreamResponseDeltaRole `json:"role,omitempty"`
+	ToolCalls *[]ChatCompletionMessageToolCallChunk  `json:"tool_calls,omitempty"`
+}
+
+// ChatCompletionStreamResponseDeltaRole The role of the author of this message.
+type ChatCompletionStreamResponseDeltaRole string
+
 // ChatCompletionTokenLogprob defines model for ChatCompletionTokenLogprob.
 type ChatCompletionTokenLogprob struct {
 	// Bytes A list of integers representing the UTF-8 bytes representation of the token. Useful in instances where characters are represented by multiple tokens and their byte representations must be combined to generate the correct text representation. Can be `null` if there is no bytes representation for the token.
@@ -1037,6 +1138,50 @@ type CreateAssistantRequest_Model struct {
 type CreateAssistantRequest_Tools_Item struct {
 	union json.RawMessage
 }
+
+// CreateChatCompletionFunctionResponse Represents a chat completion response returned by model, based on the provided input.
+type CreateChatCompletionFunctionResponse struct {
+	// Choices A list of chat completion choices. Can be more than one if `n` is greater than 1.
+	Choices []struct {
+		// FinishReason The reason the model stopped generating tokens. This will be `stop` if the model hit a natural stop point or a provided stop sequence, `length` if the maximum number of tokens specified in the request was reached, `content_filter` if content was omitted due to a flag from our content filters, or `function_call` if the model called a function.
+		FinishReason CreateChatCompletionFunctionResponseChoicesFinishReason `json:"finish_reason"`
+
+		// Index The index of the choice in the list of choices.
+		Index int `json:"index"`
+
+		// Message A chat completion message generated by the model.
+		Message ChatCompletionResponseMessage `json:"message"`
+	} `json:"choices"`
+
+	// Created The Unix timestamp (in seconds) of when the chat completion was created.
+	Created int `json:"created"`
+
+	// Id A unique identifier for the chat completion.
+	Id string `json:"id"`
+
+	// Model The model used for the chat completion.
+	Model string `json:"model"`
+
+	// Object The object type, which is always `chat.completion`.
+	Object CreateChatCompletionFunctionResponseObject `json:"object"`
+
+	// SystemFingerprint This fingerprint represents the backend configuration that the model runs with.
+	//
+	// Can be used in conjunction with the `seed` request parameter to understand when backend changes have been made that might impact determinism.
+	SystemFingerprint *string `json:"system_fingerprint,omitempty"`
+
+	// Usage Usage statistics for the completion request.
+	Usage *CompletionUsage `json:"usage,omitempty"`
+}
+
+// CreateChatCompletionFunctionResponseChoicesFinishReason The reason the model stopped generating tokens. This will be `stop` if the model hit a natural stop point or a provided stop sequence, `length` if the maximum number of tokens specified in the request was reached, `content_filter` if content was omitted due to a flag from our content filters, or `function_call` if the model called a function.
+type CreateChatCompletionFunctionResponseChoicesFinishReason string
+
+// CreateChatCompletionFunctionResponseObject The object type, which is always `chat.completion`.
+type CreateChatCompletionFunctionResponseObject string
+
+// CreateChatCompletionImageResponse Represents a streamed chunk of a chat completion response returned by model, based on the provided input.
+type CreateChatCompletionImageResponse = map[string]interface{}
 
 // CreateChatCompletionRequest defines model for CreateChatCompletionRequest.
 type CreateChatCompletionRequest struct {
@@ -1230,6 +1375,55 @@ type CreateChatCompletionResponseChoicesFinishReason string
 
 // CreateChatCompletionResponseObject The object type, which is always `chat.completion`.
 type CreateChatCompletionResponseObject string
+
+// CreateChatCompletionStreamResponse Represents a streamed chunk of a chat completion response returned by model, based on the provided input.
+type CreateChatCompletionStreamResponse struct {
+	// Choices A list of chat completion choices. Can be more than one if `n` is greater than 1.
+	Choices []struct {
+		// Delta A chat completion delta generated by streamed model responses.
+		Delta ChatCompletionStreamResponseDelta `json:"delta"`
+
+		// FinishReason The reason the model stopped generating tokens. This will be `stop` if the model hit a natural stop point or a provided stop sequence,
+		// `length` if the maximum number of tokens specified in the request was reached,
+		// `content_filter` if content was omitted due to a flag from our content filters,
+		// `tool_calls` if the model called a tool, or `function_call` (deprecated) if the model called a function.
+		FinishReason *CreateChatCompletionStreamResponseChoicesFinishReason `json:"finish_reason"`
+
+		// Index The index of the choice in the list of choices.
+		Index int `json:"index"`
+
+		// Logprobs Log probability information for the choice.
+		Logprobs *struct {
+			// Content A list of message content tokens with log probability information.
+			Content *[]ChatCompletionTokenLogprob `json:"content"`
+		} `json:"logprobs"`
+	} `json:"choices"`
+
+	// Created The Unix timestamp (in seconds) of when the chat completion was created. Each chunk has the same timestamp.
+	Created int `json:"created"`
+
+	// Id A unique identifier for the chat completion. Each chunk has the same ID.
+	Id string `json:"id"`
+
+	// Model The model to generate the completion.
+	Model string `json:"model"`
+
+	// Object The object type, which is always `chat.completion.chunk`.
+	Object CreateChatCompletionStreamResponseObject `json:"object"`
+
+	// SystemFingerprint This fingerprint represents the backend configuration that the model runs with.
+	// Can be used in conjunction with the `seed` request parameter to understand when backend changes have been made that might impact determinism.
+	SystemFingerprint *string `json:"system_fingerprint,omitempty"`
+}
+
+// CreateChatCompletionStreamResponseChoicesFinishReason The reason the model stopped generating tokens. This will be `stop` if the model hit a natural stop point or a provided stop sequence,
+// `length` if the maximum number of tokens specified in the request was reached,
+// `content_filter` if content was omitted due to a flag from our content filters,
+// `tool_calls` if the model called a tool, or `function_call` (deprecated) if the model called a function.
+type CreateChatCompletionStreamResponseChoicesFinishReason string
+
+// CreateChatCompletionStreamResponseObject The object type, which is always `chat.completion.chunk`.
+type CreateChatCompletionStreamResponseObject string
 
 // CreateCompletionRequest defines model for CreateCompletionRequest.
 type CreateCompletionRequest struct {
@@ -2066,6 +2260,16 @@ type DeleteFileResponse struct {
 // DeleteFileResponseObject defines model for DeleteFileResponse.Object.
 type DeleteFileResponseObject string
 
+// DeleteMessageResponse defines model for DeleteMessageResponse.
+type DeleteMessageResponse struct {
+	Deleted bool                        `json:"deleted"`
+	Id      string                      `json:"id"`
+	Object  DeleteMessageResponseObject `json:"object"`
+}
+
+// DeleteMessageResponseObject defines model for DeleteMessageResponse.Object.
+type DeleteMessageResponseObject string
+
 // DeleteModelResponse defines model for DeleteModelResponse.
 type DeleteModelResponse struct {
 	Deleted bool   `json:"deleted"`
@@ -2097,6 +2301,19 @@ type Embedding struct {
 
 // EmbeddingObject The object type, which is always "embedding".
 type EmbeddingObject string
+
+// Error defines model for Error.
+type Error struct {
+	Code    *string `json:"code"`
+	Message string  `json:"message"`
+	Param   *string `json:"param"`
+	Type    string  `json:"type"`
+}
+
+// ErrorResponse defines model for ErrorResponse.
+type ErrorResponse struct {
+	Error Error `json:"error"`
+}
 
 // FineTuningJob The `fine_tuning.job` object represents a fine-tuning job that has been created through the API.
 type FineTuningJob struct {
@@ -2315,6 +2532,15 @@ type ListRunsResponse struct {
 	HasMore bool        `json:"has_more"`
 	LastId  string      `json:"last_id"`
 	Object  string      `json:"object"`
+}
+
+// ListThreadsResponse defines model for ListThreadsResponse.
+type ListThreadsResponse struct {
+	Data    []ThreadObject `json:"data"`
+	FirstId string         `json:"first_id"`
+	HasMore bool           `json:"has_more"`
+	LastId  string         `json:"last_id"`
+	Object  string         `json:"object"`
 }
 
 // MessageContentImageFileObject References an image [File](/docs/api-reference/files) in the content of a message.

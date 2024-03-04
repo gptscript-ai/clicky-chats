@@ -40,5 +40,5 @@ integration:
 	$(GOTESTSUM) ./integration/...
 
 generate:
-	oapi-codegen -package openai -generate types https://raw.githubusercontent.com/openai/openai-openapi/6b64280c3db0082cbafa34495b9f3a3a58eb960d/openapi.yaml > pkg/generated/openai/types.go
-	oapi-codegen -package openai -generate std-http-server,spec https://raw.githubusercontent.com/openai/openai-openapi/6b64280c3db0082cbafa34495b9f3a3a58eb960d/openapi.yaml > pkg/generated/openai/server.go
+	oapi-codegen -package openai -generate types,skip-prune -o pkg/generated/openai/types.go https://raw.githubusercontent.com/openai/openai-openapi/6b64280c3db0082cbafa34495b9f3a3a58eb960d/openapi.yaml
+	oapi-codegen -package openai -generate std-http-server,spec -o pkg/generated/openai/server.go https://raw.githubusercontent.com/openai/openai-openapi/6b64280c3db0082cbafa34495b9f3a3a58eb960d/openapi.yaml

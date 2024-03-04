@@ -45,7 +45,7 @@ func (c *ChatCompletionResponse) ToPublic() any {
 		c.CreatedAt,
 		c.ID,
 		c.Model,
-		openai.ChatCompletion,
+		openai.CreateChatCompletionResponseObjectChatCompletion,
 		c.SystemFingerprint,
 		c.Usage.Data(),
 	}
