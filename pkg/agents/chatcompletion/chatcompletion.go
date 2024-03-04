@@ -133,10 +133,10 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 					cccs []db.ChatCompletionResponseChunk
 				)
 				if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-					if err := tx.Model(new(db.ChatCompletionResponse)).Order("created_at desc").Find(&ccs).Error; err != nil {
+					if err := tx.Model(new(db.ChatCompletionResponse)).Find(&ccs).Error; err != nil {
 						return err
 					}
-					if err := tx.Model(new(db.ChatCompletionResponseChunk)).Order("created_at desc").Find(&cccs).Error; err != nil {
+					if err := tx.Model(new(db.ChatCompletionResponseChunk)).Find(&cccs).Error; err != nil {
 						return err
 					}
 					if len(ccs)+len(cccs) == 0 {
@@ -159,11 +159,11 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 						return err
 					}
 
-					if err := tx.Delete(new(db.ChatCompletionResponse), "id IN ?", requestIDs).Error; err != nil {
+					if err := tx.Delete(ccs).Error; err != nil {
 						return err
 					}
 
-					if err := tx.Delete(new(db.ChatCompletionResponseChunk), "id IN ?", requestIDs).Error; err != nil {
+					if err := tx.Delete(cccs).Error; err != nil {
 						return err
 					}
 
