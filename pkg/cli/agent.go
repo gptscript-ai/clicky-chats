@@ -20,6 +20,7 @@ type Agent struct {
 	ToolRunnerPollingInterval     string `usage:"Tool runner polling interval" default:"5s" env:"CLICKY_CHATS_TOOL_RUNNER_POLLING_INTERVAL"`
 	ToolRunnerBaseURL             string `usage:"Tool runner base URL" default:"http://localhost:8080/v1" env:"CLICKY_CHATS_TOOL_RUNNER_BASE_URL"`
 	DefaultChatCompletionURL      string `usage:"The defaultURL for the chat completion agent to use" default:"https://api.openai.com/v1/chat/completions" env:"CLICKY_CHATS_CHAT_COMPLETION_SERVER_URL"`
+	ModelsURL                     string `usage:"The url for the to get the available models" default:"https://api.openai.com/v1/models" env:"CLICKY_CHATS_CHAT_COMPLETION_SERVER_URL"`
 	APIURL                        string `usage:"URL for API calls" default:"http://localhost:8080/v1/chat/completions" env:"CLICKY_CHATS_SERVER_URL"`
 	ModelAPIKey                   string `usage:"API key for API calls" default:"" env:"CLICKY_CHATS_MODEL_API_KEY"`
 	AgentID                       string `usage:"Agent ID to identify this agent" default:"" env:"CLICKY_CHATS_AGENT_ID"`
@@ -43,11 +44,12 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 	}
 
 	ccCfg := chatcompletion.Config{
-		APIKey:          s.ModelAPIKey,
-		APIURL:          s.DefaultChatCompletionURL,
-		PollingInterval: chatCompletionPollingInterval,
-		CleanupTickTime: chatCompletionCleanupTickTime,
-		AgentID:         s.AgentID,
+		APIKey:            s.ModelAPIKey,
+		ModelsURL:         s.ModelsURL,
+		ChatCompletionURL: s.DefaultChatCompletionURL,
+		PollingInterval:   chatCompletionPollingInterval,
+		CleanupTickTime:   chatCompletionCleanupTickTime,
+		AgentID:           s.AgentID,
 	}
 	if err = chatcompletion.Start(cmd.Context(), gormDB, ccCfg); err != nil {
 		return err

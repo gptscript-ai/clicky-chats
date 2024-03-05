@@ -2,7 +2,9 @@ package chatcompletion
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -10,17 +12,22 @@ import (
 	"github.com/acorn-io/z"
 	"github.com/thedadams/clicky-chats/pkg/agents"
 	"github.com/thedadams/clicky-chats/pkg/db"
+	"github.com/thedadams/clicky-chats/pkg/generated/openai"
 	"gorm.io/gorm"
 )
 
 type Config struct {
-	PollingInterval, CleanupTickTime time.Duration
-	APIURL, APIKey, AgentID          string
+	PollingInterval, CleanupTickTime              time.Duration
+	ModelsURL, ChatCompletionURL, APIKey, AgentID string
 }
 
 func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 	a, err := newAgent(gdb, cfg)
 	if err != nil {
+		return err
+	}
+
+	if err = a.listAndStoreModels(ctx, cfg.ModelsURL); err != nil {
 		return err
 	}
 
@@ -40,8 +47,74 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 		apiKey: cfg.APIKey,
 		db:     db,
 		id:     cfg.AgentID,
-		url:    cfg.APIURL,
+		url:    cfg.ChatCompletionURL,
 	}, nil
+}
+
+func (c *agent) listAndStoreModels(ctx context.Context, modelsURL string) error {
+	// List models
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, modelsURL, nil)
+	req.Header.Add("Authorization", "Bearer "+c.apiKey)
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to list models: %s", resp.Status)
+	}
+
+	type models struct {
+		Data []*openai.Model `json:"data"`
+	}
+
+	var m models
+	if err = json.NewDecoder(resp.Body).Decode(&m); err != nil {
+		return err
+	}
+
+	return c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var dbModels []db.Model
+		if err = tx.Model(new(db.Model)).Find(&dbModels).Error; err != nil {
+			return err
+		}
+
+		dbModelIDs := make(map[string]struct{}, len(dbModels))
+		for _, model := range dbModels {
+			dbModelIDs[model.ID] = struct{}{}
+		}
+
+		for _, publicModel := range m.Data {
+			if _, ok := dbModelIDs[publicModel.Id]; ok {
+				delete(dbModelIDs, publicModel.Id)
+				continue
+			}
+
+			model := new(db.Model)
+			if err = model.FromPublic(publicModel); err != nil {
+				return err
+			}
+
+			if err = tx.Model(&db.Model{}).Create(model).Error; err != nil && !errors.Is(err, gorm.ErrDuplicatedKey) {
+				return err
+			}
+
+			delete(dbModelIDs, model.ID)
+		}
+
+		for id := range dbModelIDs {
+			if err = tx.Model(new(db.Model)).Delete(new(db.Model), id).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanupTickTime time.Duration) {
