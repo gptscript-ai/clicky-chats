@@ -455,7 +455,6 @@ func (s *Server) CreateThread(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// FIXME: This doesn't support creating a thread with messages.
 	//nolint:govet
 	publicThread := &openai.ThreadObject{
 		// The first two fields will be set on create.
@@ -465,7 +464,55 @@ func (s *Server) CreateThread(w http.ResponseWriter, r *http.Request) {
 		openai.Thread,
 	}
 
-	createAndRespond(s.db.WithContext(r.Context()), w, new(db.Thread), publicThread)
+	thread := new(db.Thread)
+	if err := create(s.db.WithContext(r.Context()), thread, publicThread); err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		return
+	}
+
+	if createThreadRequest.Messages != nil {
+		for _, message := range *createThreadRequest.Messages {
+			content, err := db.MessageContentFromString(message.Content)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "error processing content: %v"}`, err)))
+				return
+			}
+
+			//nolint:govet
+			publicMessage := &openai.MessageObject{
+				nil,
+				[]openai.MessageObject_Content_Item{*content},
+				0,
+				z.Dereference(message.FileIds),
+				"",
+				message.Metadata,
+				openai.ThreadMessage,
+				openai.MessageObjectRole(message.Role),
+				nil,
+				thread.ID,
+			}
+
+			if err := create(s.db.WithContext(r.Context()), new(db.Message), publicMessage); err != nil {
+				if errors.Is(err, gorm.ErrDuplicatedKey) {
+					w.WriteHeader(http.StatusConflict)
+					_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+					return
+				}
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+				return
+			}
+		}
+	}
+
+	writeObjectToResponse(w, thread.ToPublic())
 }
 
 func (s *Server) CreateThreadAndRun(w http.ResponseWriter, r *http.Request) {
@@ -978,17 +1025,23 @@ func getAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, i
 	writeObjectToResponse(w, obj.ToPublic())
 }
 
-func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, publicObj any) {
+func create(gormDB *gorm.DB, obj db.Transformer, publicObj any) error {
 	if err := obj.FromPublic(publicObj); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
-		return
+		return err
 	}
 
 	if err := db.Create(gormDB, obj); err != nil {
+		return fmt.Errorf("error creating: %w", err)
+	}
+
+	return nil
+}
+
+func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, publicObj any) {
+	if err := create(gormDB, obj, publicObj); err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			w.WriteHeader(http.StatusConflict)
-			_, _ = w.Write([]byte(`{"error": "already exists"}`))
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
 			return
 		}
 
@@ -1008,17 +1061,6 @@ func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gorm.DB
 	}
 
 	gormDB = gormDB.Limit(*limit)
-
-	var ordering string
-	if order == nil || *order == "" {
-		ordering = "desc"
-	} else if *order != "asc" && *order != "desc" {
-		return nil, fmt.Errorf("order should be asc or desc")
-	} else {
-		ordering = string(*order)
-	}
-
-	gormDB = gormDB.Order(fmt.Sprintf("created_at %s", ordering))
 
 	// TODO(thedadams): what happens if before/after are not valid object IDs?
 	// TODO(thedadams): what happens if before and after are set?
@@ -1040,6 +1082,15 @@ func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gorm.DB
 
 		gormDB = gormDB.Where("created_at > ?", afterObj.GetCreatedAt())
 	}
+
+	ordering := string(z.Dereference(order))
+	if ordering == "" {
+		ordering = "desc"
+	} else if *order != "asc" && *order != "desc" {
+		return nil, fmt.Errorf("order should be asc or desc")
+	}
+
+	gormDB = gormDB.Order(fmt.Sprintf("created_at %s", ordering))
 
 	return gormDB, nil
 }
