@@ -80,6 +80,8 @@ func (db *DB) AutoMigrate() error {
 		ChatCompletionResponse{},
 		ChatCompletionResponseChunk{},
 		RunStep{},
+		CreateImageRequest{},
+		ImagesResponse{},
 	)
 }
 
