@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/acorn-io/z"
@@ -22,6 +23,10 @@ type RunStep struct {
 	ThreadId    string                                               `json:"thread_id"`
 	Type        string                                               `json:"type"`
 	Usage       datatypes.JSONType[*openai.RunStepCompletionUsage]   `json:"usage"`
+
+	// These are not part of the public API
+	ClaimedBy  *string `json:"claimed_by,omitempty"`
+	RunnerType *string `json:"runner_type,omitempty"`
 }
 
 func (r *RunStep) ToPublic() any {
@@ -89,6 +94,9 @@ func (r *RunStep) FromPublic(obj any) error {
 			o.ThreadId,
 			string(o.Type),
 			datatypes.NewJSONType(o.Usage),
+
+			nil,
+			nil,
 		}
 	}
 
@@ -96,7 +104,7 @@ func (r *RunStep) FromPublic(obj any) error {
 }
 
 func (r *RunStep) GetRunStepFunctionCalls() ([]openai.RunStepDetailsToolCallsFunctionObject, error) {
-	runStepDetails, err := extractRunStepDetails(r.StepDetails.Data())
+	runStepDetails, err := ExtractRunStepDetails(r.StepDetails.Data())
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +204,7 @@ func constructRunStepToolCallItem(v any) (openai.RunStepDetailsToolCallsObject_T
 	return *runStepToolCallItem, err
 }
 
-func extractRunStepDetails(details openai.RunStepObject_StepDetails) (any, error) {
+func ExtractRunStepDetails(details openai.RunStepObject_StepDetails) (any, error) {
 	if tc, err := details.AsRunStepDetailsToolCallsObject(); err == nil && tc.Type == openai.ToolCalls {
 		return tc, nil
 	}
@@ -221,7 +229,63 @@ func extractRunStepToolCallItem(item openai.RunStepDetailsToolCallsObject_ToolCa
 	return nil, fmt.Errorf("failed to extract tool call item")
 }
 
-func GetFunctionFromRunStepFunctionCall(item openai.RunStepDetailsToolCallsObject_ToolCalls_Item) (RunStepDetailsFunction, string, error) {
-	tc, _ := item.AsRunStepDetailsToolCallsFunctionObject()
-	return tc.Function, tc.Id, nil
+func SetOutputForRunStepToolCall(item *openai.RunStepDetailsToolCallsObject_ToolCalls_Item, output string) error {
+	if tc, err := item.AsRunStepDetailsToolCallsFunctionObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsFunctionObjectTypeFunction {
+		tc.Function.Output = z.Pointer(output)
+		return item.FromRunStepDetailsToolCallsFunctionObject(tc)
+	}
+	if tc, err := item.AsRunStepDetailsToolCallsCodeObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter {
+		if err = json.Unmarshal([]byte(fmt.Sprintf(`[{"logs":%q,"type":"logs"}]`, output)), &tc.CodeInterpreter.Outputs); err != nil {
+			return err
+		}
+		return item.FromRunStepDetailsToolCallsCodeObject(tc)
+	}
+	if tc, err := item.AsRunStepDetailsToolCallsRetrievalObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval {
+		if err = json.Unmarshal([]byte(output), &tc.Retrieval); err != nil {
+			return err
+		}
+
+		return item.FromRunStepDetailsToolCallsRetrievalObject(tc)
+	}
+
+	return fmt.Errorf("failed to extract tool call item")
+}
+
+func GetOutputForRunStepToolCall(item openai.RunStepDetailsToolCallsObject_ToolCalls_Item) (GenericToolCallInfo, error) {
+	info := GenericToolCallInfo{}
+	if tc, err := item.AsRunStepDetailsToolCallsFunctionObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsFunctionObjectTypeFunction {
+		info.ID = tc.Id
+		info.Name = tc.Function.Name
+		info.Arguments = tc.Function.Arguments
+		info.Output = z.Dereference(tc.Function.Output)
+		return info, nil
+	}
+	if tc, err := item.AsRunStepDetailsToolCallsCodeObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter {
+		var logs openai.RunStepDetailsToolCallsCodeOutputLogsObject
+		if len(tc.CodeInterpreter.Outputs) != 0 {
+			logs, err = tc.CodeInterpreter.Outputs[0].AsRunStepDetailsToolCallsCodeOutputLogsObject()
+		}
+		info.ID = tc.Id
+		info.Name = string(openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter)
+		info.Arguments = tc.CodeInterpreter.Input
+		info.Output = logs.Logs
+		return info, err
+	}
+	if tc, err := item.AsRunStepDetailsToolCallsRetrievalObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval {
+		b, err := json.Marshal(tc.Retrieval)
+		info.ID = tc.Id
+		info.Name = string(openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval)
+		info.Arguments = string(b)
+		info.Output = ""
+		return info, err
+	}
+
+	return info, fmt.Errorf("failed to extract tool call output")
+}
+
+type GenericToolCallInfo struct {
+	ID        string
+	Name      string
+	Arguments string
+	Output    string
 }

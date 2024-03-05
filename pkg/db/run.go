@@ -24,7 +24,9 @@ type Run struct {
 	Usage          datatypes.JSONType[*openai.RunCompletionUsage]   `json:"usage"`
 
 	// These are not part of the public API
-	ClaimedBy *string `json:"claimed_by,omitempty"`
+	ClaimedBy       *string `json:"claimed_by,omitempty"`
+	SystemClaimedBy *string `json:"system_claimed_by,omitempty"`
+	SystemStatus    *string `json:"system_status,omitempty"`
 }
 
 func (r *Run) ToPublic() any {
@@ -104,6 +106,8 @@ func (r *Run) FromPublic(obj any) error {
 			o.FileIds,
 			datatypes.NewJSONType(o.Usage),
 
+			nil,
+			nil,
 			nil,
 		}
 	}

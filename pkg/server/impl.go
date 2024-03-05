@@ -1164,11 +1164,7 @@ func waitForAndStreamResponse[T db.JobRespondStreamer](ctx context.Context, w ht
 			}
 
 			d := make([]byte, 0, len(body)+8)
-			_, err = w.Write(append(append(append(d, []byte("data: ")...), body...), byte('\n')))
-			if err != nil {
-				_, _ = w.Write([]byte(fmt.Sprintf(`data: {"error": "%v"}`, err)))
-				break
-			}
+			_, _ = w.Write(append(append(append(d, []byte("data: ")...), body...), byte('\n')))
 			if f, ok := w.(http.Flusher); ok {
 				f.Flush()
 			}

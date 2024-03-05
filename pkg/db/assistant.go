@@ -78,14 +78,14 @@ func (a *Assistant) ToolsToChatCompletionTools() ([]openai.ChatCompletionTool, e
 }
 
 func AssistantToolToChatCompletionTool(t *openai.AssistantObject_Tools_Item) (openai.ChatCompletionTool, error) {
-	if ob, err := t.AsAssistantToolsFunction(); err == nil {
+	if ob, err := t.AsAssistantToolsFunction(); err == nil && ob.Type == openai.AssistantToolsFunctionTypeFunction {
 		return openai.ChatCompletionTool{
 			Function: ob.Function,
 			Type:     openai.ChatCompletionToolTypeFunction,
 		}, nil
 	}
 
-	if ob, err := t.AsAssistantToolsCode(); err == nil {
+	if ob, err := t.AsAssistantToolsCode(); err == nil && ob.Type == openai.AssistantToolsCodeTypeCodeInterpreter {
 		return openai.ChatCompletionTool{
 			Function: openai.FunctionObject{
 				Name: string(ob.Type),
@@ -94,7 +94,7 @@ func AssistantToolToChatCompletionTool(t *openai.AssistantObject_Tools_Item) (op
 		}, nil
 	}
 
-	if ob, err := t.AsAssistantToolsRetrieval(); err == nil {
+	if ob, err := t.AsAssistantToolsRetrieval(); err == nil && ob.Type == openai.AssistantToolsRetrievalTypeRetrieval {
 		return openai.ChatCompletionTool{
 			Function: openai.FunctionObject{
 				Name: string(ob.Type),

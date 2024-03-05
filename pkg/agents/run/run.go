@@ -108,7 +108,7 @@ func (c *agent) run(ctx context.Context) error {
 	// Look for a new run and claim it. Also, query for the other objects we need.
 	run, assistant, messages, runSteps := new(db.Run), new(db.Assistant), make([]db.Message, 0), make([]db.RunStep, 0)
 	err := c.db.WithContext(ctx).Model(run).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND status = ?", c.id, openai.RunObjectStatusQueued).Order("created_at desc").First(run).Error; err != nil {
+		if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND status = ? AND system_status IS NULL", c.id, openai.RunObjectStatusQueued).Order("created_at desc").First(run).Error; err != nil {
 			return err
 		}
 
@@ -183,10 +183,11 @@ func (c *agent) run(ctx context.Context) error {
 	// If the run reaches a terminal state, then unlock the thread.
 
 	var (
-		terminalState bool
-		newStatus     openai.RunObjectStatus
-		newRunSteps   []db.RunStep
-		newMessage    *db.Message
+		terminalState   bool
+		newPublicStatus openai.RunObjectStatus
+		newSystemStatus *string
+		newRunSteps     []db.RunStep
+		newMessage      *db.Message
 	)
 
 	// If the chat completion request failed, then we should put the run in a failed state.
@@ -203,10 +204,9 @@ func (c *agent) run(ctx context.Context) error {
 
 	// Act on the response from the chat completion request.
 	if ccr.Choices[0].Message.Data().ToolCalls != nil {
-		newStatus = openai.RunObjectStatusRequiresAction
-		newRunSteps, err = objectsForToolStep(run, ccr)
+		newPublicStatus, newSystemStatus, newRunSteps, err = objectsForToolStep(run, ccr)
 	} else if ccr.Choices[0].Message.Data().Content != nil {
-		newStatus = openai.RunObjectStatusCompleted
+		newPublicStatus = openai.RunObjectStatusCompleted
 		terminalState = true
 		newRunSteps, newMessage, err = objectsForMessageStep(run, ccr)
 	} else {
@@ -243,10 +243,11 @@ func (c *agent) run(ctx context.Context) error {
 		}
 
 		return tx.Model(run).Where("id = ?", run.ID).Updates(map[string]any{
-			"status":          newStatus,
+			"status":          newPublicStatus,
 			"completed_at":    completedAt,
 			"usage":           run.Usage,
 			"required_action": run.RequiredAction,
+			"system_status":   newSystemStatus,
 		}).Error
 	}); err != nil {
 		l.Error("Failed to update and create objects for run", "err", err)
@@ -263,10 +264,11 @@ func failRun(l *slog.Logger, gdb *gorm.DB, run *db.Run, err error, errorCode ope
 	}
 	if err := gdb.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(new(db.Run)).Where("id = ?", run.ID).Updates(map[string]interface{}{
-			"status":     openai.RunObjectStatusFailed,
-			"failed_at":  z.Pointer(int(time.Now().Unix())),
-			"last_error": datatypes.NewJSONType(runError),
-			"usage":      run.Usage,
+			"status":        openai.RunObjectStatusFailed,
+			"system_status": nil,
+			"failed_at":     z.Pointer(int(time.Now().Unix())),
+			"last_error":    datatypes.NewJSONType(runError),
+			"usage":         run.Usage,
 		}).Error; err != nil {
 			return err
 		}
@@ -277,25 +279,34 @@ func failRun(l *slog.Logger, gdb *gorm.DB, run *db.Run, err error, errorCode ope
 	}
 }
 
-func objectsForToolStep(run *db.Run, ccr *db.ChatCompletionResponse) ([]db.RunStep, error) {
+func objectsForToolStep(run *db.Run, ccr *db.ChatCompletionResponse) (openai.RunObjectStatus, *string, []db.RunStep, error) {
 	functionCalls := make([]openai.RunToolCallObject, 0, len(ccr.Choices))
 	nonFunctionCalls := make([]openai.RunToolCallObject, 0, len(ccr.Choices))
 	for _, choice := range ccr.Choices {
 		if choice.Message.Data().ToolCalls != nil {
 			for _, tc := range *choice.Message.Data().ToolCalls {
-				if tc.Function.Name == string(openai.AssistantToolsCodeTypeCodeInterpreter) || tc.Function.Name == string(openai.AssistantToolsRetrievalTypeRetrieval) {
+				nonFunctionType := strings.HasPrefix(tc.Function.Name, agents.GPTScriptToolNamePrefix)
+				toolType := string(tc.Type)
+				if tc.Function.Name == string(openai.AssistantToolsCodeTypeCodeInterpreter) {
+					nonFunctionType = true
+					toolType = string(openai.AssistantToolsCodeTypeCodeInterpreter)
+				} else if tc.Function.Name == string(openai.AssistantToolsRetrievalTypeRetrieval) {
+					nonFunctionType = true
+					toolType = string(openai.AssistantToolsRetrievalTypeRetrieval)
+				}
+				if nonFunctionType {
 					//golint:govet
 					nonFunctionCalls = append(nonFunctionCalls, openai.RunToolCallObject{
 						tc.Function,
 						tc.Id,
-						openai.RunToolCallObjectType(tc.Type),
+						openai.RunToolCallObjectType(toolType),
 					})
 				} else {
 					//golint:govet
 					functionCalls = append(functionCalls, openai.RunToolCallObject{
 						tc.Function,
 						tc.Id,
-						openai.RunToolCallObjectType(tc.Type),
+						openai.RunToolCallObjectType(toolType),
 					})
 				}
 			}
@@ -304,11 +315,11 @@ func objectsForToolStep(run *db.Run, ccr *db.ChatCompletionResponse) ([]db.RunSt
 
 	functionCallDetails, err := db.RunStepDetailsFromRunRequiredActionToolCalls(functionCalls)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert step details: %w", err)
+		return "", nil, nil, fmt.Errorf("failed to convert step details: %w", err)
 	}
 	nonFunctionCallDetails, err := db.RunStepDetailsFromRunRequiredActionToolCalls(nonFunctionCalls)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert step details: %w", err)
+		return "", nil, nil, fmt.Errorf("failed to convert step details: %w", err)
 	}
 
 	run.RequiredAction = datatypes.NewJSONType(&db.RunRequiredAction{
@@ -323,7 +334,11 @@ func objectsForToolStep(run *db.Run, ccr *db.ChatCompletionResponse) ([]db.RunSt
 	run.Usage.Data().PromptTokens += ccr.Usage.Data().PromptTokens
 	run.Usage.Data().CompletionTokens += ccr.Usage.Data().CompletionTokens
 
-	var runSteps []db.RunStep
+	var (
+		runSteps        []db.RunStep
+		newSystemStatus *string
+		newPublicStatus openai.RunObjectStatus
+	)
 	if len(nonFunctionCalls) > 0 {
 		runSteps = append(runSteps, db.RunStep{
 			AssistantID: run.AssistantID,
@@ -331,7 +346,11 @@ func objectsForToolStep(run *db.Run, ccr *db.ChatCompletionResponse) ([]db.RunSt
 			StepDetails: datatypes.NewJSONType(*nonFunctionCallDetails),
 			Type:        string(openai.RunStepObjectTypeToolCalls),
 			Status:      string(openai.InProgress),
+			RunnerType:  z.Pointer(agents.GPTScriptRunnerType),
 		})
+
+		newSystemStatus = z.Pointer("requires_action")
+		newPublicStatus = openai.RunObjectStatusInProgress
 	}
 
 	if len(functionCalls) > 0 {
@@ -341,10 +360,12 @@ func objectsForToolStep(run *db.Run, ccr *db.ChatCompletionResponse) ([]db.RunSt
 			StepDetails: datatypes.NewJSONType(*functionCallDetails),
 			Type:        string(openai.RunStepObjectTypeToolCalls),
 			Status:      string(openai.InProgress),
+			RunnerType:  z.Pointer(agents.GPTScriptRunnerType),
 		})
+		newPublicStatus = openai.RunObjectStatusRequiresAction
 	}
 
-	return runSteps, nil
+	return newPublicStatus, newSystemStatus, runSteps, nil
 }
 
 func objectsForMessageStep(run *db.Run, ccr *db.ChatCompletionResponse) ([]db.RunStep, *db.Message, error) {
@@ -496,7 +517,7 @@ func createChatMessageFromToolOutput(toolOutput openai.RunStepObject_StepDetails
 	messages := make([]openai.ChatCompletionRequestMessage, 1, len(toolCall.ToolCalls)+1)
 	am := new(openai.ChatCompletionRequestMessage)
 	for _, output := range toolCall.ToolCalls {
-		toolCallOutput, id, err := db.GetFunctionFromRunStepFunctionCall(output)
+		toolInfo, err := db.GetOutputForRunStepToolCall(output)
 		if err != nil {
 			return nil, err
 		}
@@ -504,8 +525,8 @@ func createChatMessageFromToolOutput(toolOutput openai.RunStepObject_StepDetails
 		m := new(openai.ChatCompletionRequestMessage)
 		if err = m.FromChatCompletionRequestToolMessage(openai.ChatCompletionRequestToolMessage{
 			Role:       openai.Tool,
-			Content:    z.Dereference(toolCallOutput.Output),
-			ToolCallId: id,
+			Content:    toolInfo.Output,
+			ToolCallId: toolInfo.ID,
 		}); err != nil {
 			return nil, err
 		}
@@ -516,10 +537,10 @@ func createChatMessageFromToolOutput(toolOutput openai.RunStepObject_StepDetails
 				Arguments string `json:"arguments"`
 				Name      string `json:"name"`
 			}{
-				Arguments: toolCallOutput.Arguments,
-				Name:      toolCallOutput.Name,
+				Arguments: toolInfo.Arguments,
+				Name:      toolInfo.Name,
 			},
-			Id:   id,
+			Id:   toolInfo.ID,
 			Type: openai.ChatCompletionMessageToolCallTypeFunction,
 		})
 	}

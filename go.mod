@@ -2,11 +2,6 @@ module github.com/thedadams/clicky-chats
 
 go 1.22.0
 
-replace (
-	github.com/gptscript-ai/gptscript => github.com/thedadams/gptscript v0.0.0-20240227144629-436cdffd0d04
-	github.com/sashabaranov/go-openai => github.com/gptscript-ai/go-openai v0.0.0-20240206232711-45b6e096246a
-)
-
 require (
 	github.com/acorn-io/broadcaster v0.0.0-20240105011354-bfadd4a7b45d
 	github.com/acorn-io/cmd v0.0.0-20240203032901-e9e631185ddb
@@ -14,7 +9,7 @@ require (
 	github.com/getkin/kin-openapi v0.118.0
 	github.com/glebarez/sqlite v1.10.0
 	github.com/google/uuid v1.5.0
-	github.com/gptscript-ai/gptscript v0.1.1
+	github.com/gptscript-ai/gptscript v0.1.5-0.20240301175427-969450b957f9
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/spf13/cobra v1.8.0
@@ -57,7 +52,7 @@ require (
 	github.com/rs/cors v1.10.1 // indirect
 	github.com/samber/lo v1.38.1 // indirect
 	github.com/samber/slog-logrus v1.0.0 // indirect
-	github.com/sashabaranov/go-openai v1.18.3 // indirect
+	github.com/sashabaranov/go-openai v1.20.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
@@ -65,6 +60,7 @@ require (
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/term v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 	modernc.org/libc v1.22.5 // indirect
