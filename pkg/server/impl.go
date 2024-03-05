@@ -446,8 +446,32 @@ func (s *Server) CreateImageEdit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) CreateImage(w http.ResponseWriter, r *http.Request) {
-	//TODO implement me
-	w.WriteHeader(http.StatusNotImplemented)
+	oaiReq := new(openai.CreateImageRequest)
+	if err := readObjectFromRequest(r, oaiReq); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	agentReq := new(db.CreateImageRequest)
+	if err := agentReq.FromPublic(oaiReq); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to process request.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	var (
+		ctx    = r.Context()
+		gormDB = s.db.WithContext(ctx)
+	)
+	if err := db.Create(gormDB, agentReq); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError("Failed to create chat completion request.", InternalErrorType).Error()))
+		return
+	}
+
+	waitForAndWriteResponse(ctx, w, gormDB, agentReq.ID, new(db.ImagesResponse))
+	return
 }
 
 func (s *Server) CreateImageVariation(w http.ResponseWriter, r *http.Request) {

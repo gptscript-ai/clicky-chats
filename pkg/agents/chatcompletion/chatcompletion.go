@@ -194,6 +194,7 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 	}()
 
 	// Start cleanup
+	// TODO(njhale): Pitch to Donnie that old requests and responses should expire when they're older than some max deadline
 	go func() {
 		for {
 			select {
