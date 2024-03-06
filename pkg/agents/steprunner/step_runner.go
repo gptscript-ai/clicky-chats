@@ -26,7 +26,7 @@ import (
 const (
 	codeInterpreterFunctionName = "code_interpreter"
 	retrievalFunctionName       = "retrieval"
-	webSearchFunctionName       = "web-search"
+	webSearchFunctionName       = "web_browsing"
 
 	webBrowsingTool = `
 tools: web-browsing
