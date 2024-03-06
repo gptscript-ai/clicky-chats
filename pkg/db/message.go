@@ -15,6 +15,10 @@ type Message struct {
 	FileIDs     datatypes.JSONSlice[string]                            `json:"file_ids,omitempty"`
 }
 
+func (m *Message) IDPrefix() string {
+	return "msg_"
+}
+
 func (m *Message) ToPublic() any {
 	//nolint:govet
 	return &openai.MessageObject{
@@ -64,6 +68,10 @@ func (m *Message) FromPublic(obj any) error {
 type MessageFile struct {
 	Base      `json:",inline"`
 	MessageID string `json:"message_id"`
+}
+
+func (m *MessageFile) IDPrefix() string {
+	return "file-"
 }
 
 func (m *MessageFile) ToPublic() any {

@@ -9,6 +9,10 @@ type AssistantFile struct {
 	AssistantID string `json:"assistant_id"`
 }
 
+func (af *AssistantFile) IDPrefix() string {
+	return "file-"
+}
+
 func (af *AssistantFile) ToPublic() any {
 	//nolint:govet
 	return &openai.AssistantFileObject{

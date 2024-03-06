@@ -29,6 +29,10 @@ type RunStep struct {
 	RunnerType *string `json:"runner_type,omitempty"`
 }
 
+func (r *RunStep) IDPrefix() string {
+	return "step_"
+}
+
 func (r *RunStep) ToPublic() any {
 	lastError := r.LastError.Data()
 	//nolint:govet

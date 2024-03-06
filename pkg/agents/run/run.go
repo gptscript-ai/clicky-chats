@@ -230,8 +230,7 @@ func (c *agent) run(ctx context.Context) error {
 		}
 
 		if newMessage != nil {
-			// Don't use db.Create here because the messages should already have the ID and CreatedAt fields set.
-			if err := db.CreateAny(tx, newMessage); err != nil {
+			if err := db.Create(tx, newMessage); err != nil {
 				return err
 			}
 		}
@@ -375,7 +374,12 @@ func objectsForMessageStep(run *db.Run, ccr *db.ChatCompletionResponse) ([]db.Ru
 	}
 
 	newMessage := &db.Message{
-		ThreadChild: db.NewThreadChild(run.ThreadID, nil),
+		ThreadChild: db.ThreadChild{
+			Metadata: db.Metadata{
+				Metadata: nil,
+			},
+			ThreadID: run.ThreadID,
+		},
 		Role:        string(openai.MessageObjectRoleAssistant),
 		Content:     []openai.MessageObject_Content_Item{*content},
 		AssistantID: z.Pointer(run.AssistantID),

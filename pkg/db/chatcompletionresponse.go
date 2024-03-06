@@ -16,6 +16,10 @@ type ChatCompletionResponse struct {
 	JobResponse `json:",inline"`
 }
 
+func (c *ChatCompletionResponse) IDPrefix() string {
+	return "chatcmpl-"
+}
+
 func (c *ChatCompletionResponse) FromPublic(obj any) error {
 	o, ok := obj.(*openai.CreateChatCompletionResponse)
 	if !ok {

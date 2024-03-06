@@ -7,6 +7,10 @@ type Model struct {
 	OwnedBy string `json:"owned_by"`
 }
 
+func (m *Model) IDPrefix() string {
+	return "model-"
+}
+
 func (m *Model) ToPublic() any {
 	//nolint:govet
 	return &openai.Model{

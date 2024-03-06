@@ -9,7 +9,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/acorn-io/z"
 	"github.com/thedadams/clicky-chats/pkg/db"
@@ -86,10 +85,6 @@ func MakeChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http
 	}
 
 	ccr.StatusCode = code
-	ccr.Base = db.Base{
-		ID:        db.NewID(),
-		CreatedAt: int(time.Now().Unix()),
-	}
 	ccr.RequestID = cc.ID
 	ccr.Done = true
 

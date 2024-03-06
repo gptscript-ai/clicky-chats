@@ -326,8 +326,6 @@ func (s *Server) CreateFile(w http.ResponseWriter, r *http.Request) {
 		Filename: fh.Filename,
 		Purpose:  r.FormValue("purpose"),
 	}
-	file.SetID(db.NewID())
-	file.SetCreatedAt(int(time.Now().Unix()))
 
 	uploadedFile, err := fh.Open()
 	if err != nil {
@@ -343,7 +341,7 @@ func (s *Server) CreateFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = db.CreateAny(s.db.WithContext(r.Context()), file); err != nil {
+	if err = db.Create(s.db.WithContext(r.Context()), file); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
 		return

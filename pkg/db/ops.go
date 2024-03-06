@@ -25,7 +25,7 @@ func List[T Transformer](db *gdb.DB, objs *[]T) error {
 // Create saves an object to the database. It will first set the ID and CreatedAt fields.
 // It is the responsibility of the caller to validate the object before calling this function.
 func Create(db *gdb.DB, obj Storer) error {
-	obj.SetID(NewID())
+	SetNewID(obj)
 	obj.SetCreatedAt(int(time.Now().Unix()))
 
 	slog.Debug("Creating", "id", obj.GetID())

@@ -16,6 +16,10 @@ type ChatCompletionResponseChunk struct {
 	ResponseIdx int `json:"response_idx"`
 }
 
+func (c *ChatCompletionResponseChunk) IDPrefix() string {
+	return "chatcmpl-"
+}
+
 func (c *ChatCompletionResponseChunk) GetIndex() int {
 	return c.ResponseIdx
 }

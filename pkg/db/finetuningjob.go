@@ -20,6 +20,10 @@ type FineTuningJob struct {
 	ValidationFile  *string                                          `json:"validation_file"`
 }
 
+func (f *FineTuningJob) IDPrefix() string {
+	return "ftjob-"
+}
+
 func (f *FineTuningJob) ToPublic() any {
 	//nolint:govet
 	return &openai.FineTuningJob{

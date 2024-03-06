@@ -29,6 +29,10 @@ type Run struct {
 	SystemStatus    *string `json:"system_status,omitempty"`
 }
 
+func (r *Run) IDPrefix() string {
+	return "run_"
+}
+
 func (r *Run) ToPublic() any {
 	//nolint:govet
 	return &openai.RunObject{

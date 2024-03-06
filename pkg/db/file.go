@@ -9,6 +9,10 @@ type File struct {
 	Filename string `json:"filename"`
 }
 
+func (f *File) IDPrefix() string {
+	return "file-"
+}
+
 func (f *File) ToPublic() any {
 	//nolint:govet
 	return &openai.OpenAIFile{

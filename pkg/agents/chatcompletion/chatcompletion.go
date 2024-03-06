@@ -100,6 +100,7 @@ func (c *agent) listAndStoreModels(ctx context.Context, modelsURL string) error 
 				return err
 			}
 
+			// Create the model directly instead of using the db ops because the ID is already set.
 			if err = tx.Model(&db.Model{}).Create(model).Error; err != nil && !errors.Is(err, gorm.ErrDuplicatedKey) {
 				return err
 			}
@@ -181,7 +182,7 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 				l.Debug("Made chat completion request", "status_code", ccr.StatusCode)
 
 				if err = c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-					if err = tx.Create(ccr).Error; err != nil {
+					if err = db.Create(tx, ccr); err != nil {
 						return err
 					}
 					return tx.Model(cc).Where("id = ?", chatCompletionID).Update("done", true).Error

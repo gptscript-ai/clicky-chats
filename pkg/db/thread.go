@@ -11,6 +11,10 @@ type Thread struct {
 	LockedByRunID string `json:"locked_by_run_id"`
 }
 
+func (t *Thread) IDPrefix() string {
+	return "thread_"
+}
+
 func (t *Thread) SetThreadID(string) error { return nil }
 
 func (t *Thread) GetThreadID() string { return t.ID }

@@ -13,6 +13,10 @@ type Speech struct {
 	Voice          string                                               `json:"voice"`
 }
 
+func (s *Speech) IDPrefix() string {
+	return "speech-"
+}
+
 func (s *Speech) ToPublic() any {
 	//nolint:govet
 	return &openai.CreateSpeechRequest{

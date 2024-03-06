@@ -18,6 +18,10 @@ type Assistant struct {
 	Tools        datatypes.JSONSlice[openai.AssistantObject_Tools_Item] `json:"tools"`
 }
 
+func (a *Assistant) IDPrefix() string {
+	return "asst_"
+}
+
 func (a *Assistant) ToPublic() any {
 	//nolint:govet
 	return &openai.AssistantObject{

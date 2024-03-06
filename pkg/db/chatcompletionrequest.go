@@ -30,6 +30,10 @@ type ChatCompletionRequest struct {
 	ModelAPI   string `json:"model_api"`
 }
 
+func (c *ChatCompletionRequest) IDPrefix() string {
+	return "chatcmpl-"
+}
+
 func (c *ChatCompletionRequest) ToPublic() any {
 	var responseFormat *struct {
 		Type *openai.CreateChatCompletionRequestResponseFormatType `json:"type,omitempty"`

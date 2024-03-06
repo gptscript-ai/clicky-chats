@@ -1,8 +1,10 @@
 package db
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/acorn-io/z"
 	"github.com/google/uuid"
@@ -10,11 +12,13 @@ import (
 	"gorm.io/datatypes"
 )
 
-func NewID() string {
-	return uuid.New().String()
+func SetNewID(obj Storer) {
+	// Use base64 encoding here to be consistent with what OpenAI does
+	obj.SetID(fmt.Sprintf("%s%s", obj.IDPrefix(), base64.URLEncoding.EncodeToString(sha256.New().Sum([]byte(uuid.NewString()))[:12])))
 }
 
 type Storer interface {
+	IDPrefix() string
 	SetID(string)
 	GetID() string
 	SetCreatedAt(int)
@@ -54,13 +58,6 @@ type JobRespondStreamer interface {
 	GetIndex() int
 }
 
-func NewBase() Base {
-	return Base{
-		ID:        NewID(),
-		CreatedAt: int(time.Now().Unix()),
-	}
-}
-
 type Base struct {
 	ID        string `json:"id" gorm:"primarykey"`
 	CreatedAt int    `json:"created_at,omitempty"`
@@ -82,23 +79,9 @@ func (b *Base) GetCreatedAt() int {
 	return b.CreatedAt
 }
 
-func NewMetadata(metadata map[string]any) Metadata {
-	return Metadata{
-		Base:     NewBase(),
-		Metadata: metadata,
-	}
-}
-
 type Metadata struct {
 	Base     `json:",inline"`
 	Metadata datatypes.JSONMap `json:"metadata,omitempty"`
-}
-
-func NewThreadChild(threadID string, metadata map[string]any) ThreadChild {
-	return ThreadChild{
-		Metadata: NewMetadata(metadata),
-		ThreadID: threadID,
-	}
 }
 
 type ThreadChild struct {
