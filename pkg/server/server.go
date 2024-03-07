@@ -11,9 +11,9 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/gptscript-ai/clicky-chats/pkg/db"
+	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
-	"github.com/thedadams/clicky-chats/pkg/db"
-	"github.com/thedadams/clicky-chats/pkg/generated/openai"
 )
 
 type Config struct {

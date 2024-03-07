@@ -12,13 +12,13 @@ import (
 
 	"github.com/acorn-io/broadcaster"
 	"github.com/acorn-io/z"
+	"github.com/gptscript-ai/clicky-chats/pkg/agents"
+	"github.com/gptscript-ai/clicky-chats/pkg/db"
+	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"github.com/gptscript-ai/gptscript/pkg/loader"
 	gptopenai "github.com/gptscript-ai/gptscript/pkg/openai"
 	"github.com/gptscript-ai/gptscript/pkg/runner"
 	"github.com/gptscript-ai/gptscript/pkg/server"
-	"github.com/thedadams/clicky-chats/pkg/agents"
-	"github.com/thedadams/clicky-chats/pkg/db"
-	"github.com/thedadams/clicky-chats/pkg/generated/openai"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )

@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/thedadams/clicky-chats/pkg/generated/openai"
+	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	gdb "gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

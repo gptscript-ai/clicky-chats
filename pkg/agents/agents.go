@@ -11,8 +11,8 @@ import (
 	"net/http"
 
 	"github.com/acorn-io/z"
-	"github.com/thedadams/clicky-chats/pkg/db"
-	"github.com/thedadams/clicky-chats/pkg/generated/openai"
+	"github.com/gptscript-ai/clicky-chats/pkg/db"
+	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 )
 
 const (

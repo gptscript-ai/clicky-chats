@@ -1,6 +1,6 @@
 package db
 
-import "github.com/thedadams/clicky-chats/pkg/generated/openai"
+import "github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 
 type File struct {
 	Base

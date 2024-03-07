@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/thedadams/clicky-chats/pkg/generated/openai"
+	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 )
 
 func LogRequest(logger *slog.Logger) openai.MiddlewareFunc {

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/acorn-io/z"
-	"github.com/thedadams/clicky-chats/pkg/db"
+	"github.com/gptscript-ai/clicky-chats/pkg/db"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/acorn-io/cmd"
-	"github.com/thedadams/clicky-chats/pkg/cli"
+	"github.com/gptscript-ai/clicky-chats/pkg/cli"
 )
 
 func main() {
