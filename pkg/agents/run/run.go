@@ -374,12 +374,10 @@ func objectsForMessageStep(run *db.Run, ccr *db.ChatCompletionResponse) ([]db.Ru
 	}
 
 	newMessage := &db.Message{
-		ThreadChild: db.ThreadChild{
-			Metadata: db.Metadata{
-				Metadata: nil,
-			},
-			ThreadID: run.ThreadID,
+		Metadata: db.Metadata{
+			Metadata: nil,
 		},
+		ThreadID:    run.ThreadID,
 		Role:        string(openai.MessageObjectRoleAssistant),
 		Content:     []openai.MessageObject_Content_Item{*content},
 		AssistantID: z.Pointer(run.AssistantID),

@@ -7,8 +7,9 @@ import (
 )
 
 type Run struct {
-	ThreadChild    `json:",inline"`
+	Metadata       `json:",inline"`
 	AssistantID    string                                           `json:"assistant_id"`
+	ThreadID       string                                           `json:"thread_id"`
 	Status         string                                           `json:"status"`
 	RequiredAction datatypes.JSONType[*RunRequiredAction]           `json:"required_action"`
 	LastError      datatypes.JSONType[*RunLastError]                `json:"last_error"`
@@ -85,17 +86,15 @@ func (r *Run) FromPublic(obj any) error {
 
 		*r = Run{
 			//nolint:govet
-			ThreadChild{
-				Metadata{
-					Base{
-						o.Id,
-						o.CreatedAt,
-					},
-					z.Dereference(o.Metadata),
+			Metadata{
+				Base{
+					o.Id,
+					o.CreatedAt,
 				},
-				o.ThreadId,
+				z.Dereference(o.Metadata),
 			},
 			o.AssistantId,
+			o.ThreadId,
 			string(o.Status),
 			datatypes.NewJSONType(requiredAction),
 			datatypes.NewJSONType(lastError),

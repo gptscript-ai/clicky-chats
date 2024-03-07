@@ -7,10 +7,11 @@ import (
 )
 
 type Message struct {
-	ThreadChild `json:",inline"`
+	Metadata    `json:",inline"`
 	Role        string                                                 `json:"role"`
 	Content     datatypes.JSONSlice[openai.MessageObject_Content_Item] `json:"content"`
 	AssistantID *string                                                `json:"assistant_id,omitempty"`
+	ThreadID    string                                                 `json:"thread_id,omitempty"`
 	RunID       *string                                                `json:"run_id,omitempty"`
 	FileIDs     datatypes.JSONSlice[string]                            `json:"file_ids,omitempty"`
 }
@@ -44,19 +45,17 @@ func (m *Message) FromPublic(obj any) error {
 	if o != nil && m != nil {
 		//nolint:govet
 		*m = Message{
-			ThreadChild{
-				Metadata{
-					Base{
-						o.Id,
-						o.CreatedAt,
-					},
-					z.Dereference(o.Metadata),
+			Metadata{
+				Base{
+					o.Id,
+					o.CreatedAt,
 				},
-				o.ThreadId,
+				z.Dereference(o.Metadata),
 			},
 			string(o.Role),
 			o.Content,
 			o.AssistantId,
+			o.ThreadId,
 			o.RunId,
 			o.FileIds,
 		}

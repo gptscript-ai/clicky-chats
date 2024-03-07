@@ -10,20 +10,20 @@ import "fmt"
 func validateMetadata(metadata *map[string]interface{}) error {
 	if metadata != nil {
 		if l := len(*metadata); l > 16 {
-			return fmt.Errorf("metadata should have 16 elements or fewer, has %d", l)
+			return NewAPIError(fmt.Sprintf("metadata length should be less than or equal to 16, has %d", l), InvalidRequestErrorType)
 		}
 		for key, value := range *metadata {
 			if len(key) > 64 {
-				return fmt.Errorf("metadata key length should be less than or equal to 64, key %s has length %d", key, len(key))
+				return NewAPIError(fmt.Sprintf("metadata key length should be less than or equal to 64, key %s has length %d", key, len(key)), InvalidRequestErrorType)
 			}
 
 			switch value := value.(type) {
 			case string:
 				if len(value) > 256 {
-					return fmt.Errorf("metadata value length should be less than or equal to 256, value %s for key %s has length %d", value, key, len(value))
+					return NewAPIError(fmt.Sprintf("metadata value length should be less than or equal to 256, value %s has length %d", value, len(value)), InvalidRequestErrorType)
 				}
 			default:
-				return fmt.Errorf("metadata value for key %s should be string", key)
+				return NewAPIError(fmt.Sprintf("metadata value should be a string, has %T", value), InvalidRequestErrorType)
 			}
 		}
 	}

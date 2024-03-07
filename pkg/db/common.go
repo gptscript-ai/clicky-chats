@@ -8,7 +8,6 @@ import (
 
 	"github.com/acorn-io/z"
 	"github.com/google/uuid"
-	"github.com/thedadams/clicky-chats/pkg/types"
 	"gorm.io/datatypes"
 )
 
@@ -82,24 +81,6 @@ func (b *Base) GetCreatedAt() int {
 type Metadata struct {
 	Base     `json:",inline"`
 	Metadata datatypes.JSONMap `json:"metadata,omitempty"`
-}
-
-type ThreadChild struct {
-	Metadata
-	ThreadID string `json:"thread_id"`
-}
-
-func (t *ThreadChild) SetThreadID(id string) error {
-	if t.ThreadID != "" && t.ThreadID != id {
-		return types.ErrThreadID(t.ThreadID)
-	}
-
-	t.ThreadID = id
-	return nil
-}
-
-func (t *ThreadChild) GetThreadID() string {
-	return t.ThreadID
 }
 
 type JobRequest struct {

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/acorn-io/z"
@@ -18,33 +19,28 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	notEmptyErrorFormat = "value %s should not be empty on %s"
-	notFoundError       = "not found"
-)
-
 func (s *Server) ListAssistants(w http.ResponseWriter, r *http.Request, params openai.ListAssistantsParams) {
-	gormDB, err := processAssistantsAPIListParams[*db.Assistant](s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order)
+	gormDB, limit, err := processAssistantsAPIListParams[*db.Assistant](s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 	}
 
-	listAndRespond[*db.Assistant](gormDB, w)
+	listAndRespond[*db.Assistant](gormDB, w, limit)
 }
 
 func (s *Server) CreateAssistant(w http.ResponseWriter, r *http.Request) {
 	createAssistantRequest := new(openai.CreateAssistantRequest)
 	if err := readObjectFromRequest(r, createAssistantRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	model, err := createAssistantRequest.Model.AsCreateAssistantRequestModel0()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "failed to process model: %v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to process model.", InvalidRequestErrorType).Error()))
 		return
 	}
 
@@ -53,7 +49,7 @@ func (s *Server) CreateAssistant(w http.ResponseWriter, r *http.Request) {
 		t := new(openai.AssistantObject_Tools_Item)
 		if err := transposeObject(tool, t); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+			_, _ = w.Write([]byte(NewAPIError("Failed to process tool.", InvalidRequestErrorType).Error()))
 			return
 		}
 		tools = append(tools, *t)
@@ -92,27 +88,27 @@ func (s *Server) GetAssistant(w http.ResponseWriter, r *http.Request, assistantI
 func (s *Server) ModifyAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "assistant_id", "modify"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("assistant_id").Error()))
 		return
 	}
 
 	modifyAssistantRequest := new(openai.ModifyAssistantRequest)
 	if err := readObjectFromRequest(r, modifyAssistantRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	if err := validateMetadata(modifyAssistantRequest.Metadata); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	model, err := modifyAssistantRequest.Model.AsModifyAssistantRequestModel0()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "failed to process model: %v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to process model.", InvalidRequestErrorType).Error()))
 		return
 	}
 
@@ -121,7 +117,7 @@ func (s *Server) ModifyAssistant(w http.ResponseWriter, r *http.Request, assista
 		t := new(openai.AssistantObject_Tools_Item)
 		if err := transposeObject(tool, t); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+			_, _ = w.Write([]byte(NewAPIError("Failed to process tool.", InvalidRequestErrorType).Error()))
 			return
 		}
 		tools = append(tools, *t)
@@ -141,36 +137,39 @@ func (s *Server) ModifyAssistant(w http.ResponseWriter, r *http.Request, assista
 		tools,
 	}
 
-	modify(s.db.WithContext(r.Context()), w, new(db.Assistant), assistantID, publicAssistant)
+	modify(s.db.WithContext(r.Context()), w, &db.Assistant{Metadata: db.Metadata{Base: db.Base{ID: assistantID}}}, publicAssistant)
 }
 
 func (s *Server) ListAssistantFiles(w http.ResponseWriter, r *http.Request, assistantID string, params openai.ListAssistantFilesParams) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "assistant_id", "list"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("assistant_id").Error()))
 		return
 	}
 
-	gormDB, err := processAssistantsAPIListParams[*db.AssistantFile](s.db.WithContext(r.Context()).Where("assistant_id = ?", assistantID), params.Limit, params.Before, params.After, params.Order)
+	gormDB, limit, err := processAssistantsAPIListParams[*db.AssistantFile](
+		s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order,
+		&db.Assistant{Metadata: db.Metadata{Base: db.Base{ID: assistantID}}},
+	)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 	}
 
-	listAndRespond[*db.AssistantFile](gormDB, w)
+	listAndRespond[*db.AssistantFile](gormDB.Where("assistant_id = ?", assistantID), w, limit)
 }
 
 func (s *Server) CreateAssistantFile(w http.ResponseWriter, r *http.Request, assistantID string) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "assistant_id", "create"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("assistant_id").Error()))
 		return
 	}
 
 	createAssistantFileRequest := new(openai.CreateAssistantFileRequest)
 	if err := readObjectFromRequest(r, createAssistantFileRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -186,7 +185,7 @@ func (s *Server) CreateAssistantFile(w http.ResponseWriter, r *http.Request, ass
 func (s *Server) DeleteAssistantFile(w http.ResponseWriter, r *http.Request, assistantID string, fileID string) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "assistant_id", "delete"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("assistant_id").Error()))
 		return
 	}
 
@@ -201,7 +200,7 @@ func (s *Server) DeleteAssistantFile(w http.ResponseWriter, r *http.Request, ass
 func (s *Server) GetAssistantFile(w http.ResponseWriter, r *http.Request, assistantID string, fileID string) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "assistant_id", "get"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("assistant_id").Error()))
 		return
 	}
 
@@ -212,7 +211,7 @@ func (s *Server) CreateSpeech(w http.ResponseWriter, r *http.Request) {
 	createSpeechRequest := new(openai.CreateSpeechRequest)
 	if err := readObjectFromRequest(r, createSpeechRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -233,7 +232,7 @@ func (s *Server) CreateSpeech(w http.ResponseWriter, r *http.Request) {
 	// FIXME: The correct response here is the audio for the speech.
 	if err := db.CreateAny(s.db.WithContext(r.Context()), newSpeech); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to create speech.", InternalErrorType).Error()))
 		return
 	}
 }
@@ -252,21 +251,21 @@ func (s *Server) CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 	createCompletionRequest := new(openai.CreateChatCompletionRequest)
 	if err := readObjectFromRequest(r, createCompletionRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	ccr := new(db.ChatCompletionRequest)
 	if err := ccr.FromPublic(createCompletionRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to process request.", InvalidRequestErrorType).Error()))
 		return
 	}
 
 	gormDB := s.db.WithContext(r.Context())
 	if err := db.Create(gormDB, ccr); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to create chat completion request.", InternalErrorType).Error()))
 		return
 	}
 
@@ -296,26 +295,29 @@ func (s *Server) ListFiles(w http.ResponseWriter, r *http.Request, params openai
 	if z.Dereference(params.Purpose) != "" {
 		gormDB = gormDB.Where("purpose = ?", *params.Purpose)
 	}
-	listAndRespond[*db.File](gormDB, w)
+	listAndRespond[*db.File](gormDB, w, -1)
 }
 
 func (s *Server) CreateFile(w http.ResponseWriter, r *http.Request) {
+	if r.FormValue("purpose") == "" {
+		w.WriteHeader(http.StatusNotAcceptable)
+		_, _ = w.Write([]byte(NewAPIError("No purpose provided.", InvalidRequestErrorType).Error()))
+		return
+	}
 	// Max memory is 512MB
 	if err := r.ParseMultipartForm(1 << 29); err != nil {
 		w.WriteHeader(http.StatusNotAcceptable)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to parse multipart form.", InvalidRequestErrorType).Error()))
 		return
-	} else if len(r.MultipartForm.File["file"]) == 0 {
+	}
+	if len(r.MultipartForm.File["file"]) == 0 {
 		w.WriteHeader(http.StatusNotAcceptable)
-		_, _ = w.Write([]byte(`{"error": "no files"}`))
+		_, _ = w.Write([]byte(NewAPIError("No file uploaded.", InvalidRequestErrorType).Error()))
 		return
-	} else if len(r.MultipartForm.File["file"]) > 1 {
+	}
+	if len(r.MultipartForm.File["file"]) > 1 {
 		w.WriteHeader(http.StatusNotAcceptable)
-		_, _ = w.Write([]byte(`{"error": "too many files"}`))
-		return
-	} else if r.FormValue("purpose") == "" {
-		w.WriteHeader(http.StatusNotAcceptable)
-		_, _ = w.Write([]byte(`{"error": "no purpose provided"}`))
+		_, _ = w.Write([]byte(NewAPIError("Too many files uploaded.", InvalidRequestErrorType).Error()))
 		return
 	}
 
@@ -330,20 +332,20 @@ func (s *Server) CreateFile(w http.ResponseWriter, r *http.Request) {
 	uploadedFile, err := fh.Open()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to process file.", InternalErrorType).Error()))
 		return
 	}
 
 	file.Content = make([]byte, fh.Size)
 	if _, err := uploadedFile.Read(file.Content); err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to read file.", InternalErrorType).Error()))
 		return
 	}
 
 	if err = db.Create(s.db.WithContext(r.Context()), file); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to create file.", InternalErrorType).Error()))
 		return
 	}
 
@@ -418,7 +420,7 @@ func (s *Server) CreateImageVariation(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) ListModels(w http.ResponseWriter, r *http.Request) {
-	listAndRespond[*db.Model](s.db.WithContext(r.Context()), w)
+	listAndRespond[*db.Model](s.db.WithContext(r.Context()), w, -1)
 }
 
 func (s *Server) DeleteModel(w http.ResponseWriter, r *http.Request, modelID string) {
@@ -443,13 +445,13 @@ func (s *Server) CreateThread(w http.ResponseWriter, r *http.Request) {
 	createThreadRequest := new(openai.CreateThreadRequest)
 	if err := readObjectFromRequest(r, createThreadRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	if err := validateMetadata(createThreadRequest.Metadata); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -464,13 +466,8 @@ func (s *Server) CreateThread(w http.ResponseWriter, r *http.Request) {
 
 	thread := new(db.Thread)
 	if err := create(s.db.WithContext(r.Context()), thread, publicThread); err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			w.WriteHeader(http.StatusConflict)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
-			return
-		}
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -479,7 +476,7 @@ func (s *Server) CreateThread(w http.ResponseWriter, r *http.Request) {
 			content, err := db.MessageContentFromString(message.Content)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "error processing content: %v"}`, err)))
+				_, _ = w.Write([]byte(NewAPIError("Failed to process message content.", InvalidRequestErrorType).Error()))
 				return
 			}
 
@@ -497,14 +494,9 @@ func (s *Server) CreateThread(w http.ResponseWriter, r *http.Request) {
 				thread.ID,
 			}
 
-			if err := create(s.db.WithContext(r.Context()), new(db.Message), publicMessage); err != nil {
-				if errors.Is(err, gorm.ErrDuplicatedKey) {
-					w.WriteHeader(http.StatusConflict)
-					_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
-					return
-				}
+			if err = create(s.db.WithContext(r.Context()), new(db.Message), publicMessage); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+				_, _ = w.Write([]byte(err.Error()))
 				return
 			}
 		}
@@ -535,54 +527,57 @@ func (s *Server) ModifyThread(w http.ResponseWriter, r *http.Request, threadID s
 	reqBody := new(openai.ModifyThreadRequest)
 	if err := readObjectFromRequest(r, reqBody); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	if err := validateMetadata(reqBody.Metadata); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	modify(s.db.WithContext(r.Context()), w, new(db.Thread), threadID, map[string]interface{}{"metadata": reqBody.Metadata})
+	modify(s.db.WithContext(r.Context()), w, &db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}}, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
 func (s *Server) ListMessages(w http.ResponseWriter, r *http.Request, threadID string, params openai.ListMessagesParams) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "list"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 
-	gormDB, err := processAssistantsAPIListParams[*db.Message](s.db.WithContext(r.Context()).Where("thread_id = ?", threadID), params.Limit, params.Before, params.After, params.Order)
+	gormDB, limit, err := processAssistantsAPIListParams[*db.Message](
+		s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order,
+		&db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}},
+	)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	listAndRespond[*db.Message](gormDB, w)
+	listAndRespond[*db.Message](gormDB.Where("thread_id = ?", threadID), w, limit)
 }
 
 func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request, threadID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "create"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 
 	createMessageRequest := new(openai.CreateMessageRequest)
 	if err := readObjectFromRequest(r, createMessageRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	content, err := db.MessageContentFromString(createMessageRequest.Content)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "error processing content: %v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to process message content.", InvalidRequestErrorType).Error()))
 		return
 	}
 
@@ -606,7 +601,7 @@ func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request, threadID 
 func (s *Server) GetMessage(w http.ResponseWriter, r *http.Request, threadID string, messageID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "get"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 
@@ -616,57 +611,61 @@ func (s *Server) GetMessage(w http.ResponseWriter, r *http.Request, threadID str
 func (s *Server) ModifyMessage(w http.ResponseWriter, r *http.Request, threadID string, messageID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "update"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 
 	reqBody := new(openai.ModifyMessageRequest)
 	if err := readObjectFromRequest(r, reqBody); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	if err := validateMetadata(reqBody.Metadata); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	modify(s.db.WithContext(r.Context()), w, new(db.Message), messageID, map[string]interface{}{"metadata": reqBody.Metadata})
+	modify(s.db.WithContext(r.Context()), w, &db.Message{Metadata: db.Metadata{Base: db.Base{ID: messageID}}}, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
 func (s *Server) ListMessageFiles(w http.ResponseWriter, r *http.Request, threadID string, messageID string, params openai.ListMessageFilesParams) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "list"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 	if messageID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "message_id", "list"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("message_id").Error()))
 		return
 	}
 
-	gormDB, err := processAssistantsAPIListParams[*db.MessageFile](s.db.WithContext(r.Context()).Where("thread_id = ? AND message_id = ?", threadID, messageID), params.Limit, params.Before, params.After, params.Order)
+	gormDB, limit, err := processAssistantsAPIListParams[*db.MessageFile](
+		s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order,
+		&db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}},
+		&db.Message{Metadata: db.Metadata{Base: db.Base{ID: messageID}}},
+	)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	listAndRespond[*db.MessageFile](gormDB, w)
+	listAndRespond[*db.MessageFile](gormDB.Where("thread_id = ? AND message_id = ?", threadID, messageID), w, limit)
 }
 
 func (s *Server) GetMessageFile(w http.ResponseWriter, r *http.Request, threadID string, messageID string, fileID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "get"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 	if messageID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "message_id", "get"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("message_id").Error()))
 		return
 	}
 
@@ -676,57 +675,66 @@ func (s *Server) GetMessageFile(w http.ResponseWriter, r *http.Request, threadID
 func (s *Server) ListRuns(w http.ResponseWriter, r *http.Request, threadID string, params openai.ListRunsParams) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "list"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 
-	gormDB, err := processAssistantsAPIListParams[*db.Run](s.db.WithContext(r.Context()).Where("thread_id = ?", threadID), params.Limit, params.Before, params.After, params.Order)
+	gormDB, limit, err := processAssistantsAPIListParams[*db.Run](
+		s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order,
+		&db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}},
+	)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	listAndRespond[*db.Run](gormDB, w)
+	listAndRespond[*db.Run](gormDB.Where("thread_id = ?", threadID), w, limit)
 }
 
 func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, threadID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "create"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 
 	createRunRequest := new(openai.CreateRunRequest)
 	if err := readObjectFromRequest(r, createRunRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	gormDB := s.db.WithContext(r.Context())
 	// If the thread is locked by another run, then return an error.
-	thread := new(db.Thread)
+	thread := &db.Thread{
+		Metadata: db.Metadata{
+			Base: db.Base{
+				ID: threadID,
+			},
+		},
+	}
 	if err := gormDB.Where("id = ?", threadID).First(thread).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf("thread with id %s not found", threadID))))
+			_, _ = w.Write([]byte(NewNotFoundError(thread).Error()))
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to get thread.", InternalErrorType).Error()))
 		return
 	}
 
 	if thread.LockedByRunID != "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf("run with id %s is already running for thread %s", thread.LockedByRunID, threadID))))
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Thread is locked by run %s.", thread.LockedByRunID), InvalidRequestErrorType).Error()))
 		return
 	}
 
 	if err := validateMetadata(createRunRequest.Metadata); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -737,7 +745,7 @@ func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, threadID stri
 			t := new(openai.RunObject_Tools_Item)
 			if err := transposeObject(tool, t); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+				_, _ = w.Write([]byte(NewAPIError("Failed to process tool.", InvalidRequestErrorType).Error()))
 				return
 			}
 			tools = append(tools, *t)
@@ -769,8 +777,8 @@ func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, threadID stri
 
 	run := new(db.Run)
 	if err := run.FromPublic(publicRun); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to process request.", InvalidRequestErrorType).Error()))
 		return
 	}
 
@@ -783,12 +791,12 @@ func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, threadID stri
 	}); err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			w.WriteHeader(http.StatusConflict)
-			_, _ = w.Write([]byte(`{"error": "already exists"}`))
+			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Run %s already exists.", run.ID), InvalidRequestErrorType).Error()))
 			return
 		}
 
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to create run.", InternalErrorType).Error()))
 		return
 	}
 
@@ -798,7 +806,7 @@ func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, threadID stri
 func (s *Server) GetRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "get"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 
@@ -808,36 +816,36 @@ func (s *Server) GetRun(w http.ResponseWriter, r *http.Request, threadID string,
 func (s *Server) ModifyRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "update"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 
 	reqBody := new(openai.ModifyRunRequest)
 	if err := readObjectFromRequest(r, reqBody); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	if err := validateMetadata(reqBody.Metadata); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	modify(s.db.WithContext(r.Context()), w, new(db.Run), runID, map[string]interface{}{"metadata": reqBody.Metadata})
+	modify(s.db.WithContext(r.Context()), w, &db.Run{Metadata: db.Metadata{Base: db.Base{ID: runID}}}, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
 func (s *Server) CancelRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "cancel"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 
 	if runID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "id", "cancel"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("run_id").Error()))
 		return
 	}
 
@@ -845,12 +853,12 @@ func (s *Server) CancelRun(w http.ResponseWriter, r *http.Request, threadID stri
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, notFoundError)))
+			_, _ = w.Write([]byte(NewNotFoundError(&db.Run{Metadata: db.Metadata{Base: db.Base{ID: runID}}}).Error()))
 			return
 		}
 
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to cancel run: %v", err), InternalErrorType).Error()))
 		return
 	}
 
@@ -860,34 +868,38 @@ func (s *Server) CancelRun(w http.ResponseWriter, r *http.Request, threadID stri
 func (s *Server) ListRunSteps(w http.ResponseWriter, r *http.Request, threadID string, runID string, params openai.ListRunStepsParams) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "list"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 	if runID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "run_id", "list"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("run_id").Error()))
 		return
 	}
 
-	gormDB, err := processAssistantsAPIListParams[*db.RunStep](s.db.WithContext(r.Context()).Where("run_id = ?", runID), params.Limit, params.Before, params.After, params.Order)
+	gormDB, limit, err := processAssistantsAPIListParams[*db.RunStep](
+		s.db.WithContext(r.Context()).Where("run_id = ?", runID), params.Limit, params.Before, params.After, params.Order,
+		&db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}},
+		&db.Run{Metadata: db.Metadata{Base: db.Base{ID: runID}}},
+	)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	listAndRespond[*db.RunStep](gormDB, w)
+	listAndRespond[*db.RunStep](gormDB, w, limit)
 }
 
 func (s *Server) GetRunStep(w http.ResponseWriter, r *http.Request, threadID string, runID string, stepID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "get"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 	if runID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "run_id", "get"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("run_id").Error()))
 		return
 	}
 
@@ -897,19 +909,19 @@ func (s *Server) GetRunStep(w http.ResponseWriter, r *http.Request, threadID str
 func (s *Server) SubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "thread_id", "submit"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 	if runID == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "run_id", "submit"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("run_id").Error()))
 		return
 	}
 
 	outputs := new(openai.SubmitToolOutputsRunRequest)
 	if err := readObjectFromRequest(r, outputs); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -917,12 +929,12 @@ func (s *Server) SubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, t
 	var runSteps []*db.RunStep
 	if err := db.List(s.db.WithContext(r.Context()).Where("run_id = ?", runID).Where("status = ?", string(openai.InProgress)).Order("created_at desc").Limit(1), &runSteps); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to get run step.", InternalErrorType).Error()))
 		return
 	}
 	if len(runSteps) == 0 {
 		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"error": "run step not found"}`))
+		_, _ = w.Write([]byte(NewAPIError("Run step not found.", InvalidRequestErrorType).Error()))
 		return
 	}
 
@@ -931,17 +943,17 @@ func (s *Server) SubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, t
 	runStepFunctionCalls, err := runStep.GetRunStepFunctionCalls()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "failed getting run step tool calls: %v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to get run step function calls.", InternalErrorType).Error()))
 		return
 	}
 	if runStep.Status != string(openai.InProgress) || len(runStepFunctionCalls) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, "run is not waiting on a tool output")))
+		_, _ = w.Write([]byte(NewAPIError("Run step not in progress.", InvalidRequestErrorType).Error()))
 		return
 	}
 	if len(runStepFunctionCalls) != len(outputs.ToolOutputs) {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, fmt.Sprintf("missing tool calls, expecting %d, got %d", len(runStepFunctionCalls), len(outputs.ToolOutputs)))))
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Mismatched number of tool calls and tool outputs: expected %d, got %d", len(runStepFunctionCalls), len(outputs.ToolOutputs)), InvalidRequestErrorType).Error()))
 		return
 	}
 
@@ -953,7 +965,7 @@ func (s *Server) SubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, t
 		})
 		if idx == -1 {
 			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, fmt.Sprintf("unexpected tool call with id %s", toolCallID))))
+			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Tool call %s not found in run step.", toolCallID), InvalidRequestErrorType).Error()))
 			return
 		}
 
@@ -973,7 +985,7 @@ func (s *Server) SubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, t
 		return tx.Model(new(db.Run)).Where("id = ?", runID).Updates(map[string]interface{}{"status": string(openai.RunObjectStatusQueued), "required_action": nil}).Error
 	}); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to submit tool outputs: %v", err), InternalErrorType).Error()))
 		return
 	}
 
@@ -983,40 +995,41 @@ func (s *Server) SubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, t
 func readObjectFromRequest(r *http.Request, obj any) error {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		return err
+		return NewAPIError("Failed reading request body.", InvalidRequestErrorType)
 	}
-	return json.Unmarshal(body, obj)
+	if err := json.Unmarshal(body, obj); err != nil {
+		return NewAPIError(fmt.Sprintf("Failed parsing request object: %v", err), InvalidRequestErrorType)
+	}
+
+	return nil
 }
 
 func writeObjectToResponse(w http.ResponseWriter, obj any) {
 	body, err := json.Marshal(obj)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to write object to response.", InternalErrorType).Error()))
 		return
 	}
-	_, err = w.Write(body)
-	if err != nil {
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
-	}
+	_, _ = w.Write(body)
 }
 
 func getAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, id string) {
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "id", "get"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("id").Error()))
 		return
 	}
 
 	if err := db.Get(gormDB, obj, id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, notFoundError)))
+			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("No %s found with id '%s'.", strings.ToLower(strings.Split(fmt.Sprintf("%T", obj), ".")[1]), id), InvalidRequestErrorType).Error()))
 			return
 		}
 
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to get %s: %v", strings.ToLower(strings.Split(fmt.Sprintf("%T", obj), ".")[1]), err), InternalErrorType).Error()))
 		return
 	}
 
@@ -1025,11 +1038,14 @@ func getAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, i
 
 func create(gormDB *gorm.DB, obj db.Transformer, publicObj any) error {
 	if err := obj.FromPublic(publicObj); err != nil {
-		return err
+		return NewAPIError("Failed parsing request object.", InvalidRequestErrorType)
 	}
 
 	if err := db.Create(gormDB, obj); err != nil {
-		return fmt.Errorf("error creating: %w", err)
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return NewAPIError("Object already exists.", InvalidRequestErrorType)
+		}
+		return NewAPIError("Failed to create object.", InternalErrorType)
 	}
 
 	return nil
@@ -1037,25 +1053,28 @@ func create(gormDB *gorm.DB, obj db.Transformer, publicObj any) error {
 
 func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, publicObj any) {
 	if err := create(gormDB, obj, publicObj); err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			w.WriteHeader(http.StatusConflict)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
-			return
-		}
-
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	writeObjectToResponse(w, obj.ToPublic())
 }
 
-func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gorm.DB, limit *int, before, after *string, order *O) (*gorm.DB, error) {
-	if limit == nil || *limit == 0 {
-		limit = z.Pointer(20)
+func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gorm.DB, limit *int, before, after *string, order *O, ensureExists ...db.Storer) (*gorm.DB, int, error) {
+	for _, e := range ensureExists {
+		if err := gormDB.First(e).Error; err != nil {
+			return nil, 0, NewNotFoundError(e)
+		}
+	}
+
+	// Limit should be 1 more than the number desired so that we can tell if there are more results.
+	if z.Dereference(limit) == 0 {
+		limit = z.Pointer(21)
 	} else if *limit < 1 || *limit > 100 {
-		return nil, fmt.Errorf("limit should be between 1 and 100")
+		return nil, 0, NewAPIError("limit must be between 1 and 100.", InvalidRequestErrorType)
+	} else {
+		*limit++
 	}
 
 	gormDB = gormDB.Limit(*limit)
@@ -1067,7 +1086,7 @@ func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gorm.DB
 	if b := z.Dereference(before); b != "" {
 		beforeObj := *new(T)
 		if err := db.Get(gormDB, beforeObj, b); err != nil {
-			return nil, fmt.Errorf("cannot find before object: %v", err)
+			return nil, 0, NewNotFoundError(beforeObj)
 		}
 
 		gormDB = gormDB.Where("created_at < ?", beforeObj.GetCreatedAt())
@@ -1075,7 +1094,7 @@ func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gorm.DB
 	if a := z.Dereference(after); a != "" {
 		afterObj := *new(T)
 		if err := db.Get(gormDB, afterObj, a); err != nil {
-			return nil, fmt.Errorf("cannot find after object: %v", err)
+			return nil, 0, NewNotFoundError(afterObj)
 		}
 
 		gormDB = gormDB.Where("created_at > ?", afterObj.GetCreatedAt())
@@ -1085,19 +1104,19 @@ func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gorm.DB
 	if ordering == "" {
 		ordering = "desc"
 	} else if *order != "asc" && *order != "desc" {
-		return nil, fmt.Errorf("order should be asc or desc")
+		return nil, 0, NewAPIError("Order must be 'asc' or 'desc'.", InvalidRequestErrorType)
 	}
 
 	gormDB = gormDB.Order(fmt.Sprintf("created_at %s", ordering))
 
-	return gormDB, nil
+	return gormDB, *limit, nil
 }
 
-func listAndRespond[T db.Transformer](gormDB *gorm.DB, w http.ResponseWriter) {
+func listAndRespond[T db.Transformer](gormDB *gorm.DB, w http.ResponseWriter, limit int) {
 	var objs []T
 	if err := db.List(gormDB, &objs); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError("Failed to list objects.", InternalErrorType).Error()))
 		return
 	}
 
@@ -1106,19 +1125,31 @@ func listAndRespond[T db.Transformer](gormDB *gorm.DB, w http.ResponseWriter) {
 		publicObjs = append(publicObjs, o.ToPublic())
 	}
 
-	writeObjectToResponse(w, map[string]any{"object": "list", "data": publicObjs})
+	result := map[string]any{"object": "list", "data": publicObjs}
+
+	if limit != -1 {
+		hasMore := len(publicObjs) >= limit
+		if hasMore {
+			publicObjs = publicObjs[:limit-1]
+		}
+		result["has_more"] = hasMore
+		result["first_id"] = objs[0].GetID()
+		result["last_id"] = objs[len(objs)-1].GetID()
+	}
+
+	writeObjectToResponse(w, result)
 }
 
-func modify(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, id string, updates any) {
-	if err := db.Modify(gormDB, obj, id, updates); err != nil {
+func modify(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, updates any) {
+	if err := db.Modify(gormDB, obj, obj.GetID(), updates); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, notFoundError)))
+			_, _ = w.Write([]byte(NewNotFoundError(obj).Error()))
 			return
 		}
 
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to modify object: %v", err), InternalErrorType).Error()))
 		return
 	}
 
@@ -1128,19 +1159,21 @@ func modify(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, id strin
 func deleteAndRespond[T db.Transformer](gormDB *gorm.DB, w http.ResponseWriter, id string, resp any) {
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": %s}`, fmt.Sprintf(notEmptyErrorFormat, "id", "delete"))))
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("id").Error()))
 		return
 	}
 
 	if err := db.Delete[T](gormDB, id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, notFoundError)))
+			obj := *new(T)
+			obj.SetID(id)
+			_, _ = w.Write([]byte(NewNotFoundError(obj).Error()))
 			return
 		}
 
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to delete object: %v", err), InternalErrorType).Error()))
 		return
 	}
 
@@ -1166,13 +1199,18 @@ func waitForResponse(ctx context.Context, gormDB *gorm.DB, id string, obj db.Job
 func waitForAndWriteResponse(ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string, respObj db.JobResponder) {
 	if err := waitForResponse(ctx, gormDB, id, respObj); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, err)))
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to get response: %v", err), InternalErrorType).Error()))
 		return
 	}
 
 	if errStr := respObj.GetErrorString(); errStr != "" {
-		w.WriteHeader(respObj.GetStatusCode())
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"error": "%v"}`, errStr)))
+		code := respObj.GetStatusCode()
+		errorType := InternalErrorType
+		if code < 500 {
+			errorType = InvalidRequestErrorType
+		}
+		w.WriteHeader(code)
+		_, _ = w.Write([]byte(NewAPIError(errStr, errorType).Error()))
 	} else {
 		writeObjectToResponse(w, respObj.ToPublic())
 	}
@@ -1193,10 +1231,10 @@ func waitForAndStreamResponse[T db.JobRespondStreamer](ctx context.Context, w ht
 			continue
 		} else if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(fmt.Sprintf(`data: {"error": "%v"}`, err)))
+			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed streaming responses: %v", err), InternalErrorType).Error()))
 			break
 		} else if errStr := respObj.GetErrorString(); errStr != "" {
-			_, _ = w.Write([]byte(fmt.Sprintf(`data: {"error": "%v"}`, errStr)))
+			_, _ = w.Write([]byte(fmt.Sprintf(`data: %v`, NewAPIError(errStr, InternalErrorType).Error())))
 			break
 		} else {
 			index = respObj.GetIndex()
@@ -1208,7 +1246,7 @@ func waitForAndStreamResponse[T db.JobRespondStreamer](ctx context.Context, w ht
 			body, err := json.Marshal(respObj.ToPublic())
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
-				_, _ = w.Write([]byte(fmt.Sprintf(`data: {"error": "%v"}`, err)))
+				_, _ = w.Write([]byte(fmt.Sprintf(`data: %v`, NewAPIError(fmt.Sprintf("Failed to process streamed response: %v", err), InternalErrorType).Error())))
 				break
 			}
 
