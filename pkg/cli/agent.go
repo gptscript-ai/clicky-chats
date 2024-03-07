@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/chatcompletion"
+	"github.com/gptscript-ai/clicky-chats/pkg/agents/embeddings"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/image"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/run"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/steprunner"
@@ -26,6 +27,7 @@ type Agent struct {
 	ToolRunnerBaseURL             string `usage:"Tool runner base URL" default:"http://localhost:8080/v1" env:"CLICKY_CHATS_TOOL_RUNNER_BASE_URL"`
 	DefaultChatCompletionURL      string `usage:"The default URL for the chat completion agent to use" default:"https://api.openai.com/v1/chat/completions" env:"CLICKY_CHATS_CHAT_COMPLETION_SERVER_URL"`
 	DefaultImagesURL              string `usage:"The default URL for the image agent to use" default:"https://api.openai.com/v1/images/generations" env:"CLICKY_CHATS_IMAGES_SERVER_URL"`
+	DefaultEmbeddingsURL          string `usage:"The defaultURL for the embedding agent to use" default:"https://api.openai.com/v1/embeddings" env:"CLICKY_CHATS_EMBEDDINGS_SERVER_URL"`
 	ModelsURL                     string `usage:"The url for the to get the available models" default:"https://api.openai.com/v1/models" env:"CLICKY_CHATS_CHAT_COMPLETION_SERVER_URL"`
 	APIURL                        string `usage:"URL for API calls" default:"http://localhost:8080/v1/chat/completions" env:"CLICKY_CHATS_SERVER_URL"`
 	ModelAPIKey                   string `usage:"API key for API calls" env:"CLICKY_CHATS_MODEL_API_KEY"`
@@ -126,6 +128,29 @@ func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
 		AgentID:         s.AgentID,
 	}
 	if err = image.Start(ctx, gormDB, imageCfg); err != nil {
+		return err
+	}
+
+	/*
+	 * Embeddings Agent
+	 */
+	embeddingRetentionPeriod, err := time.ParseDuration(s.ChatCompletionRetentionPeriod)
+	if err != nil {
+		return fmt.Errorf("failed to parse embedding retention period: %w", err)
+	}
+	embeddingPollingInterval, err := time.ParseDuration(s.ChatCompletionPollingInterval)
+	if err != nil {
+		return fmt.Errorf("failed to parse embedding polling interval: %w", err)
+	}
+
+	embedCfg := embeddings.Config{
+		APIKey:          s.ModelAPIKey,
+		EmbeddingsURL:   s.DefaultEmbeddingsURL,
+		PollingInterval: embeddingPollingInterval,
+		CleanupTickTime: embeddingRetentionPeriod,
+		AgentID:         s.AgentID,
+	}
+	if err = embeddings.Start(ctx, gormDB, embedCfg); err != nil {
 		return err
 	}
 

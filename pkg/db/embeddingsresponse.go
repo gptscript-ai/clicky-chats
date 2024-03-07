@@ -11,6 +11,7 @@ type EmbeddingsResponse struct {
 	Usage datatypes.JSONType[EmbeddingUsage] `json:"usage,omitempty"`
 
 	// Not part of the public API
+	Base        `json:",inline"`
 	JobResponse `json:",inline"`
 }
 
