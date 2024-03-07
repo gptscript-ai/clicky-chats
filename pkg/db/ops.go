@@ -48,6 +48,19 @@ func Delete[T any](db *gdb.DB, id string) error {
 	})
 }
 
+func DeleteExpired(db *gdb.DB, expiration time.Time, objs ...Storer) error {
+	slog.Debug("Deleting expired", "expiration", expiration, "objs", fmt.Sprintf("%T", objs))
+	return db.Transaction(func(tx *gdb.DB) error {
+		for _, obj := range objs {
+			if err := tx.Where("created_at < ?", expiration.Unix()).Delete(obj).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
 // Modify modifies the object in the database. All validation should be done before calling this function.
 func Modify(db *gdb.DB, obj any, id string, updates any) error {
 	slog.Debug("Modifying", "type", fmt.Sprintf("%T", obj), "id", id, "updates", updates)
