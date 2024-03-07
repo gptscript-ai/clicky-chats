@@ -24,39 +24,6 @@ type Storer interface {
 	GetCreatedAt() int
 }
 
-type Transformer interface {
-	Storer
-	ToPublic() any
-	FromPublic(any) error
-}
-
-type Threader interface {
-	Transformer
-	SetThreadID(string) error
-	GetThreadID() string
-}
-
-type JobRunner interface {
-	ToPublic() any
-	FromPublic(any) error
-	IsDone() bool
-}
-
-type JobResponder interface {
-	GetRequestID() string
-	GetStatusCode() int
-	GetErrorString() string
-	ToPublic() any
-	FromPublic(any) error
-	IsDone() bool
-}
-
-type JobRespondStreamer interface {
-	Storer
-	JobResponder
-	GetIndex() int
-}
-
 type Base struct {
 	ID        string `json:"id" gorm:"primarykey"`
 	CreatedAt int    `json:"created_at,omitempty"`

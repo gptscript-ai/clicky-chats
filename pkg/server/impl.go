@@ -14,6 +14,7 @@ import (
 
 	"github.com/acorn-io/z"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
+	"github.com/gptscript-ai/clicky-chats/pkg/extendedapi"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -26,14 +27,24 @@ func (s *Server) ListAssistants(w http.ResponseWriter, r *http.Request, params o
 		_, _ = w.Write([]byte(err.Error()))
 	}
 
-	listAndRespond[*db.Assistant](gormDB, w, limit)
+	if extendedapi.IsExtendedAPIKey(r.Context()) {
+		listAndRespond[*db.Assistant](gormDB, w, limit)
+		return
+	}
+	listAndRespondOpenAI[*db.Assistant](gormDB, w, limit)
 }
 
 func (s *Server) CreateAssistant(w http.ResponseWriter, r *http.Request) {
-	createAssistantRequest := new(openai.CreateAssistantRequest)
+	createAssistantRequest := new(extendedapi.CreateAssistantRequest)
 	if err := readObjectFromRequest(r, createAssistantRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	if err := extendedapi.ValidateGPTScriptTools(createAssistantRequest.GPTScriptTools); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError(err.Error(), InvalidRequestErrorType).Error()))
 		return
 	}
 
@@ -44,8 +55,8 @@ func (s *Server) CreateAssistant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tools := make([]openai.AssistantObject_Tools_Item, 0, len(*createAssistantRequest.Tools))
-	for _, tool := range *createAssistantRequest.Tools {
+	tools := make([]openai.AssistantObject_Tools_Item, 0, len(z.Dereference(createAssistantRequest.Tools)))
+	for _, tool := range z.Dereference(createAssistantRequest.Tools) {
 		t := new(openai.AssistantObject_Tools_Item)
 		if err := transposeObject(tool, t); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -56,20 +67,27 @@ func (s *Server) CreateAssistant(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//nolint:govet
-	publicAssistant := &openai.AssistantObject{
-		0,
-		createAssistantRequest.Description,
-		z.Dereference(createAssistantRequest.FileIds),
-		"",
-		createAssistantRequest.Instructions,
-		createAssistantRequest.Metadata,
-		model,
-		createAssistantRequest.Name,
-		openai.AssistantObjectObjectAssistant,
-		tools,
+	publicAssistant := &extendedapi.Assistant{
+		openai.AssistantObject{
+			0,
+			createAssistantRequest.Description,
+			z.Dereference(createAssistantRequest.FileIds),
+			"",
+			createAssistantRequest.Instructions,
+			createAssistantRequest.Metadata,
+			model,
+			createAssistantRequest.Name,
+			openai.AssistantObjectObjectAssistant,
+			tools,
+		},
+		createAssistantRequest.GPTScriptTools,
 	}
 
-	createAndRespond(s.db.WithContext(r.Context()), w, new(db.Assistant), publicAssistant)
+	if extendedapi.IsExtendedAPIKey(r.Context()) {
+		createAndRespond(s.db.WithContext(r.Context()), w, new(db.Assistant), publicAssistant)
+		return
+	}
+	createAndRespondOpenAI(s.db.WithContext(r.Context()), w, new(db.Assistant), publicAssistant)
 }
 
 func (s *Server) DeleteAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
@@ -82,7 +100,12 @@ func (s *Server) DeleteAssistant(w http.ResponseWriter, r *http.Request, assista
 }
 
 func (s *Server) GetAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
-	getAndRespond(s.db.WithContext(r.Context()), w, new(db.Assistant), assistantID)
+	ctx := r.Context()
+	if extendedapi.IsExtendedAPIKey(ctx) {
+		getAndRespond(s.db.WithContext(ctx), w, new(db.Assistant), assistantID)
+		return
+	}
+	getAndRespondOpenAI(s.db.WithContext(ctx), w, new(db.Assistant), assistantID)
 }
 
 func (s *Server) ModifyAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
@@ -92,10 +115,16 @@ func (s *Server) ModifyAssistant(w http.ResponseWriter, r *http.Request, assista
 		return
 	}
 
-	modifyAssistantRequest := new(openai.ModifyAssistantRequest)
+	modifyAssistantRequest := new(extendedapi.ModifyAssistantRequest)
 	if err := readObjectFromRequest(r, modifyAssistantRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	if err := extendedapi.ValidateGPTScriptTools(modifyAssistantRequest.GPTScriptTools); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError(err.Error(), InvalidRequestErrorType).Error()))
 		return
 	}
 
@@ -124,20 +153,27 @@ func (s *Server) ModifyAssistant(w http.ResponseWriter, r *http.Request, assista
 	}
 
 	//nolint:govet
-	publicAssistant := &openai.AssistantObject{
-		0,
-		modifyAssistantRequest.Description,
-		z.Dereference(modifyAssistantRequest.FileIds),
-		"",
-		modifyAssistantRequest.Instructions,
-		modifyAssistantRequest.Metadata,
-		model,
-		modifyAssistantRequest.Name,
-		openai.AssistantObjectObjectAssistant,
-		tools,
+	publicAssistant := extendedapi.Assistant{
+		openai.AssistantObject{
+			0,
+			modifyAssistantRequest.Description,
+			z.Dereference(modifyAssistantRequest.FileIds),
+			"",
+			modifyAssistantRequest.Instructions,
+			modifyAssistantRequest.Metadata,
+			model,
+			modifyAssistantRequest.Name,
+			openai.AssistantObjectObjectAssistant,
+			tools,
+		},
+		modifyAssistantRequest.GPTScriptTools,
 	}
 
-	modify(s.db.WithContext(r.Context()), w, &db.Assistant{Metadata: db.Metadata{Base: db.Base{ID: assistantID}}}, publicAssistant)
+	if extendedapi.IsExtendedAPIKey(r.Context()) {
+		modifyAndRespond(s.db.WithContext(r.Context()), w, &db.Assistant{Metadata: db.Metadata{Base: db.Base{ID: assistantID}}}, publicAssistant)
+		return
+	}
+	modifyAndRespondOpenAI(s.db.WithContext(r.Context()), w, &db.Assistant{Metadata: db.Metadata{Base: db.Base{ID: assistantID}}}, publicAssistant)
 }
 
 func (s *Server) ListAssistantFiles(w http.ResponseWriter, r *http.Request, assistantID string, params openai.ListAssistantFilesParams) {
@@ -537,7 +573,7 @@ func (s *Server) ModifyThread(w http.ResponseWriter, r *http.Request, threadID s
 		return
 	}
 
-	modify(s.db.WithContext(r.Context()), w, &db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}}, map[string]interface{}{"metadata": reqBody.Metadata})
+	modifyAndRespond(s.db.WithContext(r.Context()), w, &db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}}, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
 func (s *Server) ListMessages(w http.ResponseWriter, r *http.Request, threadID string, params openai.ListMessagesParams) {
@@ -628,7 +664,7 @@ func (s *Server) ModifyMessage(w http.ResponseWriter, r *http.Request, threadID 
 		return
 	}
 
-	modify(s.db.WithContext(r.Context()), w, &db.Message{Metadata: db.Metadata{Base: db.Base{ID: messageID}}}, map[string]interface{}{"metadata": reqBody.Metadata})
+	modifyAndRespond(s.db.WithContext(r.Context()), w, &db.Message{Metadata: db.Metadata{Base: db.Base{ID: messageID}}}, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
 func (s *Server) ListMessageFiles(w http.ResponseWriter, r *http.Request, threadID string, messageID string, params openai.ListMessageFilesParams) {
@@ -833,7 +869,7 @@ func (s *Server) ModifyRun(w http.ResponseWriter, r *http.Request, threadID stri
 		return
 	}
 
-	modify(s.db.WithContext(r.Context()), w, &db.Run{Metadata: db.Metadata{Base: db.Base{ID: runID}}}, map[string]interface{}{"metadata": reqBody.Metadata})
+	modifyAndRespond(s.db.WithContext(r.Context()), w, &db.Run{Metadata: db.Metadata{Base: db.Base{ID: runID}}}, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
 func (s *Server) CancelRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
@@ -1014,14 +1050,16 @@ func writeObjectToResponse(w http.ResponseWriter, obj any) {
 	_, _ = w.Write(body)
 }
 
-func getAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, id string) {
+func get(gormDB *gorm.DB, obj Transformer, id string) error {
 	if id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(NewMustNotBeEmptyError("id").Error()))
-		return
+		return NewMustNotBeEmptyError("id")
 	}
 
-	if err := db.Get(gormDB, obj, id); err != nil {
+	return db.Get(gormDB, obj, id)
+}
+
+func getAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj Transformer, id string) {
+	if err := get(gormDB, obj, id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("No %s found with id '%s'.", strings.ToLower(strings.Split(fmt.Sprintf("%T", obj), ".")[1]), id), InvalidRequestErrorType).Error()))
@@ -1036,7 +1074,23 @@ func getAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, i
 	writeObjectToResponse(w, obj.ToPublic())
 }
 
-func create(gormDB *gorm.DB, obj db.Transformer, publicObj any) error {
+func getAndRespondOpenAI(gormDB *gorm.DB, w http.ResponseWriter, obj ExtendedTransformer, id string) {
+	if err := get(gormDB, obj, id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("No %s found with id '%s'.", strings.ToLower(strings.Split(fmt.Sprintf("%T", obj), ".")[1]), id), InvalidRequestErrorType).Error()))
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to get %s: %v", strings.ToLower(strings.Split(fmt.Sprintf("%T", obj), ".")[1]), err), InternalErrorType).Error()))
+		return
+	}
+
+	writeObjectToResponse(w, obj.ToPublicOpenAI())
+}
+
+func create(gormDB *gorm.DB, obj Transformer, publicObj any) error {
 	if err := obj.FromPublic(publicObj); err != nil {
 		return NewAPIError("Failed parsing request object.", InvalidRequestErrorType)
 	}
@@ -1051,7 +1105,7 @@ func create(gormDB *gorm.DB, obj db.Transformer, publicObj any) error {
 	return nil
 }
 
-func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, publicObj any) {
+func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj Transformer, publicObj any) {
 	if err := create(gormDB, obj, publicObj); err != nil {
 		w.WriteHeader(http.StatusConflict)
 		_, _ = w.Write([]byte(err.Error()))
@@ -1061,7 +1115,17 @@ func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer
 	writeObjectToResponse(w, obj.ToPublic())
 }
 
-func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gorm.DB, limit *int, before, after *string, order *O, ensureExists ...db.Storer) (*gorm.DB, int, error) {
+func createAndRespondOpenAI(gormDB *gorm.DB, w http.ResponseWriter, obj ExtendedTransformer, publicObj any) {
+	if err := create(gormDB, obj, publicObj); err != nil {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	writeObjectToResponse(w, obj.ToPublicOpenAI())
+}
+
+func processAssistantsAPIListParams[T Transformer, O ~string](gormDB *gorm.DB, limit *int, before, after *string, order *O, ensureExists ...db.Storer) (*gorm.DB, int, error) {
 	for _, e := range ensureExists {
 		if err := gormDB.First(e).Error; err != nil {
 			return nil, 0, NewNotFoundError(e)
@@ -1112,9 +1176,13 @@ func processAssistantsAPIListParams[T db.Transformer, O ~string](gormDB *gorm.DB
 	return gormDB, *limit, nil
 }
 
-func listAndRespond[T db.Transformer](gormDB *gorm.DB, w http.ResponseWriter, limit int) {
+func list[T Transformer](gormDB *gorm.DB, objs *[]T) error {
+	return db.List(gormDB, objs)
+}
+
+func listAndRespond[T Transformer](gormDB *gorm.DB, w http.ResponseWriter, limit int) {
 	var objs []T
-	if err := db.List(gormDB, &objs); err != nil {
+	if err := list(gormDB, &objs); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(NewAPIError("Failed to list objects.", InternalErrorType).Error()))
 		return
@@ -1125,6 +1193,32 @@ func listAndRespond[T db.Transformer](gormDB *gorm.DB, w http.ResponseWriter, li
 		publicObjs = append(publicObjs, o.ToPublic())
 	}
 
+	var firstID, lastID string
+	if len(objs) > 0 {
+		firstID = objs[0].GetID()
+		lastID = objs[len(objs)-1].GetID()
+	}
+
+	respondWithList(w, publicObjs, limit, firstID, lastID)
+}
+
+func listAndRespondOpenAI[T ExtendedTransformer](gormDB *gorm.DB, w http.ResponseWriter, limit int) {
+	var objs []T
+	if err := list(gormDB, &objs); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError("Failed to list objects.", InternalErrorType).Error()))
+		return
+	}
+
+	publicObjs := make([]any, 0, len(objs))
+	for _, o := range objs {
+		publicObjs = append(publicObjs, o.ToPublicOpenAI())
+	}
+
+	respondWithList(w, publicObjs, limit, objs[0].GetID(), objs[len(objs)-1].GetID())
+}
+
+func respondWithList(w http.ResponseWriter, publicObjs []any, limit int, firstID, lastID string) {
 	result := map[string]any{"object": "list", "data": publicObjs}
 
 	if limit != -1 {
@@ -1133,15 +1227,19 @@ func listAndRespond[T db.Transformer](gormDB *gorm.DB, w http.ResponseWriter, li
 			publicObjs = publicObjs[:limit-1]
 		}
 		result["has_more"] = hasMore
-		result["first_id"] = objs[0].GetID()
-		result["last_id"] = objs[len(objs)-1].GetID()
+		result["first_id"] = firstID
+		result["last_id"] = lastID
 	}
 
 	writeObjectToResponse(w, result)
 }
 
-func modify(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, updates any) {
-	if err := db.Modify(gormDB, obj, obj.GetID(), updates); err != nil {
+func modify(gormDB *gorm.DB, obj db.Storer, updates any) error {
+	return db.Modify(gormDB, obj, obj.GetID(), updates)
+}
+
+func modifyAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj Transformer, updates any) {
+	if err := modify(gormDB, obj, updates); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
 			_, _ = w.Write([]byte(NewNotFoundError(obj).Error()))
@@ -1156,7 +1254,23 @@ func modify(gormDB *gorm.DB, w http.ResponseWriter, obj db.Transformer, updates 
 	writeObjectToResponse(w, obj.ToPublic())
 }
 
-func deleteAndRespond[T db.Transformer](gormDB *gorm.DB, w http.ResponseWriter, id string, resp any) {
+func modifyAndRespondOpenAI(gormDB *gorm.DB, w http.ResponseWriter, obj ExtendedTransformer, updates any) {
+	if err := modify(gormDB, obj, updates); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(NewNotFoundError(obj).Error()))
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to modify object: %v", err), InternalErrorType).Error()))
+		return
+	}
+
+	writeObjectToResponse(w, obj.ToPublicOpenAI())
+}
+
+func deleteAndRespond[T Transformer](gormDB *gorm.DB, w http.ResponseWriter, id string, resp any) {
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("id").Error()))
@@ -1180,7 +1294,7 @@ func deleteAndRespond[T db.Transformer](gormDB *gorm.DB, w http.ResponseWriter, 
 	writeObjectToResponse(w, resp)
 }
 
-func waitForResponse(ctx context.Context, gormDB *gorm.DB, id string, obj db.JobRunner) error {
+func waitForResponse(ctx context.Context, gormDB *gorm.DB, id string, obj JobRunner) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -1196,7 +1310,7 @@ func waitForResponse(ctx context.Context, gormDB *gorm.DB, id string, obj db.Job
 	}
 }
 
-func waitForAndWriteResponse(ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string, respObj db.JobResponder) {
+func waitForAndWriteResponse(ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string, respObj JobResponder) {
 	if err := waitForResponse(ctx, gormDB, id, respObj); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to get response: %v", err), InternalErrorType).Error()))
@@ -1216,7 +1330,7 @@ func waitForAndWriteResponse(ctx context.Context, w http.ResponseWriter, gormDB 
 	}
 }
 
-func waitForAndStreamResponse[T db.JobRespondStreamer](ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string) {
+func waitForAndStreamResponse[T JobRespondStreamer](ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string) {
 	index := -1
 	for {
 		select {

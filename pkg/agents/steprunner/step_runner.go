@@ -34,7 +34,7 @@ Get the contents of the provided url.
 ---
 name: web-browsing
 description: I am a tool that can visit web pages and retrieve the content.
-args: url: The url to visit
+args: url: The URL of the web page to visit.
 tools: sys.http.get?
 
 Download the content of "${url}" and return the content.

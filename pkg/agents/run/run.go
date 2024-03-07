@@ -464,7 +464,7 @@ func prepareChatCompletionRequest(run *db.Run, assistant *db.Assistant, messages
 		chatMessages = append(chatMessages, messages...)
 	}
 
-	tools, err := assistant.ToolsToChatCompletionTools()
+	tools, err := assistant.ToolsToChatCompletionTools(agents.GPTScriptDefinitions())
 	if err != nil {
 		return nil, err
 	}

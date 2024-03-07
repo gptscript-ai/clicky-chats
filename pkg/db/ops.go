@@ -17,7 +17,7 @@ func Get(db *gdb.DB, dataObj any, id string) error {
 }
 
 // List lists objects from the database.
-func List[T Transformer](db *gdb.DB, objs *[]T) error {
+func List[T any](db *gdb.DB, objs *[]T) error {
 	slog.Debug("Getting all objects", "type", fmt.Sprintf("%T", *objs))
 	return db.Find(objs).Error
 }
@@ -57,7 +57,7 @@ func Modify(db *gdb.DB, obj any, id string, updates any) error {
 }
 
 // CancelRun cancels a run that is in progress. If the run is not in progress, it will return an error.
-func CancelRun(db *gdb.DB, id string) (*openai.RunObject, error) {
+func CancelRun(db *gdb.DB, id string) (*Run, error) {
 	run := new(Run)
 	if err := db.Transaction(func(tx *gdb.DB) error {
 		if err := Get(tx, run, id); err != nil {
@@ -82,5 +82,5 @@ func CancelRun(db *gdb.DB, id string) (*openai.RunObject, error) {
 		return nil, err
 	}
 
-	return run.ToPublic().(*openai.RunObject), nil
+	return run, nil
 }

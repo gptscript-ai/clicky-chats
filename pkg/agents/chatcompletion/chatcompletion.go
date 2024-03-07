@@ -233,12 +233,16 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 						return err
 					}
 
-					if err := tx.Delete(ccs).Error; err != nil {
-						return err
+					if len(ccs) != 0 {
+						if err := tx.Delete(ccs).Error; err != nil {
+							return err
+						}
 					}
 
-					if err := tx.Delete(cccs).Error; err != nil {
-						return err
+					if len(cccs) != 0 {
+						if err := tx.Delete(cccs).Error; err != nil {
+							return err
+						}
 					}
 
 					return nil

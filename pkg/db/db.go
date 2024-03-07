@@ -90,7 +90,7 @@ func (db *DB) Check(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 
-	_, _ = w.Write([]byte("ok"))
+	_, _ = w.Write([]byte(`{"status": "ok"}`))
 }
 
 func (db *DB) Close() error {

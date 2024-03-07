@@ -9,7 +9,7 @@ require (
 	github.com/getkin/kin-openapi v0.118.0
 	github.com/glebarez/sqlite v1.10.0
 	github.com/google/uuid v1.5.0
-	github.com/gptscript-ai/gptscript v0.1.5-0.20240301175427-969450b957f9
+	github.com/gptscript-ai/gptscript v0.1.6-0.20240307172524-4909c51398ef
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/spf13/cobra v1.8.0

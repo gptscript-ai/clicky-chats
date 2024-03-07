@@ -20,6 +20,27 @@ const (
 	GPTScriptToolNamePrefix = "gptscript_"
 )
 
+var gptScriptToolDefinitions = map[string]openai.FunctionObject{
+	"web_browsing": {
+		Name:        GPTScriptToolNamePrefix + "web_browsing",
+		Description: z.Pointer("I am a tool that can visit web pages and retrieve the content."),
+		Parameters: &openai.FunctionParameters{
+			"type": "object",
+			"properties": map[string]any{
+				"url": map[string]any{
+					"type":        "string",
+					"description": "The URL of the web page to visit.",
+				},
+			},
+			"required": []string{"url"},
+		},
+	},
+}
+
+func GPTScriptDefinitions() map[string]openai.FunctionObject {
+	return gptScriptToolDefinitions
+}
+
 func StreamChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, cc *db.ChatCompletionRequest) (<-chan db.ChatCompletionResponseChunk, error) {
 	b, err := json.Marshal(cc.ToPublic())
 	if err != nil {

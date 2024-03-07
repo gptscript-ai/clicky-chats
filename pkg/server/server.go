@@ -7,13 +7,14 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
+	"github.com/gptscript-ai/clicky-chats/pkg/extendedapi"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
-	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
 )
 
 type Config struct {
@@ -52,19 +53,28 @@ func (s *Server) Run(ctx context.Context, config Config) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.db.Check)
 
-	openai.HandlerWithOptions(s, openai.StdHTTPServerOptions{
-		BaseURL:    config.APIBase,
-		BaseRouter: mux,
-		Middlewares: []openai.MiddlewareFunc{
-			nethttpmiddleware.OapiRequestValidatorWithOptions(swagger, &nethttpmiddleware.Options{
-				SilenceServersWarning: true,
-				Options: openapi3filter.Options{
-					AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
-				},
-			}),
-			SetContentType("application/json"),
-			LogRequest(slog.Default()),
-		},
+	// This is a modification of http.StripPrefix that pulls out "/rubra"
+	// This will serve the OpenAI endpoints for those that we don't extend.
+	mux.HandleFunc(config.APIBase+"/rubra/", func(w http.ResponseWriter, r *http.Request) {
+		prefix := config.APIBase + "/rubra"
+		p := strings.TrimPrefix(r.URL.Path, prefix)
+		rp := strings.TrimPrefix(r.URL.RawPath, prefix)
+		if len(p) < len(r.URL.Path) && (r.URL.RawPath == "" || len(rp) < len(r.URL.RawPath)) {
+			r2 := r.Clone(extendedapi.NewExtendedContext(r.Context()))
+			r2.URL = new(url.URL)
+			*r2.URL = *r.URL
+			r2.URL.Path = config.APIBase + p
+			r2.URL.RawPath = config.APIBase + rp
+			mux.ServeHTTP(w, r2)
+		} else {
+			http.NotFound(w, r)
+		}
+	})
+
+	h := openai.HandlerWithOptions(s, openai.StdHTTPServerOptions{
+		BaseURL:     config.APIBase,
+		BaseRouter:  mux,
+		Middlewares: []openai.MiddlewareFunc{openai.MiddlewareFunc(OpenAPIValidator(swagger))},
 	})
 
 	server := http.Server{
@@ -72,7 +82,7 @@ func (s *Server) Run(ctx context.Context, config Config) error {
 		BaseContext: func(net.Listener) context.Context {
 			return ctx
 		},
-		Handler: mux,
+		Handler: ApplyMiddlewares(h, LogRequest(slog.Default()), SetContentType("application/json")),
 	}
 
 	go func() {

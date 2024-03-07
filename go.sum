@@ -65,6 +65,8 @@ github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWm
 github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gptscript-ai/gptscript v0.1.5-0.20240301175427-969450b957f9 h1:rAhwDHx2C/0e4lkx3K2FMxE8wwuqIX602qbJTfrtzSY=
 github.com/gptscript-ai/gptscript v0.1.5-0.20240301175427-969450b957f9/go.mod h1:Y72eMtGfARihQ3WSnCNU9fpdJdFvv/vwT/o9RckRwPc=
+github.com/gptscript-ai/gptscript v0.1.6-0.20240307172524-4909c51398ef h1:nUWBpqFa7R08A6SbcL3yeNm4t0emnN0rDAE7ry9B3F8=
+github.com/gptscript-ai/gptscript v0.1.6-0.20240307172524-4909c51398ef/go.mod h1:M+2gZ4t1bEFzH7mvszA0gDZGexR0cCo6x+I43Sbvz1U=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/invopop/yaml v0.1.0/go.mod h1:2XuRLgs/ouIrW3XNzuNj7J3Nvu/Dig5MXvbCEdiBN3Q=
