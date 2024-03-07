@@ -4,11 +4,11 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/gptscript-ai/clicky-chats/pkg/agents/chatcompletion"
+	"github.com/gptscript-ai/clicky-chats/pkg/agents/run"
+	"github.com/gptscript-ai/clicky-chats/pkg/agents/steprunner"
+	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/spf13/cobra"
-	"github.com/thedadams/clicky-chats/pkg/agents/chatcompletion"
-	"github.com/thedadams/clicky-chats/pkg/agents/run"
-	"github.com/thedadams/clicky-chats/pkg/agents/steprunner"
-	"github.com/thedadams/clicky-chats/pkg/db"
 )
 
 type Agent struct {

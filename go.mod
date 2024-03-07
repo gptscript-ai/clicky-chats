@@ -1,4 +1,4 @@
-module github.com/thedadams/clicky-chats
+module github.com/gptscript-ai/clicky-chats
 
 go 1.22.0
 
@@ -60,7 +60,6 @@ require (
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
-	golang.org/x/term v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 	modernc.org/libc v1.22.5 // indirect

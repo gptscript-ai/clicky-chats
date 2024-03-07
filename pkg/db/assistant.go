@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/acorn-io/z"
-	"github.com/thedadams/clicky-chats/pkg/generated/openai"
+	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"gorm.io/datatypes"
 )
 

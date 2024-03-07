@@ -1,9 +1,9 @@
 package cli
 
 import (
+	"github.com/gptscript-ai/clicky-chats/pkg/db"
+	"github.com/gptscript-ai/clicky-chats/pkg/server"
 	"github.com/spf13/cobra"
-	"github.com/thedadams/clicky-chats/pkg/db"
-	"github.com/thedadams/clicky-chats/pkg/server"
 )
 
 type Server struct {
