@@ -13,11 +13,11 @@ import (
 
 type Agent struct {
 	DSN                           string `usage:"Server datastore" default:"sqlite://clicky-chats.db" env:"CLICKY_CHATS_DSN"`
-	ChatCompletionPollingInterval string `usage:"Chat completion polling interval" default:"5s" env:"CLICKY_CHATS_CHAT_COMPLETION_POLLING_INTERVAL"`
+	ChatCompletionPollingInterval string `usage:"Chat completion polling interval" default:"1s" env:"CLICKY_CHATS_CHAT_COMPLETION_POLLING_INTERVAL"`
 	ChatCompletionCleanupTickTime string `usage:"Chat completion cleanup tick time" default:"5m" env:"CLICKY_CHATS_CHAT_COMPLETION_CLEANUP_TICK_TIME"`
-	RunCompletionPollingInterval  string `usage:"Run completion polling interval" default:"5s" env:"CLICKY_CHATS_RUN_COMPLETION_POLLING_INTERVAL"`
+	RunCompletionPollingInterval  string `usage:"Run completion polling interval" default:"1s" env:"CLICKY_CHATS_RUN_COMPLETION_POLLING_INTERVAL"`
 	RunCompletionCleanupTickTime  string `usage:"Run completion cleanup tick time" default:"5m" env:"CLICKY_CHATS_RUN_COMPLETION_CLEANUP_TICK_TIME"`
-	ToolRunnerPollingInterval     string `usage:"Tool runner polling interval" default:"5s" env:"CLICKY_CHATS_TOOL_RUNNER_POLLING_INTERVAL"`
+	ToolRunnerPollingInterval     string `usage:"Tool runner polling interval" default:"1s" env:"CLICKY_CHATS_TOOL_RUNNER_POLLING_INTERVAL"`
 	ToolRunnerBaseURL             string `usage:"Tool runner base URL" default:"http://localhost:8080/v1" env:"CLICKY_CHATS_TOOL_RUNNER_BASE_URL"`
 	DefaultChatCompletionURL      string `usage:"The defaultURL for the chat completion agent to use" default:"https://api.openai.com/v1/chat/completions" env:"CLICKY_CHATS_CHAT_COMPLETION_SERVER_URL"`
 	ModelsURL                     string `usage:"The url for the to get the available models" default:"https://api.openai.com/v1/models" env:"CLICKY_CHATS_CHAT_COMPLETION_SERVER_URL"`
@@ -39,7 +39,7 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 	}
 	chatCompletionPollingInterval, err := time.ParseDuration(s.ChatCompletionPollingInterval)
 	if err != nil {
-		slog.Warn("Failed to parse chat completion polling tick time, using 5s", "err", err)
+		slog.Warn("Failed to parse chat completion polling tick time, using 1s", "err", err)
 		chatCompletionPollingInterval = 5 * time.Second
 	}
 
@@ -62,7 +62,7 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 	}
 	runCompletionPollingInterval, err := time.ParseDuration(s.ChatCompletionPollingInterval)
 	if err != nil {
-		slog.Warn("Failed to parse run completion polling tick time, using 5s", "err", err)
+		slog.Warn("Failed to parse run completion polling tick time, using 1s", "err", err)
 		runCompletionCleanupTickTime = 5 * time.Second
 	}
 
@@ -79,7 +79,7 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 
 	toolRunnerPollingInterval, err := time.ParseDuration(s.ChatCompletionPollingInterval)
 	if err != nil {
-		slog.Warn("Failed to parse run completion polling tick time, using 5s", "err", err)
+		slog.Warn("Failed to parse run completion polling tick time, using 1s", "err", err)
 		runCompletionCleanupTickTime = 5 * time.Second
 	}
 
