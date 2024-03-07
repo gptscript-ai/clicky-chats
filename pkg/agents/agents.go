@@ -5,12 +5,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 
 	"github.com/acorn-io/z"
+	cclient "github.com/gptscript-ai/clicky-chats/pkg/client"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 )
@@ -91,7 +90,7 @@ func MakeChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http
 	resp := new(openai.CreateChatCompletionResponse)
 
 	// Wait to process this error until after we have the DB object.
-	code, err := sendRequest(client, req, resp)
+	code, err := cclient.SendRequest(client, req, resp)
 
 	ccr := new(db.ChatCompletionResponse)
 	// err here should be shadowed.
@@ -187,33 +186,4 @@ func streamResponses(ctx context.Context, response *http.Response) <-chan db.Cha
 	}()
 
 	return stream
-}
-
-func sendRequest(client *http.Client, req *http.Request, respObj any) (int, error) {
-	res, err := client.Do(req)
-	if err != nil {
-		return 0, err
-	}
-
-	defer res.Body.Close()
-
-	statusCode := res.StatusCode
-	if statusCode < http.StatusOK || statusCode >= http.StatusBadRequest {
-		return statusCode, decodeError(res)
-	}
-
-	if err = json.NewDecoder(res.Body).Decode(respObj); err != nil {
-		return http.StatusInternalServerError, err
-	}
-
-	return statusCode, nil
-}
-
-func decodeError(resp *http.Response) error {
-	s, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read body for error response: %w", err)
-	}
-
-	return fmt.Errorf("%s", s)
 }
