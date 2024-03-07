@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"log/slog"
+	"fmt"
 	"time"
 
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/chatcompletion"
@@ -34,13 +34,11 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 
 	chatCompletionCleanupTickTime, err := time.ParseDuration(s.ChatCompletionCleanupTickTime)
 	if err != nil {
-		slog.Warn("Failed to parse chat completion cleanup tick time, using 5m", "err", err)
-		chatCompletionCleanupTickTime = 5 * time.Minute
+		return fmt.Errorf("failed to parse chat completion cleanup tick time: %w", err)
 	}
 	chatCompletionPollingInterval, err := time.ParseDuration(s.ChatCompletionPollingInterval)
 	if err != nil {
-		slog.Warn("Failed to parse chat completion polling tick time, using 1s", "err", err)
-		chatCompletionPollingInterval = 5 * time.Second
+		return fmt.Errorf("failed to parse chat completion polling tick time: %w", err)
 	}
 
 	ccCfg := chatcompletion.Config{
@@ -57,13 +55,11 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 
 	runCompletionCleanupTickTime, err := time.ParseDuration(s.ChatCompletionCleanupTickTime)
 	if err != nil {
-		slog.Warn("Failed to parse run completion cleanup tick time, using 5m", "err", err)
-		runCompletionCleanupTickTime = 5 * time.Minute
+		return fmt.Errorf("failed to parse run completion cleanup tick time: %w", err)
 	}
 	runCompletionPollingInterval, err := time.ParseDuration(s.ChatCompletionPollingInterval)
 	if err != nil {
-		slog.Warn("Failed to parse run completion polling tick time, using 1s", "err", err)
-		runCompletionCleanupTickTime = 5 * time.Second
+		return fmt.Errorf("failed to parse run completion polling tick time: %w", err)
 	}
 
 	runCfg := run.Config{
@@ -79,8 +75,7 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 
 	toolRunnerPollingInterval, err := time.ParseDuration(s.ChatCompletionPollingInterval)
 	if err != nil {
-		slog.Warn("Failed to parse run completion polling tick time, using 1s", "err", err)
-		runCompletionCleanupTickTime = 5 * time.Second
+		return fmt.Errorf("failed to parse run completion polling tick time: %w", err)
 	}
 
 	stepRunnerCfg := steprunner.Config{
