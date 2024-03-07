@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/chatcompletion"
@@ -22,8 +24,8 @@ type Agent struct {
 	DefaultChatCompletionURL      string `usage:"The defaultURL for the chat completion agent to use" default:"https://api.openai.com/v1/chat/completions" env:"CLICKY_CHATS_CHAT_COMPLETION_SERVER_URL"`
 	ModelsURL                     string `usage:"The url for the to get the available models" default:"https://api.openai.com/v1/models" env:"CLICKY_CHATS_CHAT_COMPLETION_SERVER_URL"`
 	APIURL                        string `usage:"URL for API calls" default:"http://localhost:8080/v1/chat/completions" env:"CLICKY_CHATS_SERVER_URL"`
-	ModelAPIKey                   string `usage:"API key for API calls" default:"" env:"CLICKY_CHATS_MODEL_API_KEY"`
-	AgentID                       string `usage:"Agent ID to identify this agent" default:"" env:"CLICKY_CHATS_AGENT_ID"`
+	ModelAPIKey                   string `usage:"API key for API calls" env:"CLICKY_CHATS_MODEL_API_KEY"`
+	AgentID                       string `usage:"Agent ID to identify this agent" default:"my-agent" env:"CLICKY_CHATS_AGENT_ID"`
 }
 
 func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
@@ -32,6 +34,15 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
+	if err = runAgents(cmd.Context(), gormDB, s); err != nil {
+		return err
+	}
+
+	<-cmd.Context().Done()
+	return nil
+}
+
+func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
 	chatCompletionCleanupTickTime, err := time.ParseDuration(s.ChatCompletionCleanupTickTime)
 	if err != nil {
 		return fmt.Errorf("failed to parse chat completion cleanup tick time: %w", err)
@@ -41,15 +52,20 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to parse chat completion polling tick time: %w", err)
 	}
 
+	apiKey := s.ModelAPIKey
+	if apiKey == "" {
+		apiKey = os.Getenv("OPENAI_API_KEY")
+	}
+
 	ccCfg := chatcompletion.Config{
-		APIKey:            s.ModelAPIKey,
+		APIKey:            apiKey,
 		ModelsURL:         s.ModelsURL,
 		ChatCompletionURL: s.DefaultChatCompletionURL,
 		PollingInterval:   chatCompletionPollingInterval,
 		CleanupTickTime:   chatCompletionCleanupTickTime,
 		AgentID:           s.AgentID,
 	}
-	if err = chatcompletion.Start(cmd.Context(), gormDB, ccCfg); err != nil {
+	if err = chatcompletion.Start(ctx, gormDB, ccCfg); err != nil {
 		return err
 	}
 
@@ -69,7 +85,7 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 		APIKey:          s.ModelAPIKey,
 		AgentID:         s.AgentID,
 	}
-	if err = run.Start(cmd.Context(), gormDB, runCfg); err != nil {
+	if err = run.Start(ctx, gormDB, runCfg); err != nil {
 		return err
 	}
 
@@ -84,10 +100,9 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 		APIKey:          s.ModelAPIKey,
 		AgentID:         s.AgentID,
 	}
-	if err = steprunner.Start(cmd.Context(), gormDB, stepRunnerCfg); err != nil {
+	if err = steprunner.Start(ctx, gormDB, stepRunnerCfg); err != nil {
 		return err
 	}
 
-	<-cmd.Context().Done()
 	return nil
 }
