@@ -31,7 +31,7 @@ func NewServer(db *db.DB) *Server {
 	}
 }
 
-func (s *Server) Run(ctx context.Context, config Config) error {
+func (s *Server) Start(ctx context.Context, config Config) error {
 	if err := s.db.AutoMigrate(); err != nil {
 		return err
 	}
@@ -92,9 +92,16 @@ func (s *Server) Run(ctx context.Context, config Config) error {
 		}
 	}()
 
-	<-ctx.Done()
+	go func() {
 
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	return server.Shutdown(timeoutCtx)
+		<-ctx.Done()
+
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := server.Shutdown(timeoutCtx); err != nil {
+			slog.Error("Server shutdown failed", "err", err)
+		}
+	}()
+
+	return nil
 }

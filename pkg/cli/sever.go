@@ -24,15 +24,20 @@ func (s *Server) Run(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
+	if err = server.NewServer(gormDB).Start(cmd.Context(), server.Config{
+		ServerURL: s.ServerURL,
+		Port:      s.ServerPort,
+		APIBase:   s.ServerAPIBase,
+	}); err != nil {
+		return err
+	}
+
 	if s.WithAgents == "true" {
 		if err = runAgents(cmd.Context(), gormDB, &s.Agent); err != nil {
 			return err
 		}
 	}
 
-	return server.NewServer(gormDB).Run(cmd.Context(), server.Config{
-		ServerURL: s.ServerURL,
-		Port:      s.ServerPort,
-		APIBase:   s.ServerAPIBase,
-	})
+	<-cmd.Context().Done()
+	return nil
 }
