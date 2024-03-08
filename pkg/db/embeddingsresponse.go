@@ -20,10 +20,12 @@ func (e *EmbeddingsResponse) IDPrefix() string {
 }
 
 func (e *EmbeddingsResponse) ToPublic() any {
+	//nolint:govet
 	return &openai.CreateEmbeddingResponse{
-		Data:  embeddingObjects(e.Data).toPublic(),
-		Model: e.Model,
-		Usage: e.Usage.Data(),
+		embeddingObjects(e.Data).toPublic(),
+		e.Model,
+		openai.CreateEmbeddingResponseObjectList,
+		e.Usage.Data(),
 	}
 }
 
@@ -65,10 +67,11 @@ type Embedding struct {
 }
 
 func (e *Embedding) toPublic() openai.Embedding {
+	//nolint:govet
 	return openai.Embedding{
-		Object:    openai.EmbeddingObjectEmbedding,
-		Index:     e.Index,
-		Embedding: e.Embedding,
+		e.Embedding,
+		e.Index,
+		openai.EmbeddingObjectEmbedding,
 	}
 }
 

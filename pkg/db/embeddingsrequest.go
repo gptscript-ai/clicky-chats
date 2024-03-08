@@ -35,12 +35,11 @@ func (e *EmbeddingsRequest) ToPublic() any {
 
 	//nolint:govet
 	return &openai.CreateEmbeddingRequest{
-		Input: e.Input.Data(),
-		Model: *model,
-
-		EncodingFormat: (*openai.CreateEmbeddingRequestEncodingFormat)(e.EncodingFormat),
-		Dimensions:     e.Dimensions,
-		User:           e.User,
+		e.Dimensions,
+		(*openai.CreateEmbeddingRequestEncodingFormat)(e.EncodingFormat),
+		e.Input.Data(),
+		*model,
+		e.User,
 	}
 }
 
