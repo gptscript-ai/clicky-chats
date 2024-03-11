@@ -147,7 +147,7 @@ func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
 		APIKey:          s.ModelAPIKey,
 		EmbeddingsURL:   s.DefaultEmbeddingsURL,
 		PollingInterval: embeddingPollingInterval,
-		CleanupTickTime: embeddingRetentionPeriod,
+		RetentionPeriod: embeddingRetentionPeriod,
 		AgentID:         s.AgentID,
 	}
 	if err = embeddings.Start(ctx, gormDB, embedCfg); err != nil {
