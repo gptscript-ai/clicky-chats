@@ -3,13 +3,13 @@ package db
 import (
 	"github.com/acorn-io/z"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
-	"gorm.io/datatypes"
 )
 
 type CreateImageRequest struct {
+	// The following fields are not exposed in the public API
 	JobRequest `json:",inline"`
 
-	// The following fields map to OpenAI API resource fields.
+	// The following fields are exposed in the public API
 	Model          *string `json:"model"`
 	N              *int    `json:"n"`
 	Prompt         string  `json:"prompt"`
@@ -76,52 +76,6 @@ func (i *CreateImageRequest) FromPublic(obj any) error {
 		(*string)(o.Size),
 		(*string)(o.Style),
 		o.User,
-	}
-
-	return nil
-}
-
-type ImagesResponse struct {
-	Base        `json:",inline"`
-	JobResponse `json:",inline"`
-
-	// The following fields map to OpenAI API resource fields.
-	Created int                               `json:"created"`
-	Data    datatypes.JSONSlice[openai.Image] `json:"data"`
-}
-
-func (*ImagesResponse) IDPrefix() string {
-	return "image-"
-}
-
-func (i *ImagesResponse) ToPublic() any {
-	if i == nil {
-		return nil
-	}
-
-	//nolint:govet
-	return &openai.ImagesResponse{
-		i.Created,
-		i.Data,
-	}
-}
-
-func (i *ImagesResponse) FromPublic(obj any) error {
-	o, ok := obj.(*openai.ImagesResponse)
-	if !ok {
-		return InvalidTypeError{Expected: o, Got: obj}
-	}
-
-	if o == nil || i == nil {
-		return nil
-	}
-
-	//nolint:govet
-	*i = ImagesResponse{
-		Base{},
-		JobResponse{},
-		o.Created,
-		datatypes.NewJSONSlice(o.Data),
 	}
 
 	return nil

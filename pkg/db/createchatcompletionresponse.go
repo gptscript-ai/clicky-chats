@@ -6,28 +6,31 @@ import (
 	"gorm.io/datatypes"
 )
 
-type ChatCompletionResponse struct {
-	Base              `json:",inline"`
+type CreateChatCompletionResponse struct {
+	// The following fields are not exposed in the public API
+	JobResponse `json:",inline"`
+	Base        `json:",inline"`
+
+	// The following fields are exposed in the public API
 	Choices           datatypes.JSONSlice[Choice]                 `json:"choices"`
 	Model             string                                      `json:"model"`
 	SystemFingerprint *string                                     `json:"system_fingerprint,omitempty"`
 	Usage             datatypes.JSONType[*openai.CompletionUsage] `json:"usage,omitempty"`
-	// Not part of the public API
-	JobResponse `json:",inline"`
 }
 
-func (c *ChatCompletionResponse) IDPrefix() string {
+func (c *CreateChatCompletionResponse) IDPrefix() string {
 	return "chatcmpl-"
 }
 
-func (c *ChatCompletionResponse) FromPublic(obj any) error {
+func (c *CreateChatCompletionResponse) FromPublic(obj any) error {
 	o, ok := obj.(*openai.CreateChatCompletionResponse)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
 	}
 
 	if o != nil && c != nil {
-		*c = ChatCompletionResponse{
+		*c = CreateChatCompletionResponse{
+			JobResponse{},
 			Base{
 				CreatedAt: o.Created,
 				ID:        o.Id,
@@ -36,14 +39,13 @@ func (c *ChatCompletionResponse) FromPublic(obj any) error {
 			o.Model,
 			o.SystemFingerprint,
 			datatypes.NewJSONType(o.Usage),
-			JobResponse{},
 		}
 	}
 
 	return nil
 }
 
-func (c *ChatCompletionResponse) ToPublic() any {
+func (c *CreateChatCompletionResponse) ToPublic() any {
 	return &openai.CreateChatCompletionResponse{
 		choices(c.Choices).toPublic(),
 		c.CreatedAt,

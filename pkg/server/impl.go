@@ -291,7 +291,7 @@ func (s *Server) CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ccr := new(db.ChatCompletionRequest)
+	ccr := new(db.CreateChatCompletionRequest)
 	if err := ccr.FromPublic(createCompletionRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewAPIError("Failed to process request.", InvalidRequestErrorType).Error()))
@@ -306,7 +306,7 @@ func (s *Server) CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !z.Dereference(ccr.Stream) {
-		waitForAndWriteResponse(r.Context(), w, gormDB, ccr.ID, new(db.ChatCompletionResponse))
+		waitForAndWriteResponse(r.Context(), w, gormDB, ccr.ID, new(db.CreateChatCompletionResponse))
 		return
 	}
 

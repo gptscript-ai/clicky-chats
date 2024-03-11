@@ -6,7 +6,12 @@ import (
 	"gorm.io/datatypes"
 )
 
-type ChatCompletionRequest struct {
+type CreateChatCompletionRequest struct {
+	// The following fields are not exposed in the public API
+	JobRequest `json:",inline"`
+	ModelAPI   string `json:"model_api"`
+
+	// The following fields are exposed in the public API
 	FrequencyPenalty *float32                                                     `json:"frequency_penalty"`
 	LogitBias        datatypes.JSONType[map[string]int]                           `json:"logit_bias"`
 	Logprobs         *bool                                                        `json:"logprobs"`
@@ -25,16 +30,13 @@ type ChatCompletionRequest struct {
 	TopLogprobs      *int                                                         `json:"top_logprobs"`
 	TopP             *float32                                                     `json:"top_p"`
 	User             *string                                                      `json:"user,omitempty"`
-	// These are not part of the OpenAI API
-	JobRequest `json:",inline"`
-	ModelAPI   string `json:"model_api"`
 }
 
-func (c *ChatCompletionRequest) IDPrefix() string {
+func (c *CreateChatCompletionRequest) IDPrefix() string {
 	return "chatcmpl-"
 }
 
-func (c *ChatCompletionRequest) ToPublic() any {
+func (c *CreateChatCompletionRequest) ToPublic() any {
 	var responseFormat *struct {
 		Type *openai.CreateChatCompletionRequestResponseFormatType `json:"type,omitempty"`
 	}
@@ -82,7 +84,7 @@ func (c *ChatCompletionRequest) ToPublic() any {
 	}
 }
 
-func (c *ChatCompletionRequest) FromPublic(obj any) error {
+func (c *CreateChatCompletionRequest) FromPublic(obj any) error {
 	o, ok := obj.(*openai.CreateChatCompletionRequest)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
@@ -94,12 +96,14 @@ func (c *ChatCompletionRequest) FromPublic(obj any) error {
 			responseFormatType = (*string)(o.ResponseFormat.Type)
 		}
 
-		model, err := ChatCompletionModelFromPublic(o.Model)
+		model, err := CreateChatCompletionModelFromPublic(o.Model)
 		if err != nil {
 			return err
 		}
 		//nolint:govet
-		*c = ChatCompletionRequest{
+		*c = CreateChatCompletionRequest{
+			JobRequest{},
+			"",
 			o.FrequencyPenalty,
 			datatypes.NewJSONType(z.Dereference(o.LogitBias)),
 			o.Logprobs,
@@ -118,15 +122,13 @@ func (c *ChatCompletionRequest) FromPublic(obj any) error {
 			o.TopLogprobs,
 			o.TopP,
 			o.User,
-			JobRequest{},
-			"",
 		}
 	}
 
 	return nil
 }
 
-func ChatCompletionModelFromPublic(openAIModel openai.CreateChatCompletionRequest_Model) (string, error) {
+func CreateChatCompletionModelFromPublic(openAIModel openai.CreateChatCompletionRequest_Model) (string, error) {
 	var model string
 	if m, err := openAIModel.AsCreateChatCompletionRequestModel1(); err != nil {
 		if m, err := openAIModel.AsCreateChatCompletionRequestModel0(); err == nil {
