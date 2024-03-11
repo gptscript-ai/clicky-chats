@@ -16,6 +16,11 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	minPollingInterval  = 1 * time.Second
+	minRequestRetention = 5 * time.Minute
+)
+
 type Config struct {
 	PollingInterval, RetentionPeriod              time.Duration
 	ModelsURL, ChatCompletionURL, APIKey, AgentID string
@@ -44,6 +49,13 @@ type agent struct {
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
+	if cfg.PollingInterval < minPollingInterval {
+		return nil, fmt.Errorf("polling interval must be at least %s", minPollingInterval)
+	}
+	if cfg.RetentionPeriod < minRequestRetention {
+		return nil, fmt.Errorf("request retention must be at least %s", minRequestRetention)
+	}
+
 	return &agent{
 		pollingInterval: cfg.PollingInterval,
 		retentionPeriod: cfg.RetentionPeriod,

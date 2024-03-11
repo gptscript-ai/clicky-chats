@@ -24,6 +24,8 @@ import (
 )
 
 const (
+	minPollingInterval = 1 * time.Second
+
 	codeInterpreterFunctionName = "code_interpreter"
 	retrievalFunctionName       = "retrieval"
 	webSearchFunctionName       = "web_browsing"
@@ -77,6 +79,10 @@ type agent struct {
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
+	if cfg.PollingInterval < minPollingInterval {
+		return nil, fmt.Errorf("polling interval must be at least %s", minPollingInterval)
+	}
+
 	return &agent{
 		pollingInterval: cfg.PollingInterval,
 		client:          http.DefaultClient,
