@@ -8,6 +8,7 @@ import (
 
 	"github.com/acorn-io/z"
 	"github.com/google/uuid"
+	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"gorm.io/datatypes"
 )
 
@@ -85,4 +86,13 @@ func (j JobResponse) IsDone() bool {
 
 func (j JobResponse) GetRequestID() string {
 	return j.RequestID
+}
+
+func isTerminal(status string) bool {
+	switch status {
+	case string(openai.RunObjectStatusCompleted), string(openai.RunObjectStatusFailed), string(openai.RunObjectStatusCancelled), string(openai.RunObjectStatusExpired):
+		return true
+	default:
+		return false
+	}
 }

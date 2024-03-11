@@ -1,9 +1,12 @@
 package db
 
 import (
+	"fmt"
+
 	"github.com/acorn-io/z"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 type Run struct {
@@ -113,6 +116,23 @@ func (r *Run) FromPublic(obj any) error {
 			nil,
 			nil,
 		}
+	}
+
+	return nil
+}
+
+func (r *Run) BeforeUpdate(tx *gorm.DB) error {
+	if !tx.Statement.Changed("status") {
+		return nil
+	}
+
+	existing := new(Run)
+	if err := tx.First(existing, tx.Statement.Clauses["WHERE"].Expression).Error; err != nil {
+		return err
+	}
+
+	if isTerminal(existing.Status) {
+		return fmt.Errorf("cannot update run %s in terminal state %s", existing.ID, existing.Status)
 	}
 
 	return nil
