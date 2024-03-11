@@ -7,6 +7,7 @@ import (
 	"github.com/acorn-io/z"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 type RunStep struct {
@@ -102,6 +103,23 @@ func (r *RunStep) FromPublic(obj any) error {
 			nil,
 			nil,
 		}
+	}
+
+	return nil
+}
+
+func (r *RunStep) BeforeUpdate(tx *gorm.DB) error {
+	if !tx.Statement.Changed("status") {
+		return nil
+	}
+
+	existing := new(RunStep)
+	if err := tx.First(existing, tx.Statement.Clauses["WHERE"].Expression).Error; err != nil {
+		return err
+	}
+
+	if isTerminal(existing.Status) {
+		return fmt.Errorf("cannot update runstep %s in terminal state %s", existing.ID, existing.Status)
 	}
 
 	return nil
