@@ -1215,7 +1215,13 @@ func listAndRespondOpenAI[T ExtendedTransformer](gormDB *gorm.DB, w http.Respons
 		publicObjs = append(publicObjs, o.ToPublicOpenAI())
 	}
 
-	respondWithList(w, publicObjs, limit, objs[0].GetID(), objs[len(objs)-1].GetID())
+	var firstID, lastID string
+	if len(objs) > 0 {
+		firstID = objs[0].GetID()
+		lastID = objs[len(objs)-1].GetID()
+	}
+
+	respondWithList(w, publicObjs, limit, firstID, lastID)
 }
 
 func respondWithList(w http.ResponseWriter, publicObjs []any, limit int, firstID, lastID string) {
