@@ -25,7 +25,7 @@ type Agent struct {
 
 	ToolRunnerBaseURL string `usage:"Tool runner base URL" default:"http://localhost:8080/v1" env:"CLICKY_CHATS_TOOL_RUNNER_BASE_URL"`
 
-	DefaultImagesURL string `usage:"The default URL for the image agent to use" default:"https://api.openai.com/v1/images/generations" env:"CLICKY_CHATS_IMAGES_SERVER_URL"`
+	DefaultImagesURL string `usage:"The default base URL for the image agent to use" default:"https://api.openai.com/v1/images" env:"CLICKY_CHATS_IMAGES_SERVER_URL"`
 
 	DefaultEmbeddingsURL string `usage:"The defaultURL for the embedding agent to use" default:"https://api.openai.com/v1/embeddings" env:"CLICKY_CHATS_EMBEDDINGS_SERVER_URL"`
 
@@ -99,8 +99,8 @@ func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
 	imageCfg := image.Config{
 		PollingInterval: pollingInterval,
 		RetentionPeriod: retentionPeriod,
-		ImagesURL:       s.DefaultImagesURL,
-		APIKey:          s.ModelAPIKey,
+		ImagesBaseURL:   s.DefaultImagesURL,
+		APIKey:          apiKey,
 		AgentID:         s.AgentID,
 	}
 	if err = image.Start(ctx, gormDB, imageCfg); err != nil {

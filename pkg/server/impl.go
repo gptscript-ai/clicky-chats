@@ -16,6 +16,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/extendedapi"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
+	"github.com/oapi-codegen/runtime"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -461,20 +462,50 @@ func (s *Server) ListFineTuningEvents(w http.ResponseWriter, r *http.Request, fi
 }
 
 func (s *Server) CreateImageEdit(w http.ResponseWriter, r *http.Request) {
-	//TODO implement me
-	w.WriteHeader(http.StatusNotImplemented)
+	reader, err := r.MultipartReader()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to parse multipart form.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	publicReq := new(openai.CreateImageEditRequest)
+	if err := runtime.BindMultipart(publicReq, *reader); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to bind multipart form.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	agentReq := new(db.CreateImageEditRequest)
+	if err := agentReq.FromPublic(publicReq); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to process request.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	var (
+		ctx    = r.Context()
+		gormDB = s.db.WithContext(ctx)
+	)
+	if err := db.Create(gormDB, agentReq); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError("Failed to create chat completion request.", InternalErrorType).Error()))
+		return
+	}
+
+	waitForAndWriteResponse(ctx, w, gormDB, agentReq.ID, new(db.ImagesResponse))
 }
 
 func (s *Server) CreateImage(w http.ResponseWriter, r *http.Request) {
-	oaiReq := new(openai.CreateImageRequest)
-	if err := readObjectFromRequest(r, oaiReq); err != nil {
+	publicReq := new(openai.CreateImageRequest)
+	if err := readObjectFromRequest(r, publicReq); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
 	agentReq := new(db.CreateImageRequest)
-	if err := agentReq.FromPublic(oaiReq); err != nil {
+	if err := agentReq.FromPublic(publicReq); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewAPIError("Failed to process request.", InvalidRequestErrorType).Error()))
 		return

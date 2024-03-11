@@ -15,7 +15,7 @@ type Server struct {
 	ServerPort    string `usage:"Server port" default:"8080" env:"CLICKY_CHATS_SERVER_PORT"`
 	ServerAPIBase string `usage:"Server API base" default:"/v1" env:"CLICKY_CHATS_SERVER_API_BASE"`
 
-	WithAgents string `usage:"Run the server and agents" default:"false" env:"CLICKY_CHATS_WITH_AGENTS"`
+	WithAgents bool `usage:"Run the server and agents" default:"false" env:"CLICKY_CHATS_WITH_AGENTS"`
 }
 
 func (s *Server) Run(cmd *cobra.Command, _ []string) error {
@@ -32,7 +32,7 @@ func (s *Server) Run(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	if s.WithAgents == "true" {
+	if s.WithAgents {
 		if err = runAgents(cmd.Context(), gormDB, &s.Agent); err != nil {
 			return err
 		}

@@ -7,7 +7,7 @@ require (
 	github.com/acorn-io/cmd v0.0.0-20240203032901-e9e631185ddb
 	github.com/acorn-io/z v0.0.0-20231104012607-4cab1b3ec5e5
 	github.com/adrg/xdg v0.4.0
-	github.com/getkin/kin-openapi v0.118.0
+	github.com/getkin/kin-openapi v0.123.0
 	github.com/glebarez/sqlite v1.10.0
 	github.com/google/uuid v1.5.0
 	github.com/gptscript-ai/gptscript v0.2.0-rc1.0.20240312205458-74a3d5681004
@@ -33,13 +33,13 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
-	github.com/go-openapi/jsonpointer v0.19.6 // indirect
-	github.com/go-openapi/swag v0.22.4 // indirect
+	github.com/go-openapi/jsonpointer v0.20.2 // indirect
+	github.com/go-openapi/swag v0.22.8 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-containerregistry v0.16.1 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -59,7 +59,7 @@ require (
 	github.com/nwaples/rardecode/v2 v2.0.0-beta.2 // indirect
 	github.com/olahol/melody v1.1.4 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
-	github.com/perimeterx/marshmallow v1.1.4 // indirect
+	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
