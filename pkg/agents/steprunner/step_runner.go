@@ -66,10 +66,11 @@ func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 		return err
 	}
 
-	return a.Start(ctx, cfg.PollingInterval)
+	return a.Start(ctx)
 }
 
 type agent struct {
+	pollingInterval time.Duration
 	id, apiKey, url string
 	client          *http.Client
 	db              *db.DB
@@ -77,19 +78,20 @@ type agent struct {
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	return &agent{
-		client: http.DefaultClient,
-		apiKey: cfg.APIKey,
-		db:     db,
-		id:     cfg.AgentID,
-		url:    cfg.APIURL,
+		pollingInterval: cfg.PollingInterval,
+		client:          http.DefaultClient,
+		apiKey:          cfg.APIKey,
+		db:              db,
+		id:              cfg.AgentID,
+		url:             cfg.APIURL,
 	}, nil
 }
 
-func (c *agent) Start(ctx context.Context, pollingInterval time.Duration) error {
+func (a *agent) Start(ctx context.Context) error {
 	caster := broadcaster.New[server.Event]()
 	oaClient, err := gptopenai.NewClient(gptopenai.Options{
-		APIKey:  c.apiKey,
-		BaseURL: c.url,
+		APIKey:  a.apiKey,
+		BaseURL: a.url,
 	})
 	if err != nil {
 		return err
@@ -120,15 +122,15 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration) error 
 	// Start the "job runner"
 	go func() {
 		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				if err := c.run(ctx, noCacheRunner); err != nil {
-					if !errors.Is(err, gorm.ErrRecordNotFound) {
-						slog.Error("failed step runner iteration", "err", err)
-					}
-					time.Sleep(pollingInterval)
+			if err := a.run(ctx, noCacheRunner); err != nil {
+				if !errors.Is(err, gorm.ErrRecordNotFound) {
+					slog.Error("failed step runner iteration", "err", err)
+				}
+
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(a.pollingInterval):
 				}
 			}
 		}
@@ -137,12 +139,12 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration) error 
 	return nil
 }
 
-func (c *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
+func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 	slog.Debug("Checking for a run")
 	// Look for a new run and claim it. Also, query for the other objects we need.
 	run, runStep := new(db.Run), new(db.RunStep)
-	err = c.db.WithContext(ctx).Model(run).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("system_status = ?", "requires_action").Where("system_claimed_by IS NULL OR system_claimed_by = ?", c.id).Order("created_at desc").First(run).Error; err != nil {
+	err = a.db.WithContext(ctx).Model(run).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("system_status = ?", "requires_action").Where("system_claimed_by IS NULL OR system_claimed_by = ?", a.id).Order("created_at desc").First(run).Error; err != nil {
 			return err
 		}
 
@@ -160,7 +162,7 @@ func (c *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			return err
 		}
 
-		if err := tx.Model(run).Where("id = ?", run.ID).Updates(map[string]interface{}{"system_claimed_by": c.id, "system_status": "in_progress"}).Error; err != nil {
+		if err := tx.Model(run).Where("id = ?", run.ID).Updates(map[string]interface{}{"system_claimed_by": a.id, "system_status": "in_progress"}).Error; err != nil {
 			return err
 		}
 
@@ -177,7 +179,7 @@ func (c *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 
 	defer func() {
 		if err != nil {
-			failRunStep(l, c.db.WithContext(ctx), run, runStep, err, openai.RunObjectLastErrorCodeServerError)
+			failRunStep(l, a.db.WithContext(ctx), run, runStep, err, openai.RunObjectLastErrorCodeServerError)
 		}
 	}()
 
@@ -217,7 +219,7 @@ func (c *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 		return err
 	}
 
-	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Update the run step with a fake output
 		if err := tx.Model(runStep).Where("id = ?", runStep.ID).Updates(map[string]interface{}{"status": openai.Completed, "completed_at": z.Pointer(int(time.Now().Unix())), "step_details": datatypes.NewJSONType(stepDetails)}).Error; err != nil {
 			return err
