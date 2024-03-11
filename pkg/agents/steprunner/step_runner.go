@@ -137,11 +137,11 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration) error 
 	return nil
 }
 
-func (c *agent) run(ctx context.Context, runner *runner.Runner) error {
+func (c *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 	slog.Debug("Checking for a run")
 	// Look for a new run and claim it. Also, query for the other objects we need.
 	run, runStep := new(db.Run), new(db.RunStep)
-	err := c.db.WithContext(ctx).Model(run).Transaction(func(tx *gorm.DB) error {
+	err = c.db.WithContext(ctx).Model(run).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("system_status = ?", "requires_action").Where("system_claimed_by IS NULL OR system_claimed_by = ?", c.id).Order("created_at desc").First(run).Error; err != nil {
 			return err
 		}
@@ -203,7 +203,7 @@ func (c *agent) run(ctx context.Context, runner *runner.Runner) error {
 			return fmt.Errorf("failed to run: %w", err)
 		}
 
-		if err := db.SetOutputForRunStepToolCall(&tc, output); err != nil {
+		if err = db.SetOutputForRunStepToolCall(&tc, output); err != nil {
 			return err
 		}
 
@@ -237,6 +237,7 @@ func (c *agent) run(ctx context.Context, runner *runner.Runner) error {
 }
 
 func failRunStep(l *slog.Logger, gdb *gorm.DB, run *db.Run, runStep *db.RunStep, err error, errorCode openai.RunObjectLastErrorCode) {
+	l.Debug("Error occurred while processing run step, failing run", "err", err)
 	runError := &db.RunLastError{
 		Code:    string(errorCode),
 		Message: err.Error(),
@@ -244,7 +245,7 @@ func failRunStep(l *slog.Logger, gdb *gorm.DB, run *db.Run, runStep *db.RunStep,
 	if err := gdb.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(run).Where("id = ?", run.ID).Updates(map[string]interface{}{
 			"status":        openai.RunObjectStatusFailed,
-			"system_status": nil,
+			"system_status": openai.RunObjectStatusFailed,
 			"failed_at":     z.Pointer(int(time.Now().Unix())),
 			"last_error":    datatypes.NewJSONType(runError),
 			"usage":         run.Usage,
