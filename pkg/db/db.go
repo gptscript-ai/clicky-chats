@@ -81,6 +81,7 @@ func (db *DB) AutoMigrate() error {
 		ChatCompletionResponseChunk{},
 		RunStep{},
 		CreateImageRequest{},
+		CreateImageEditRequest{},
 		ImagesResponse{},
 		CreateEmbeddingRequest{},
 		CreateEmbeddingResponse{},

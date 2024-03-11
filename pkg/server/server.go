@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/extendedapi"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
@@ -32,6 +33,12 @@ func NewServer(db *db.DB) *Server {
 }
 
 func (s *Server) Start(ctx context.Context, config Config) error {
+	// Treat image/png as files during decoding.
+	// This is required to pass body validation for image and mask fields for the following endpoints:
+	// - /v1/images/edits
+	openapi3filter.RegisterBodyDecoder("image/png", openapi3filter.FileBodyDecoder)
+	openapi3filter.RegisterBodyDecoder("text/plain", plainBodyDecoder)
+
 	if err := s.db.AutoMigrate(); err != nil {
 		return err
 	}

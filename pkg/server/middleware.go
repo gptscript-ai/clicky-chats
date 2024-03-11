@@ -49,9 +49,11 @@ func OpenAPIValidator(swagger *openapi3.T) MiddlewareFunc {
 	f := nethttpmiddleware.OapiRequestValidatorWithOptions(swagger, &nethttpmiddleware.Options{
 		SilenceServersWarning: true,
 		Options: openapi3filter.Options{
-			AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
+			SkipSettingDefaults: true,
+			AuthenticationFunc:  openapi3filter.NoopAuthenticationFunc,
 		},
 	})
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !extendedapi.IsExtendedAPIKey(r.Context()) {
