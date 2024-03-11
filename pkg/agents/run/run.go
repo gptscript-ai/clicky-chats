@@ -18,7 +18,7 @@ import (
 )
 
 type Config struct {
-	PollingInterval, CleanupTickTime time.Duration
+	PollingInterval, RetentionPeriod time.Duration
 	APIURL, APIKey, AgentID          string
 }
 
@@ -28,39 +28,42 @@ func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 		return err
 	}
 
-	a.Start(ctx, cfg.PollingInterval, cfg.CleanupTickTime)
+	a.Start(ctx)
+
 	return nil
 }
 
 type agent struct {
-	id, apiKey, url string
-	client          *http.Client
-	db              *db.DB
+	pollingInterval, retentionPeriod time.Duration
+	id, apiKey, url                  string
+	client                           *http.Client
+	db                               *db.DB
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	return &agent{
-		client: http.DefaultClient,
-		apiKey: cfg.APIKey,
-		db:     db,
-		id:     cfg.AgentID,
-		url:    cfg.APIURL,
+		pollingInterval: cfg.PollingInterval,
+		retentionPeriod: cfg.RetentionPeriod,
+		client:          http.DefaultClient,
+		apiKey:          cfg.APIKey,
+		db:              db,
+		id:              cfg.AgentID,
+		url:             cfg.APIURL,
 	}, nil
 }
 
-func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanupTickTime time.Duration) {
+func (a *agent) Start(ctx context.Context) {
 	// Start the "job runner"
 	go func() {
 		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				if err := c.run(ctx); err != nil {
-					if !errors.Is(err, gorm.ErrRecordNotFound) {
-						slog.Error("failed run iteration", "err", err)
-					}
-					time.Sleep(pollingInterval)
+			if err := a.run(ctx); err != nil {
+				if !errors.Is(err, gorm.ErrRecordNotFound) {
+					slog.Error("failed run iteration", "err", err)
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(a.pollingInterval):
 				}
 			}
 		}
@@ -68,47 +71,50 @@ func (c *agent) Start(ctx context.Context, pollingInterval time.Duration, cleanu
 
 	// Start cleanup
 	go func() {
+		cleanupInterval := a.retentionPeriod / 2
 		for {
+			slog.Debug("Looking for completed runs")
+
+			// Look for a new chat completion request and claim it.
+			var runs []db.Run
+			if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+				// TODO(thedadams): Under which circumstances should we clean up old runs? This currently does nothing.
+				if err := tx.Model(new(db.Run)).Where("id IS NULL").Order("created_at desc").Find(&runs).Error; err != nil {
+					return err
+				}
+				if len(runs) == 0 {
+					return nil
+				}
+
+				runIDs := make([]string, 0, len(runs))
+				for _, run := range runs {
+					runIDs = append(runIDs, run.ID)
+				}
+
+				if err := tx.Delete(new(db.RunStep), "run_id IN ?", runIDs).Error; err != nil {
+					return err
+				}
+
+				return tx.Delete(runs).Error
+			}); err != nil {
+				slog.Error("Failed to cleanup run completions", "err", err)
+			}
+
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(cleanupTickTime):
-				slog.Debug("Looking for completed runs")
-				// Look for a new chat completion request and claim it.
-				var runs []db.Run
-				if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-					// TODO(thedadams): Under which circumstances should we clean up old runs? This currently does nothing.
-					if err := tx.Model(new(db.Run)).Where("id IS NULL").Order("created_at desc").Find(&runs).Error; err != nil {
-						return err
-					}
-					if len(runs) == 0 {
-						return nil
-					}
-
-					runIDs := make([]string, 0, len(runs))
-					for _, run := range runs {
-						runIDs = append(runIDs, run.ID)
-					}
-
-					if err := tx.Delete(new(db.RunStep), "run_id IN ?", runIDs).Error; err != nil {
-						return err
-					}
-
-					return tx.Delete(runs).Error
-				}); err != nil {
-					slog.Error("Failed to cleanup run completions", "err", err)
-				}
+			case <-time.After(cleanupInterval):
 			}
 		}
 	}()
 }
 
-func (c *agent) run(ctx context.Context) error {
+func (a *agent) run(ctx context.Context) error {
 	slog.Debug("Checking for a run")
 	// Look for a new run and claim it. Also, query for the other objects we need.
 	run, assistant, messages, runSteps := new(db.Run), new(db.Assistant), make([]db.Message, 0), make([]db.RunStep, 0)
-	err := c.db.WithContext(ctx).Model(run).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND status = ? AND system_status IS NULL", c.id, openai.RunObjectStatusQueued).Order("created_at desc").First(run).Error; err != nil {
+	err := a.db.WithContext(ctx).Model(run).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND status = ? AND system_status IS NULL", a.id, openai.RunObjectStatusQueued).Order("created_at desc").First(run).Error; err != nil {
 			return err
 		}
 
@@ -139,7 +145,7 @@ func (c *agent) run(ctx context.Context) error {
 			startedAt = z.Pointer(int(time.Now().Unix()))
 		}
 
-		if err := tx.Model(run).Where("id = ?", run.ID).Updates(map[string]interface{}{"claimed_by": c.id, "status": openai.RunObjectStatusInProgress, "started_at": startedAt}).Error; err != nil {
+		if err := tx.Model(run).Where("id = ?", run.ID).Updates(map[string]interface{}{"claimed_by": a.id, "status": openai.RunObjectStatusInProgress, "started_at": startedAt}).Error; err != nil {
 			return err
 		}
 
@@ -157,7 +163,7 @@ func (c *agent) run(ctx context.Context) error {
 
 	defer func() {
 		if err != nil {
-			failRun(l, c.db.WithContext(ctx), run, err, openai.RunObjectLastErrorCodeServerError)
+			failRun(l, a.db.WithContext(ctx), run, err, openai.RunObjectLastErrorCodeServerError)
 		}
 	}()
 
@@ -168,7 +174,7 @@ func (c *agent) run(ctx context.Context) error {
 		return err
 	}
 
-	ccr, err := agents.MakeChatCompletionRequest(ctx, l, c.client, c.url, c.apiKey, cc)
+	ccr, err := agents.MakeChatCompletionRequest(ctx, l, a.client, a.url, a.apiKey, cc)
 	if err != nil {
 		l.Error("Failed to make chat completion request from run", "err", err)
 		return err
@@ -194,10 +200,10 @@ func (c *agent) run(ctx context.Context) error {
 	if ccr.StatusCode >= 400 || len(ccr.Choices) == 0 {
 		if ccr.StatusCode == http.StatusTooManyRequests {
 			l.Error("Chat completion request had too many requests, failing run", "status_code", ccr.StatusCode)
-			failRun(l, c.db.WithContext(ctx), run, fmt.Errorf(z.Dereference(ccr.Error)), openai.RunObjectLastErrorCodeRateLimitExceeded)
+			failRun(l, a.db.WithContext(ctx), run, fmt.Errorf(z.Dereference(ccr.Error)), openai.RunObjectLastErrorCodeRateLimitExceeded)
 		} else {
 			l.Error("Chat completion request had unexpected status code, failing run", "status_code", ccr.StatusCode, "choices", len(ccr.Choices))
-			failRun(l, c.db.WithContext(ctx), run, fmt.Errorf("unexpected status code: %d", ccr.StatusCode), openai.RunObjectLastErrorCodeServerError)
+			failRun(l, a.db.WithContext(ctx), run, fmt.Errorf("unexpected status code: %d", ccr.StatusCode), openai.RunObjectLastErrorCodeServerError)
 		}
 		return nil
 	}
@@ -219,7 +225,7 @@ func (c *agent) run(ctx context.Context) error {
 	}
 
 	// Create and update the objects in the database.
-	if err := c.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var completedAt *int
 		if terminalState {
 			if err := tx.Model(new(db.Thread)).Where("id = ?", run.ThreadID).Update("locked_by_run_id", nil).Error; err != nil {
@@ -278,7 +284,7 @@ func failRun(l *slog.Logger, gdb *gorm.DB, run *db.Run, err error, errorCode ope
 	}
 }
 
-func objectsForToolStep(run *db.Run, ccr *db.ChatCompletionResponse) (openai.RunObjectStatus, *string, []db.RunStep, error) {
+func objectsForToolStep(run *db.Run, ccr *db.CreateChatCompletionResponse) (openai.RunObjectStatus, *string, []db.RunStep, error) {
 	functionCalls := make([]openai.RunToolCallObject, 0, len(ccr.Choices))
 	nonFunctionCalls := make([]openai.RunToolCallObject, 0, len(ccr.Choices))
 	for _, choice := range ccr.Choices {
@@ -367,7 +373,7 @@ func objectsForToolStep(run *db.Run, ccr *db.ChatCompletionResponse) (openai.Run
 	return newPublicStatus, newSystemStatus, runSteps, nil
 }
 
-func objectsForMessageStep(run *db.Run, ccr *db.ChatCompletionResponse) ([]db.RunStep, *db.Message, error) {
+func objectsForMessageStep(run *db.Run, ccr *db.CreateChatCompletionResponse) ([]db.RunStep, *db.Message, error) {
 	content, err := db.MessageContentFromString(*ccr.Choices[0].Message.Data().Content)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to convert message content: %w", err)
@@ -423,7 +429,7 @@ func objectsForMessageStep(run *db.Run, ccr *db.ChatCompletionResponse) ([]db.Ru
 	return []db.RunStep{runStep}, newMessage, nil
 }
 
-func prepareChatCompletionRequest(run *db.Run, assistant *db.Assistant, messages []db.Message, runSteps []db.RunStep) (*db.ChatCompletionRequest, error) {
+func prepareChatCompletionRequest(run *db.Run, assistant *db.Assistant, messages []db.Message, runSteps []db.RunStep) (*db.CreateChatCompletionRequest, error) {
 	chatMessages := make([]openai.ChatCompletionRequestMessage, 0, len(messages))
 
 	if run.Instructions != "" {
@@ -469,7 +475,7 @@ func prepareChatCompletionRequest(run *db.Run, assistant *db.Assistant, messages
 		return nil, err
 	}
 
-	return &db.ChatCompletionRequest{
+	return &db.CreateChatCompletionRequest{
 		Messages:    chatMessages,
 		Model:       assistant.Model,
 		Temperature: z.Pointer[float32](0.1),

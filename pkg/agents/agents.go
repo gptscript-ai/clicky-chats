@@ -40,7 +40,7 @@ func GPTScriptDefinitions() map[string]openai.FunctionObject {
 	return gptScriptToolDefinitions
 }
 
-func StreamChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, cc *db.ChatCompletionRequest) (<-chan db.ChatCompletionResponseChunk, error) {
+func StreamChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, cc *db.CreateChatCompletionRequest) (<-chan db.ChatCompletionResponseChunk, error) {
 	b, err := json.Marshal(cc.ToPublic())
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func StreamChatCompletionRequest(ctx context.Context, l *slog.Logger, client *ht
 	return streamResponses(ctx, resp), nil
 }
 
-func MakeChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, cc *db.ChatCompletionRequest) (*db.ChatCompletionResponse, error) {
+func MakeChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, cc *db.CreateChatCompletionRequest) (*db.CreateChatCompletionResponse, error) {
 	b, err := json.Marshal(cc.ToPublic())
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func MakeChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http
 	// Wait to process this error until after we have the DB object.
 	code, err := cclient.SendRequest(client, req, resp)
 
-	ccr := new(db.ChatCompletionResponse)
+	ccr := new(db.CreateChatCompletionResponse)
 	// err here should be shadowed.
 	if err := ccr.FromPublic(resp); err != nil {
 		l.Error("Failed to create chat completion", "err", err)

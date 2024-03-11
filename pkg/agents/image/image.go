@@ -29,12 +29,13 @@ func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 	}
 
 	a.Start(ctx)
+
 	return nil
 }
 
 type Config struct {
-	PollingInterval, RequestRetention time.Duration
-	ImagesURL, APIKey, AgentID        string
+	PollingInterval, RetentionPeriod time.Duration
+	ImagesURL, APIKey, AgentID       string
 }
 
 type agent struct {
@@ -48,13 +49,13 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	if cfg.PollingInterval < minPollingInterval {
 		return nil, fmt.Errorf("polling interval must be at least %s", minPollingInterval)
 	}
-	if cfg.RequestRetention < minRequestRetention {
+	if cfg.RetentionPeriod < minRequestRetention {
 		return nil, fmt.Errorf("request retention must be at least %s", minRequestRetention)
 	}
 
 	return &agent{
 		pollingInterval:  cfg.PollingInterval,
-		requestRetention: cfg.RequestRetention,
+		requestRetention: cfg.RetentionPeriod,
 		url:              cfg.ImagesURL,
 		client:           http.DefaultClient,
 		apiKey:           cfg.APIKey,

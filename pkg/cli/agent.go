@@ -17,12 +17,12 @@ import (
 type Agent struct {
 	DSN                           string `usage:"Server datastore" default:"sqlite://clicky-chats.db" env:"CLICKY_CHATS_DSN"`
 	ChatCompletionPollingInterval string `usage:"Chat completion polling interval" default:"1s" env:"CLICKY_CHATS_CHAT_COMPLETION_POLLING_INTERVAL"`
-	ChatCompletionCleanupTickTime string `usage:"Chat completion cleanup tick time" default:"5m" env:"CLICKY_CHATS_CHAT_COMPLETION_CLEANUP_TICK_TIME"`
+	ChatCompletionRetentionPeriod string `usage:"Chat completion retention period" default:"5m" env:"CLICKY_CHATS_CHAT_COMPLETION_RETENTION_PERIOD"`
 	RunCompletionPollingInterval  string `usage:"Run completion polling interval" default:"1s" env:"CLICKY_CHATS_RUN_COMPLETION_POLLING_INTERVAL"`
-	RunCompletionCleanupTickTime  string `usage:"Run completion cleanup tick time" default:"5m" env:"CLICKY_CHATS_RUN_COMPLETION_CLEANUP_TICK_TIME"`
+	RunCompletionRetentionPeriod  string `usage:"Run completion retention period" default:"5m" env:"CLICKY_CHATS_RUN_COMPLETION_RETENTION_PERIOD"`
 	ToolRunnerPollingInterval     string `usage:"Tool runner polling interval" default:"1s" env:"CLICKY_CHATS_TOOL_RUNNER_POLLING_INTERVAL"`
 	ImagePollingInterval          string `usage:"Image job polling interval" default:"1s" env:"CLICKY_CHATS_IMAGE_POLLING_INTERVAL"`
-	ImageResponseRetentionPeriod  string `usage:"Image response retention period" default:"10m" env:"CLICKY_CHATS_IMAGE_RESPONSE_RETENTION_PERIOD"`
+	ImageRetentionPeriod          string `usage:"Image retention period" default:"5m" env:"CLICKY_CHATS_IMAGE_RETENTION_PERIOD"`
 	ToolRunnerBaseURL             string `usage:"Tool runner base URL" default:"http://localhost:8080/v1" env:"CLICKY_CHATS_TOOL_RUNNER_BASE_URL"`
 	DefaultChatCompletionURL      string `usage:"The default URL for the chat completion agent to use" default:"https://api.openai.com/v1/chat/completions" env:"CLICKY_CHATS_CHAT_COMPLETION_SERVER_URL"`
 	DefaultImagesURL              string `usage:"The default URL for the image agent to use" default:"https://api.openai.com/v1/images/generations" env:"CLICKY_CHATS_IMAGES_SERVER_URL"`
@@ -47,13 +47,13 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 }
 
 func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
-	chatCompletionCleanupTickTime, err := time.ParseDuration(s.ChatCompletionCleanupTickTime)
+	chatCompletionRetentionPeriod, err := time.ParseDuration(s.ChatCompletionRetentionPeriod)
 	if err != nil {
-		return fmt.Errorf("failed to parse chat completion cleanup tick time: %w", err)
+		return fmt.Errorf("failed to parse chat completion retention period: %w", err)
 	}
 	chatCompletionPollingInterval, err := time.ParseDuration(s.ChatCompletionPollingInterval)
 	if err != nil {
-		return fmt.Errorf("failed to parse chat completion polling tick time: %w", err)
+		return fmt.Errorf("failed to parse chat completion polling interval: %w", err)
 	}
 
 	apiKey := s.ModelAPIKey
@@ -66,25 +66,25 @@ func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
 		ModelsURL:         s.ModelsURL,
 		ChatCompletionURL: s.DefaultChatCompletionURL,
 		PollingInterval:   chatCompletionPollingInterval,
-		CleanupTickTime:   chatCompletionCleanupTickTime,
+		RetentionPeriod:   chatCompletionRetentionPeriod,
 		AgentID:           s.AgentID,
 	}
 	if err := chatcompletion.Start(ctx, gormDB, ccCfg); err != nil {
 		return err
 	}
 
-	runCompletionCleanupTickTime, err := time.ParseDuration(s.ChatCompletionCleanupTickTime)
+	runCompletionRetentionPeriod, err := time.ParseDuration(s.RunCompletionRetentionPeriod)
 	if err != nil {
 		return fmt.Errorf("failed to parse run completion cleanup interval: %w", err)
 	}
-	runCompletionPollingInterval, err := time.ParseDuration(s.ChatCompletionPollingInterval)
+	runCompletionPollingInterval, err := time.ParseDuration(s.RunCompletionPollingInterval)
 	if err != nil {
 		return fmt.Errorf("failed to parse run completion polling interval: %w", err)
 	}
 
 	runCfg := run.Config{
 		PollingInterval: runCompletionPollingInterval,
-		CleanupTickTime: runCompletionCleanupTickTime,
+		RetentionPeriod: runCompletionRetentionPeriod,
 		APIURL:          s.APIURL,
 		APIKey:          s.ModelAPIKey,
 		AgentID:         s.AgentID,
@@ -93,7 +93,7 @@ func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
 		return err
 	}
 
-	toolRunnerPollingInterval, err := time.ParseDuration(s.ChatCompletionPollingInterval)
+	toolRunnerPollingInterval, err := time.ParseDuration(s.ToolRunnerPollingInterval)
 	if err != nil {
 		return fmt.Errorf("failed to parse run completion polling interval: %w", err)
 	}
@@ -113,17 +113,17 @@ func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
 		return fmt.Errorf("failed to parse image polling interval: %w", err)
 	}
 
-	imageResponseRetentionPeriod, err := time.ParseDuration(s.ImageResponseRetentionPeriod)
+	imageRetentionPeriod, err := time.ParseDuration(s.ImageRetentionPeriod)
 	if err != nil {
 		return fmt.Errorf("failed to parse image response retention period: %w", err)
 	}
 
 	imageCfg := image.Config{
-		PollingInterval:  imagePollingInterval,
-		RequestRetention: imageResponseRetentionPeriod,
-		ImagesURL:        s.DefaultImagesURL,
-		APIKey:           s.ModelAPIKey,
-		AgentID:          s.AgentID,
+		PollingInterval: imagePollingInterval,
+		RetentionPeriod: imageRetentionPeriod,
+		ImagesURL:       s.DefaultImagesURL,
+		APIKey:          s.ModelAPIKey,
+		AgentID:         s.AgentID,
 	}
 	if err = image.Start(ctx, gormDB, imageCfg); err != nil {
 		return err
