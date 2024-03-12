@@ -322,8 +322,28 @@ func (s *Server) CreateCompletion(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) CreateEmbedding(w http.ResponseWriter, r *http.Request) {
-	//TODO implement me
-	w.WriteHeader(http.StatusNotImplemented)
+	createEmbeddingRequest := new(openai.CreateEmbeddingRequest)
+	if err := readObjectFromRequest(r, createEmbeddingRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	cer := new(db.CreateEmbeddingRequest)
+	if err := cer.FromPublic(createEmbeddingRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to process request.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	gormDB := s.db.WithContext(r.Context())
+	if err := db.Create(gormDB, cer); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError("Failed to create embeddings request.", InternalErrorType).Error()))
+		return
+	}
+
+	waitForAndWriteResponse(r.Context(), w, gormDB, cer.ID, new(db.CreateEmbeddingResponse))
 }
 
 func (s *Server) ListFiles(w http.ResponseWriter, r *http.Request, params openai.ListFilesParams) {
