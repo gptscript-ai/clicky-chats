@@ -958,7 +958,7 @@ func (s *Server) ListRunSteps(w http.ResponseWriter, r *http.Request, threadID s
 	}
 
 	gormDB, limit, err := processAssistantsAPIListParams[*db.RunStep](
-		s.db.WithContext(r.Context()).Where("run_id = ?", runID), params.Limit, params.Before, params.After, params.Order,
+		s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order,
 		&db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}},
 		&db.Run{Metadata: db.Metadata{Base: db.Base{ID: runID}}},
 	)
@@ -968,7 +968,7 @@ func (s *Server) ListRunSteps(w http.ResponseWriter, r *http.Request, threadID s
 		return
 	}
 
-	listAndRespond[*db.RunStep](gormDB, w, limit)
+	listAndRespond[*db.RunStep](gormDB.Where("run_id = ?", runID), w, limit)
 }
 
 func (s *Server) GetRunStep(w http.ResponseWriter, r *http.Request, threadID string, runID string, stepID string) {
@@ -983,7 +983,7 @@ func (s *Server) GetRunStep(w http.ResponseWriter, r *http.Request, threadID str
 		return
 	}
 
-	getAndRespond(s.db.WithContext(r.Context()).Where("thread_id = ?", threadID).Where("run_id = ?", runID), w, new(db.RunStep), stepID)
+	getAndRespond(s.db.WithContext(r.Context()).Where("run_id = ?", runID), w, new(db.RunStep), stepID)
 }
 
 func (s *Server) SubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {

@@ -171,7 +171,7 @@ func (r *RunRequiredAction) toPublic() *struct {
 	} `json:"submit_tool_outputs"`
 	Type openai.RunObjectRequiredActionType `json:"type"`
 } {
-	if r == nil {
+	if r == nil || len(r.SubmitToolOutputs) == 0 {
 		return nil
 	}
 
