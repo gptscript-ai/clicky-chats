@@ -67,8 +67,8 @@ func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
 		APIKey:            apiKey,
 		ModelsURL:         s.ModelsURL,
 		ChatCompletionURL: s.DefaultChatCompletionURL,
-		PollingInterval:   retentionPeriod,
-		RetentionPeriod:   pollingInterval,
+		PollingInterval:   pollingInterval,
+		RetentionPeriod:   retentionPeriod,
 		AgentID:           s.AgentID,
 	}
 	if err := chatcompletion.Start(ctx, gormDB, ccCfg); err != nil {

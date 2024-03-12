@@ -12,32 +12,30 @@ import (
 	cclient "github.com/gptscript-ai/clicky-chats/pkg/client"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
+	// Blank import to register the github loader
+	_ "github.com/gptscript-ai/gptscript/pkg/loader/github"
 )
 
 const (
 	GPTScriptRunnerType     = "gptscript"
 	GPTScriptToolNamePrefix = "gptscript_"
+	SkipLoadingTool         = "<skip>"
 )
 
-var gptScriptToolDefinitions = map[string]openai.FunctionObject{
-	"web_browsing": {
-		Name:        GPTScriptToolNamePrefix + "web_browsing",
-		Description: z.Pointer("I am a tool that can visit web pages and retrieve the content."),
-		Parameters: &openai.FunctionParameters{
-			"type": "object",
-			"properties": map[string]any{
-				"url": map[string]any{
-					"type":        "string",
-					"description": "The URL of the web page to visit.",
-				},
-			},
-			"required": []string{"url"},
-		},
-	},
+var builtInFunctionNameToDefinition = map[string]ToolDefinition{
+	// Skipping the loading of the web_search tool because it is currently not working.
+	"web_browsing": {Link: "github.com/gptscript-ai/question-answerer", SubTool: "question-answerer-ddg"},
+	// TODO(thedadams): This will be moved to gptscript-ai in the future.
+	"code_interpreter": {Link: "github.com/thedadams/code-interpreter"},
 }
 
-func GPTScriptDefinitions() map[string]openai.FunctionObject {
-	return gptScriptToolDefinitions
+type ToolDefinition struct {
+	Link    string
+	SubTool string
+}
+
+func GPTScriptDefinitions() map[string]ToolDefinition {
+	return builtInFunctionNameToDefinition
 }
 
 func StreamChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, cc *db.CreateChatCompletionRequest) (<-chan db.ChatCompletionResponseChunk, error) {

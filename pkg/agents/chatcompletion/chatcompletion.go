@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	minPollingInterval  = 1 * time.Second
+	minPollingInterval  = time.Second
 	minRequestRetention = 5 * time.Minute
 )
 

@@ -7,55 +7,27 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strings"
+	"path/filepath"
 	"time"
 
 	"github.com/acorn-io/broadcaster"
 	"github.com/acorn-io/z"
+	"github.com/adrg/xdg"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"github.com/gptscript-ai/gptscript/pkg/loader"
 	gptopenai "github.com/gptscript-ai/gptscript/pkg/openai"
+	"github.com/gptscript-ai/gptscript/pkg/repos/runtimes"
 	"github.com/gptscript-ai/gptscript/pkg/runner"
 	"github.com/gptscript-ai/gptscript/pkg/server"
+	"github.com/gptscript-ai/gptscript/pkg/types"
+	"github.com/gptscript-ai/gptscript/pkg/version"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
-const (
-	minPollingInterval = 1 * time.Second
-
-	codeInterpreterFunctionName = "code_interpreter"
-	retrievalFunctionName       = "retrieval"
-	webSearchFunctionName       = "web_browsing"
-
-	webBrowsingTool = `
-tools: web-browsing
-Get the contents of the provided url.
----
-name: web-browsing
-description: I am a tool that can visit web pages and retrieve the content.
-args: url: The URL of the web page to visit.
-tools: sys.http.get?
-
-Download the content of "${url}" and return the content.
-`
-
-	codeInterpreterTool = `
-name: code-interpreter
-description: I am a tool that can run python code
-arg: code: The code to run
-
-#!/bin/bash
-printf '%b\n' "${code}" | python3 -i -
-`
-)
-
-var builtInFunctionNameToTool = map[string]string{
-	webSearchFunctionName:       webBrowsingTool,
-	codeInterpreterFunctionName: codeInterpreterTool,
-}
+const minPollingInterval = time.Second
 
 type Config struct {
 	PollingInterval         time.Duration
@@ -68,6 +40,11 @@ func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 		return err
 	}
 
+	a.builtInToolDefinitions, err = populateTools(ctx)
+	if err != nil {
+		return err
+	}
+
 	return a.Start(ctx)
 }
 
@@ -76,6 +53,8 @@ type agent struct {
 	id, apiKey, url string
 	client          *http.Client
 	db              *db.DB
+
+	builtInToolDefinitions map[string]*types.Program
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
@@ -104,6 +83,7 @@ func (a *agent) Start(ctx context.Context) error {
 	}
 	noCacheRunner, err := runner.New(oaClient, runner.Options{
 		MonitorFactory: server.NewSessionFactory(caster),
+		RuntimeManager: runtimes.Default(filepath.Join(xdg.CacheHome, version.ProgramName)),
 	})
 	if err != nil {
 		return err
@@ -201,12 +181,12 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			return fmt.Errorf("failed to determine function and arguments: %w", err)
 		}
 
-		prg, err := loader.ProgramFromSource(ctx, builtInFunctionNameToTool[strings.TrimPrefix(functionName, agents.GPTScriptToolNamePrefix)], "")
-		if err != nil {
-			return fmt.Errorf("failed to initialize program: %w", err)
+		prg := a.builtInToolDefinitions[functionName]
+		if prg == nil {
+			return fmt.Errorf("tool %s not found", functionName)
 		}
 
-		output, err := runner.Run(server.ContextWithNewID(ctx), prg, os.Environ(), arguments)
+		output, err := runner.Run(server.ContextWithNewID(ctx), *prg, os.Environ(), arguments)
 		if err != nil {
 			return fmt.Errorf("failed to run: %w", err)
 		}
@@ -242,6 +222,26 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 	}
 
 	return nil
+}
+
+// populateTools loads the gptscript program from the provided link and subtool.
+// The run_step agent will use this program definition to run the tool with the gptscript engine.
+func populateTools(ctx context.Context) (map[string]*types.Program, error) {
+	builtInToolDefinitions := make(map[string]*types.Program, len(agents.GPTScriptDefinitions()))
+	for toolName, toolDef := range agents.GPTScriptDefinitions() {
+		if toolDef.Link == "" || toolDef.Link == agents.SkipLoadingTool {
+			slog.Info("Skipping tool", "name", toolName)
+			continue
+		}
+
+		prg, err := loader.Program(ctx, toolDef.Link, toolDef.SubTool)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize program %q: %w", toolName, err)
+		}
+
+		builtInToolDefinitions[agents.GPTScriptToolNamePrefix+toolName] = &prg
+	}
+	return builtInToolDefinitions, nil
 }
 
 func failRunStep(l *slog.Logger, gdb *gorm.DB, run *db.Run, runStep *db.RunStep, err error, errorCode openai.RunObjectLastErrorCode) {

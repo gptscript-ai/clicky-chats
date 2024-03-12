@@ -80,7 +80,7 @@ func (a *Assistant) FromPublic(obj any) error {
 	return nil
 }
 
-func (a *Assistant) ToolsToChatCompletionTools(gptScriptToolDefinitions map[string]openai.FunctionObject) ([]openai.ChatCompletionTool, error) {
+func (a *Assistant) ToolsToChatCompletionTools(gptScriptToolDefinitions map[string]*openai.FunctionObject) ([]openai.ChatCompletionTool, error) {
 	if a == nil || len(a.Tools)+len(a.GPTScriptTools) == 0 {
 		return nil, nil
 	}
@@ -96,7 +96,7 @@ func (a *Assistant) ToolsToChatCompletionTools(gptScriptToolDefinitions map[stri
 
 	for _, t := range a.GPTScriptTools {
 		chatTool := openai.ChatCompletionTool{
-			Function: gptScriptToolDefinitions[t],
+			Function: *gptScriptToolDefinitions[t],
 			Type:     openai.ChatCompletionToolTypeFunction,
 		}
 		tools = append(tools, chatTool)

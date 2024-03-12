@@ -3,7 +3,6 @@ package db
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
 	"net/http"
 
 	"github.com/acorn-io/z"
@@ -14,7 +13,7 @@ import (
 
 func SetNewID(obj Storer) {
 	// Use base64 encoding here to be consistent with what OpenAI does
-	obj.SetID(fmt.Sprintf("%s%s", obj.IDPrefix(), base64.URLEncoding.EncodeToString(sha256.New().Sum([]byte(uuid.NewString()))[:12])))
+	obj.SetID(obj.IDPrefix() + base64.URLEncoding.EncodeToString(sha256.New().Sum([]byte(uuid.NewString()))[:12]))
 }
 
 type Storer interface {
