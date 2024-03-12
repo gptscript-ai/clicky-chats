@@ -5,21 +5,22 @@ import (
 	"gorm.io/datatypes"
 )
 
-type EmbeddingsResponse struct {
+type CreateEmbeddingResponse struct {
+	// The following fields are not exposed in the public API
+	JobResponse `json:",inline"`
+	Base        `json:",inline"`
+
+	// The following fields are exposed in the public API
 	Data  datatypes.JSONSlice[Embedding]     `json:"data"`
 	Model string                             `json:"model"`
 	Usage datatypes.JSONType[EmbeddingUsage] `json:"usage,omitempty"`
-
-	// Not part of the public API
-	Base        `json:",inline"`
-	JobResponse `json:",inline"`
 }
 
-func (e *EmbeddingsResponse) IDPrefix() string {
+func (e *CreateEmbeddingResponse) IDPrefix() string {
 	return "embed-"
 }
 
-func (e *EmbeddingsResponse) ToPublic() any {
+func (e *CreateEmbeddingResponse) ToPublic() any {
 	//nolint:govet
 	return &openai.CreateEmbeddingResponse{
 		embeddingObjects(e.Data).toPublic(),
@@ -29,19 +30,21 @@ func (e *EmbeddingsResponse) ToPublic() any {
 	}
 }
 
-func (e *EmbeddingsResponse) FromPublic(obj any) error {
+func (e *CreateEmbeddingResponse) FromPublic(obj any) error {
 	o, ok := obj.(*openai.CreateEmbeddingResponse)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
 	}
 
 	if o != nil && e != nil {
-		*e = EmbeddingsResponse{
-			Data:  publicEmbeddings(o.Data).toDB(),
-			Model: o.Model,
-			Usage: datatypes.NewJSONType(EmbeddingUsage{
-				PromptTokens: o.Usage.PromptTokens,
-				TotalTokens:  o.Usage.TotalTokens,
+		*e = CreateEmbeddingResponse{
+			JobResponse{},
+			Base{},
+			publicEmbeddings(o.Data).toDB(),
+			o.Model,
+			datatypes.NewJSONType(EmbeddingUsage{
+				o.Usage.PromptTokens,
+				o.Usage.TotalTokens,
 			}),
 		}
 	}

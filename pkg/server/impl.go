@@ -329,7 +329,7 @@ func (s *Server) CreateEmbedding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cer := new(db.EmbeddingsRequest)
+	cer := new(db.CreateEmbeddingRequest)
 	if err := cer.FromPublic(createEmbeddingRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewAPIError("Failed to process request.", InvalidRequestErrorType).Error()))
@@ -343,7 +343,7 @@ func (s *Server) CreateEmbedding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	waitForAndWriteResponse(r.Context(), w, gormDB, cer.ID, new(db.EmbeddingsResponse))
+	waitForAndWriteResponse(r.Context(), w, gormDB, cer.ID, new(db.CreateEmbeddingResponse))
 }
 
 func (s *Server) ListFiles(w http.ResponseWriter, r *http.Request, params openai.ListFilesParams) {

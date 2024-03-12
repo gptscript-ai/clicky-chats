@@ -5,7 +5,12 @@ import (
 	"gorm.io/datatypes"
 )
 
-type EmbeddingsRequest struct {
+type CreateEmbeddingRequest struct {
+	// The following fields are not exposed in the public API
+	JobRequest `json:",inline"`
+	ModelAPI   string `json:"model_api"`
+
+	// The following fields are exposed in the public API
 	// Required fields
 	Input datatypes.JSONType[openai.CreateEmbeddingRequest_Input] `json:"input"`
 	Model string                                                  `json:"model"`
@@ -14,17 +19,13 @@ type EmbeddingsRequest struct {
 	EncodingFormat *string `json:"encoding_format,omitempty"`
 	Dimensions     *int    `json:"dimensions,omitempty"`
 	User           *string `json:"user,omitempty"`
-
-	// These are not part of the OpenAI API
-	JobRequest `json:",inline"`
-	ModelAPI   string `json:"model_api"`
 }
 
-func (e *EmbeddingsRequest) IDPrefix() string {
+func (e *CreateEmbeddingRequest) IDPrefix() string {
 	return "embed-"
 }
 
-func (e *EmbeddingsRequest) ToPublic() any {
+func (e *CreateEmbeddingRequest) ToPublic() any {
 
 	model := new(openai.CreateEmbeddingRequest_Model)
 	if err := model.FromCreateEmbeddingRequestModel1(openai.CreateEmbeddingRequestModel1(e.Model)); err != nil {
@@ -43,7 +44,7 @@ func (e *EmbeddingsRequest) ToPublic() any {
 	}
 }
 
-func (e *EmbeddingsRequest) FromPublic(obj any) error {
+func (e *CreateEmbeddingRequest) FromPublic(obj any) error {
 	o, ok := obj.(*openai.CreateEmbeddingRequest)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
@@ -61,16 +62,16 @@ func (e *EmbeddingsRequest) FromPublic(obj any) error {
 			encodingFormat = (*string)(o.EncodingFormat)
 		}
 
-		*e = EmbeddingsRequest{
-			Input: datatypes.NewJSONType(o.Input),
-			Model: model,
+		*e = CreateEmbeddingRequest{
+			JobRequest{},
+			"",
 
-			EncodingFormat: encodingFormat,
-			Dimensions:     o.Dimensions,
-			User:           o.User,
+			datatypes.NewJSONType(o.Input),
+			model,
 
-			JobRequest: JobRequest{},
-			ModelAPI:   "",
+			encodingFormat,
+			o.Dimensions,
+			o.User,
 		}
 
 	}

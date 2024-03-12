@@ -91,45 +91,25 @@ func (a *agent) Start(ctx context.Context, pollingInterval, cleanupTickTime time
 	 * Cleanup Job
 	 */
 	go func() {
+		var (
+			cleanupInterval = a.requestRetention / 2
+			jobObjects      = []db.Storer{
+				new(db.CreateEmbeddingRequest),
+				new(db.CreateEmbeddingResponse),
+			}
+			cdb = a.db.WithContext(ctx)
+		)
 		for {
+			slog.Debug("Looking for expired create embeddings requests and responses that we can cleanup")
+			expiration := time.Now().Add(-a.requestRetention)
+			if err := db.DeleteExpired(cdb, expiration, jobObjects...); err != nil {
+				slog.Error("failed to delete expired embeddings requests/responses", "err", err)
+			}
+
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(cleanupTickTime):
-				slog.Debug("Looking for completed embeddings that we can cleanup")
-
-				var (
-					er []db.EmbeddingsResponse
-				)
-				if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-					if err := tx.Model(new(db.EmbeddingsResponse)).Find(&er).Error; err != nil {
-						return err
-					}
-					if len(er) == 0 {
-						return nil
-					}
-
-					requestIDs := make([]string, 0, len(er))
-					for _, cc := range er {
-						if id := cc.RequestID; id != "" {
-							requestIDs = append(requestIDs, id)
-						}
-					}
-
-					// Delete related embeddings requests
-					if err := tx.Delete(new(db.EmbeddingsRequest), "id IN ? AND done = true", requestIDs).Error; err != nil {
-						return err
-					}
-
-					// Delete the embeddings response itself
-					if err := tx.Delete(er).Error; err != nil {
-						return err
-					}
-
-					return nil
-				}); err != nil {
-					slog.Error("Failed to cleanup embeddings requests/responses", "err", err)
-				}
+			case <-time.After(cleanupInterval):
 			}
 		}
 	}()
@@ -138,7 +118,7 @@ func (a *agent) Start(ctx context.Context, pollingInterval, cleanupTickTime time
 func (a *agent) run(ctx context.Context) error {
 	slog.Debug("Checking for an embeddings request to process")
 	// Look for a new embeddings request and claim it.
-	embedreq := new(db.EmbeddingsRequest)
+	embedreq := new(db.CreateEmbeddingRequest)
 	if err := a.db.WithContext(ctx).Model(embedreq).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND done = false", a.id).
 			Order("created_at desc").
@@ -189,7 +169,7 @@ func (a *agent) run(ctx context.Context) error {
 	return nil
 }
 
-func makeEmbeddingsRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, er *db.EmbeddingsRequest) (*db.EmbeddingsResponse, error) {
+func makeEmbeddingsRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, er *db.CreateEmbeddingRequest) (*db.CreateEmbeddingResponse, error) {
 
 	b, err := json.Marshal(er.ToPublic())
 	if err != nil {
@@ -214,7 +194,7 @@ func makeEmbeddingsRequest(ctx context.Context, l *slog.Logger, client *http.Cli
 	// Wait to process this error until after we have the DB object.
 	code, err := cclient.SendRequest(client, req, resp)
 
-	embedresp := new(db.EmbeddingsResponse)
+	embedresp := new(db.CreateEmbeddingResponse)
 	// err here should be shadowed.
 	if err := embedresp.FromPublic(resp); err != nil {
 		l.Error("Failed to create embeddings", "err", err)
