@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/acorn-io/broadcaster"
@@ -181,7 +182,7 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			return fmt.Errorf("failed to determine function and arguments: %w", err)
 		}
 
-		prg := a.builtInToolDefinitions[functionName]
+		prg := a.builtInToolDefinitions[strings.TrimPrefix(functionName, agents.GPTScriptToolNamePrefix)]
 		if prg == nil {
 			return fmt.Errorf("tool %s not found", functionName)
 		}
@@ -239,7 +240,7 @@ func populateTools(ctx context.Context) (map[string]*types.Program, error) {
 			return nil, fmt.Errorf("failed to initialize program %q: %w", toolName, err)
 		}
 
-		builtInToolDefinitions[agents.GPTScriptToolNamePrefix+toolName] = &prg
+		builtInToolDefinitions[toolName] = &prg
 	}
 	return builtInToolDefinitions, nil
 }
@@ -261,7 +262,7 @@ func failRunStep(l *slog.Logger, gdb *gorm.DB, run *db.Run, runStep *db.RunStep,
 			return err
 		}
 
-		if err := tx.Model(runStep).Where("id = ?", run.ID).Updates(map[string]interface{}{
+		if err := tx.Model(runStep).Where("id = ?", runStep.ID).Updates(map[string]interface{}{
 			"status":     openai.Failed,
 			"failed_at":  z.Pointer(int(time.Now().Unix())),
 			"last_error": datatypes.NewJSONType(runError),
