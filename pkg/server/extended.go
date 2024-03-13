@@ -508,9 +508,39 @@ func (s *Server) ExtendedCreateImage(w http.ResponseWriter, r *http.Request) {
 	waitForAndWriteResponse(ctx, w, gormDB, agentReq.ID, new(db.ImagesResponse))
 }
 
-func (s *Server) ExtendedCreateImageVariation(w http.ResponseWriter, _ *http.Request) {
-	//TODO implement me
-	w.WriteHeader(http.StatusNotImplemented)
+func (s *Server) ExtendedCreateImageVariation(w http.ResponseWriter, r *http.Request) {
+	reader, err := r.MultipartReader()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to parse multipart form.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	publicReq := new(openai.CreateImageVariationRequest)
+	if err := runtime.BindMultipart(publicReq, *reader); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to bind multipart form.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	agentReq := new(db.CreateImageVariationRequest)
+	if err := agentReq.FromPublic(publicReq); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to process request.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	var (
+		ctx    = r.Context()
+		gormDB = s.db.WithContext(ctx)
+	)
+	if err := db.Create(gormDB, agentReq); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError("Failed to create image variation request.", InternalErrorType).Error()))
+		return
+	}
+
+	waitForAndWriteResponse(ctx, w, gormDB, agentReq.ID, new(db.ImagesResponse))
 }
 
 func (s *Server) ExtendedListModels(w http.ResponseWriter, r *http.Request) {
