@@ -114,25 +114,3 @@ func (a *agent) Start(ctx context.Context) {
 		}
 	}()
 }
-
-func dequeue(gdb *gorm.DB, request db.Storer, agentID string) error {
-	err := gdb.Model(request).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND done = false", agentID).
-			Order("created_at desc").
-			First(request).Error; err != nil {
-			return err
-		}
-
-		if err := tx.Where("id = ?", request.GetID()).
-			Updates(map[string]interface{}{"claimed_by": agentID}).Error; err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		err = fmt.Errorf("failed to dequeue request %T: %w", request, err)
-	}
-
-	return err
-}
