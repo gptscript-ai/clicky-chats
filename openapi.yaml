@@ -2258,7 +2258,7 @@ components:
                 name:
                     description: The name of the tool
                     type: string
-                sub_tool:
+                subtool:
                     description: The name of the sub tool to use rather than the first tool
                     nullable: true
                     type: string
@@ -8168,7 +8168,7 @@ components:
                     enum:
                         - tool
                     type: string
-                sub_tool:
+                subtool:
                     description: The name of the sub tool to use rather than the first tool
                     nullable: true
                     type: string

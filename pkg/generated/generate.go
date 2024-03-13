@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/deepmap/oapi-codegen/v2/pkg/codegen"
 	"github.com/deepmap/oapi-codegen/v2/pkg/util"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gptscript-ai/clicky-chats/pkg/extendedapi"
@@ -11,14 +12,8 @@ import (
 )
 
 //go:generate go run generate.go
-//go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen -package openai -generate types,skip-prune -o openai/types.go ../../openapi.yaml
-//go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen -package openai -generate std-http-server,spec -o openai/server.go ../../openapi.yaml
 
 func main() {
-	if err := os.Remove("../../openapi.yaml"); err != nil && !strings.Contains(err.Error(), "no such file or directory") {
-		panic(err)
-	}
-
 	s, err := util.LoadSwagger("https://raw.githubusercontent.com/openai/openai-openapi/6b64280c3db0082cbafa34495b9f3a3a58eb960d/openapi.yaml")
 	if err != nil {
 		panic(err)
@@ -98,7 +93,7 @@ func main() {
 	s.Paths = newPaths
 
 	// Finished with OpenAI API and extensions, move on to new APIs
-	newS, err := util.LoadSwagger("./rubrax.yaml")
+	newS, err := util.LoadSwagger("rubrax.yaml")
 	if err != nil {
 		panic(err)
 	}
@@ -120,13 +115,58 @@ func main() {
 		panic(err)
 	}
 
-	f, err := os.Create("../../openapi.yaml")
+	err = os.WriteFile("../../openapi.yaml", b, 0o644)
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
 
-	_, err = f.Write(b)
+	s, err = util.LoadSwaggerWithCircularReferenceCount("../../openapi.yaml", 0)
+	if err != nil {
+		panic(err)
+	}
+
+	opts := codegen.Configuration{
+		PackageName: "openai",
+		Generate: codegen.GenerateOptions{
+			Models: true,
+		},
+		OutputOptions: codegen.OutputOptions{
+			SkipPrune: true,
+		},
+	}
+
+	if err = opts.Validate(); err != nil {
+		panic(err)
+	}
+
+	code, err := codegen.Generate(s, opts)
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.WriteFile("openai/types.go", []byte(code), 0o644)
+	if err != nil {
+		panic(err)
+	}
+
+	opts = codegen.Configuration{
+		PackageName: "openai",
+		Generate: codegen.GenerateOptions{
+			StdHTTPServer: true,
+			EmbeddedSpec:  true,
+		},
+	}
+
+	if err = opts.Validate(); err != nil {
+		panic(err)
+	}
+
+	code, err = codegen.Generate(s, opts)
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.WriteFile("openai/server.go", []byte(code), 0o644)
 	if err != nil {
 		panic(err)
 	}

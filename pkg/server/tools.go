@@ -19,12 +19,12 @@ func toolToProgram(ctx context.Context, tool *db.Tool) ([]byte, error) {
 	)
 
 	if url := z.Dereference(tool.URL); url != "" {
-		prg, err = loader.Program(ctx, url, z.Dereference(tool.SubTool))
+		prg, err = loader.Program(ctx, url, z.Dereference(tool.Subtool))
 		if err != nil {
 			err = NewAPIError(fmt.Sprintf("failed parsing request object: %v", err), InvalidRequestErrorType)
 		}
 	} else if contents := z.Dereference(tool.Contents); contents != "" {
-		prg, err = loader.ProgramFromSource(ctx, contents, z.Dereference(tool.SubTool))
+		prg, err = loader.ProgramFromSource(ctx, contents, z.Dereference(tool.Subtool))
 		if err != nil {
 			err = NewAPIError(fmt.Sprintf("failed parsing request object: %v", err), InvalidRequestErrorType)
 		}

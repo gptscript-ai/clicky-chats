@@ -36,7 +36,7 @@ func (s *Server) CreateTool(w http.ResponseWriter, r *http.Request) {
 		createToolRequest.Description,
 		createToolRequest.Contents,
 		createToolRequest.Url,
-		createToolRequest.SubTool,
+		createToolRequest.Subtool,
 		nil,
 	}
 

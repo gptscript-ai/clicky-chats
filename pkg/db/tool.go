@@ -11,7 +11,7 @@ type Tool struct {
 	Description *string `json:"description"`
 	Contents    *string `json:"contents"`
 	URL         *string `json:"url"`
-	SubTool     *string `json:"subtool"`
+	Subtool     *string `json:"subtool"`
 	// Not part of the public API
 	Program datatypes.JSON `json:"program"`
 }
@@ -29,7 +29,7 @@ func (t *Tool) ToPublic() any {
 		t.ID,
 		t.Name,
 		openai.Tool,
-		t.SubTool,
+		t.Subtool,
 		t.URL,
 	}
 }
@@ -51,7 +51,7 @@ func (t *Tool) FromPublic(obj any) error {
 			o.Description,
 			o.Contents,
 			o.Url,
-			o.SubTool,
+			o.Subtool,
 			nil,
 		}
 	}

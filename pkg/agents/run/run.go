@@ -297,7 +297,7 @@ func populateTools(ctx context.Context) (map[string]*openai.FunctionObject, erro
 			continue
 		}
 
-		prg, err := loader.Program(ctx, toolDef.Link, toolDef.SubTool)
+		prg, err := loader.Program(ctx, toolDef.Link, toolDef.Subtool)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize program %q: %w", toolName, err)
 		}

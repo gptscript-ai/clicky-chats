@@ -31,7 +31,7 @@ var builtInFunctionNameToDefinition = map[string]ToolDefinition{
 
 type ToolDefinition struct {
 	Link    string
-	SubTool string
+	Subtool string
 }
 
 func GPTScriptDefinitions() map[string]ToolDefinition {
