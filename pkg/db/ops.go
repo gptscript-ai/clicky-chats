@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -48,17 +49,41 @@ func Delete[T any](db *gdb.DB, id string) error {
 	})
 }
 
+// DeleteExpired deletes objects from the database created before or at the given expiration time.
 func DeleteExpired(db *gdb.DB, expiration time.Time, objs ...Storer) error {
 	slog.Debug("Deleting expired", "expiration", expiration, "objs", fmt.Sprintf("%T", objs))
 	return db.Transaction(func(tx *gdb.DB) error {
 		for _, obj := range objs {
-			if err := tx.Where("created_at < ?", expiration.Unix()).Delete(obj).Error; err != nil {
+			if err := tx.Where("created_at <= ?", expiration.Unix()).Delete(obj).Error; err != nil {
 				return err
 			}
 		}
 
 		return nil
 	})
+}
+
+// Dequeue dequeues the next request from the database, marking it as claimed by the given agent.
+func Dequeue(db *gdb.DB, request Storer, agentID string) error {
+	err := db.Model(request).Transaction(func(tx *gdb.DB) error {
+		if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND done = false", agentID).
+			Order("created_at desc").
+			First(request).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Where("id = ?", request.GetID()).
+			Updates(map[string]interface{}{"claimed_by": agentID}).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil && !errors.Is(err, gdb.ErrRecordNotFound) {
+		err = fmt.Errorf("failed to dequeue request %T: %w", request, err)
+	}
+
+	return err
 }
 
 // Modify modifies the object in the database. All validation should be done before calling this function.

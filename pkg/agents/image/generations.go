@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -18,24 +17,11 @@ import (
 
 func (a *agent) runGenerations(ctx context.Context) error {
 	slog.Debug("checking for an image create request to process")
-	createRequest := new(db.CreateImageRequest)
-	if err := a.db.WithContext(ctx).Model(createRequest).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND done = false", a.id).
-			Order("created_at desc").
-			First(createRequest).Error; err != nil {
-			return err
-		}
-
-		if err := tx.Where("id = ?", createRequest.ID).
-			Updates(map[string]interface{}{"claimed_by": a.id}).Error; err != nil {
-			return err
-		}
-
-		return nil
-	}); err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("failed to get create image request: %w", err)
-		}
+	var (
+		createRequest = new(db.CreateImageRequest)
+		gdb           = a.db.WithContext(ctx)
+	)
+	if err := db.Dequeue(gdb, createRequest, a.id); err != nil {
 		return err
 	}
 
@@ -75,7 +61,7 @@ func (a *agent) runGenerations(ctx context.Context) error {
 	ir.Done = true
 
 	// Store the completed response and mark the request as done.
-	if err = a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	if err = gdb.Transaction(func(tx *gorm.DB) error {
 		if err = db.Create(tx, ir); err != nil {
 			return err
 		}

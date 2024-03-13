@@ -23,7 +23,7 @@ func (a *agent) runEdits(ctx context.Context) error {
 		editRequest = new(db.CreateImageEditRequest)
 		gdb         = a.db.WithContext(ctx)
 	)
-	if err := dequeue(gdb, editRequest, a.id); err != nil {
+	if err := db.Dequeue(gdb, editRequest, a.id); err != nil {
 		return err
 	}
 
@@ -126,7 +126,7 @@ func (a *agent) runEdits(ctx context.Context) error {
 	ir.Done = true
 
 	// Store the completed response and mark the request as done.
-	if err = a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	if err = gdb.Transaction(func(tx *gorm.DB) error {
 		if err = db.Create(tx, ir); err != nil {
 			return err
 		}
