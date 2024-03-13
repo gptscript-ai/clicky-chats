@@ -97,9 +97,9 @@ func (c *CreateImageEditRequest) FromPublic(obj any) error {
 		model,
 		o.N,
 		o.Prompt,
-		c.ResponseFormat,
-		c.Size,
-		c.User,
+		(*string)(o.ResponseFormat),
+		(*string)(o.Size),
+		o.User,
 	}
 
 	return nil
