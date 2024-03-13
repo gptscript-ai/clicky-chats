@@ -309,7 +309,7 @@ func populateTools(ctx context.Context) (map[string]*openai.FunctionObject, erro
 
 		builtInToolDefinitions[toolName] = &openai.FunctionObject{
 			Name:        agents.GPTScriptToolNamePrefix + toolName,
-			Description: z.Pointer(prg.ToolSet[toolName].Description),
+			Description: z.Pointer(prg.ToolSet[prg.EntryToolID].Description),
 			Parameters:  fp,
 		}
 	}
