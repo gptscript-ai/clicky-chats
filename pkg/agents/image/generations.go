@@ -18,7 +18,6 @@ import (
 
 func (a *agent) runGenerations(ctx context.Context) error {
 	slog.Debug("checking for an image create request to process")
-	// Look for a new create image request and claim it. Also, query for the other objects we need.
 	createRequest := new(db.CreateImageRequest)
 	if err := a.db.WithContext(ctx).Model(createRequest).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND done = false", a.id).

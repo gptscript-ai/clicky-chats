@@ -82,6 +82,7 @@ func (db *DB) AutoMigrate() error {
 		RunStep{},
 		CreateImageRequest{},
 		CreateImageEditRequest{},
+		CreateImageVariationRequest{},
 		ImagesResponse{},
 		CreateEmbeddingRequest{},
 		CreateEmbeddingResponse{},

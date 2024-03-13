@@ -34,11 +34,11 @@ type Config struct {
 }
 
 type agent struct {
-	pollingInterval, requestRetention time.Duration
-	id, apiKey                        string
-	generationsURL, editsURL          string
-	client                            *http.Client
-	db                                *db.DB
+	pollingInterval, requestRetention       time.Duration
+	id, apiKey                              string
+	generationsURL, editsURL, variationsURL string
+	client                                  *http.Client
+	db                                      *db.DB
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
@@ -54,6 +54,7 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 		requestRetention: cfg.RetentionPeriod,
 		generationsURL:   cfg.ImagesBaseURL + "/generations",
 		editsURL:         cfg.ImagesBaseURL + "/edits",
+		variationsURL:    cfg.ImagesBaseURL + "/variations",
 		client:           http.DefaultClient,
 		apiKey:           cfg.APIKey,
 		db:               db,
@@ -66,6 +67,7 @@ func (a *agent) Start(ctx context.Context) {
 	for _, run := range []func(context.Context) error{
 		a.runGenerations,
 		a.runEdits,
+		a.runVariations,
 	} {
 		r := run
 		go func() {
@@ -92,6 +94,7 @@ func (a *agent) Start(ctx context.Context) {
 			jobObjects      = []db.Storer{
 				new(db.CreateImageRequest),
 				new(db.CreateImageEditRequest),
+				new(db.CreateImageVariationRequest),
 				new(db.ImagesResponse),
 			}
 			cdb = a.db.WithContext(ctx)
@@ -100,7 +103,7 @@ func (a *agent) Start(ctx context.Context) {
 			slog.Debug("looking for expired image requests and responses")
 			expiration := time.Now().Add(-a.requestRetention)
 			if err := db.DeleteExpired(cdb, expiration, jobObjects...); err != nil {
-				slog.Error("failed to delete expired create image requests", "err", err)
+				slog.Error("failed to delete expired image requests and responses", "err", err)
 			}
 
 			select {
