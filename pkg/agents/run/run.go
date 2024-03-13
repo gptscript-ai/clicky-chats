@@ -2,6 +2,7 @@ package run
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -13,12 +14,13 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/agents"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
+	"github.com/gptscript-ai/gptscript/pkg/loader"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
 const (
-	minPollingInterval  = 1 * time.Second
+	minPollingInterval  = time.Second
 	minRequestRetention = 5 * time.Minute
 )
 
@@ -33,6 +35,11 @@ func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 		return err
 	}
 
+	a.builtInToolDefinitions, err = populateTools(ctx)
+	if err != nil {
+		return err
+	}
+
 	a.Start(ctx)
 
 	return nil
@@ -43,6 +50,7 @@ type agent struct {
 	id, apiKey, url                  string
 	client                           *http.Client
 	db                               *db.DB
+	builtInToolDefinitions           map[string]*openai.FunctionObject
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
@@ -180,7 +188,7 @@ func (a *agent) run(ctx context.Context) error {
 	}()
 
 	l.Debug("Found run", "run", run)
-	cc, err := prepareChatCompletionRequest(run, assistant, messages, runSteps)
+	cc, err := prepareChatCompletionRequest(a.builtInToolDefinitions, run, assistant, messages, runSteps)
 	if err != nil {
 		l.Error("Failed to prepare chat completion request", "err", err)
 		return err
@@ -272,6 +280,41 @@ func (a *agent) run(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// populateTools returns the function definition used for chat completion from the provided link and subtool.
+// The run agent will use these when making chat completion requests for runs.
+func populateTools(ctx context.Context) (map[string]*openai.FunctionObject, error) {
+	builtInToolDefinitions := make(map[string]*openai.FunctionObject, len(agents.GPTScriptDefinitions()))
+	for toolName, toolDef := range agents.GPTScriptDefinitions() {
+		if toolDef.Link == "" || toolDef.Link == agents.SkipLoadingTool {
+			slog.Info("Skipping tool", "name", toolName)
+			continue
+		}
+
+		prg, err := loader.Program(ctx, toolDef.Link, toolDef.SubTool)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize program %q: %w", toolName, err)
+		}
+
+		b, err := json.Marshal(prg.ToolSet[prg.EntryToolID].Parameters.Arguments)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal parameters for tool %q: %w", toolName, err)
+		}
+
+		var fp *openai.FunctionParameters
+		if err = json.Unmarshal(b, &fp); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal parameters for tool %q: %w", toolName, err)
+		}
+
+		builtInToolDefinitions[toolName] = &openai.FunctionObject{
+			Name:        agents.GPTScriptToolNamePrefix + toolName,
+			Description: z.Pointer(prg.ToolSet[toolName].Description),
+			Parameters:  fp,
+		}
+	}
+
+	return builtInToolDefinitions, nil
 }
 
 func failRun(l *slog.Logger, gdb *gorm.DB, run *db.Run, err error, errorCode openai.RunObjectLastErrorCode) {
@@ -441,7 +484,7 @@ func objectsForMessageStep(run *db.Run, ccr *db.CreateChatCompletionResponse) ([
 	return []db.RunStep{runStep}, newMessage, nil
 }
 
-func prepareChatCompletionRequest(run *db.Run, assistant *db.Assistant, messages []db.Message, runSteps []db.RunStep) (*db.CreateChatCompletionRequest, error) {
+func prepareChatCompletionRequest(builtInFunctionDefinitions map[string]*openai.FunctionObject, run *db.Run, assistant *db.Assistant, messages []db.Message, runSteps []db.RunStep) (*db.CreateChatCompletionRequest, error) {
 	chatMessages := make([]openai.ChatCompletionRequestMessage, 0, len(messages))
 
 	if run.Instructions != "" {
@@ -482,7 +525,7 @@ func prepareChatCompletionRequest(run *db.Run, assistant *db.Assistant, messages
 		chatMessages = append(chatMessages, messages...)
 	}
 
-	tools, err := assistant.ToolsToChatCompletionTools(agents.GPTScriptDefinitions())
+	tools, err := assistant.ToolsToChatCompletionTools(builtInFunctionDefinitions)
 	if err != nil {
 		return nil, err
 	}
