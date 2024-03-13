@@ -16,9 +16,6 @@ var (
 				Items: &openapi3.SchemaRef{
 					Value: &openapi3.Schema{
 						Type: "string",
-						Enum: []any{
-							"web_browsing",
-						},
 					},
 				},
 			},

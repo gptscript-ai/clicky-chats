@@ -81,6 +81,15 @@ func main() {
 				}
 			}
 
+			if reqBody := op.RequestBody; reqBody != nil {
+				for t, mediaType := range reqBody.Value.Content {
+					if strings.HasPrefix(mediaType.Schema.Ref, "#/components/schemas/") {
+						mediaType.Schema.Ref = "#/components/schemas/Extended" + strings.TrimPrefix(mediaType.Schema.Ref, "#/components/schemas/")
+						reqBody.Value.Content[t] = mediaType
+					}
+				}
+			}
+
 			op.OperationID = "extended" + strings.ToTitle(op.OperationID[:1]) + op.OperationID[1:]
 		}
 

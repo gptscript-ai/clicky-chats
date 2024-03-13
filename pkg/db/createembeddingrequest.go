@@ -26,7 +26,6 @@ func (e *CreateEmbeddingRequest) IDPrefix() string {
 }
 
 func (e *CreateEmbeddingRequest) ToPublic() any {
-
 	model := new(openai.CreateEmbeddingRequest_Model)
 	if err := model.FromCreateEmbeddingRequestModel1(openai.CreateEmbeddingRequestModel1(e.Model)); err != nil {
 		if err = model.FromCreateEmbeddingRequestModel0(e.Model); err != nil {
@@ -51,7 +50,6 @@ func (e *CreateEmbeddingRequest) FromPublic(obj any) error {
 	}
 
 	if o != nil && e != nil {
-
 		model, err := EmbeddingModelFromPublic(o.Model)
 		if err != nil {
 			return err
@@ -73,7 +71,6 @@ func (e *CreateEmbeddingRequest) FromPublic(obj any) error {
 			o.Dimensions,
 			o.User,
 		}
-
 	}
 
 	return nil

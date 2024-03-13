@@ -2258,10 +2258,16 @@ components:
                 name:
                     description: The name of the tool
                     type: string
+                sub_tool:
+                    description: The name of the sub tool to use rather than the first tool
+                    nullable: true
+                    type: string
                 url:
                     description: URL of the tool
                     nullable: true
                     type: string
+            required:
+                - name
             type: object
         CreateTranscriptionRequest:
             additionalProperties: false
@@ -2596,8 +2602,6 @@ components:
                     default: []
                     description: A list of gptscript tools available to the assistant.
                     items:
-                        enum:
-                            - web_browsing
                         type: string
                     maxItems: 128
                     type: array
@@ -3183,8 +3187,6 @@ components:
                     default: []
                     description: A list of gptscript tools available to the assistant.
                     items:
-                        enum:
-                            - web_browsing
                         type: string
                     maxItems: 128
                     type: array
@@ -5852,8 +5854,6 @@ components:
                     default: []
                     description: A list of gptscript tools available to the assistant.
                     items:
-                        enum:
-                            - web_browsing
                         type: string
                     maxItems: 128
                     type: array
@@ -7077,6 +7077,31 @@ components:
                 - first_id
                 - last_id
                 - has_more
+        ListToolsResponse:
+            properties:
+                data:
+                    items:
+                        $ref: '#/components/schemas/ToolObject'
+                    type: array
+                first_id:
+                    example: tool_abc123
+                    type: string
+                has_more:
+                    example: false
+                    type: boolean
+                last_id:
+                    example: tool_abc456
+                    type: string
+                object:
+                    example: list
+                    type: string
+            required:
+                - object
+                - data
+                - first_id
+                - last_id
+                - has_more
+            type: object
         MessageContentImageFileObject:
             description: References an image [File](/docs/api-reference/files) in the content of a message.
             properties:
@@ -7449,10 +7474,16 @@ components:
                 name:
                     description: The name of the tool
                     type: string
+                retool:
+                    default: false
+                    description: Pull the contents of the tool from the URL to redefine the tool
+                    type: boolean
                 url:
                     description: URL of the tool
                     nullable: true
                     type: string
+            required:
+                - name
             type: object
         OpenAIFile:
             description: The `File` object represents a document that has been uploaded to OpenAI.
@@ -8120,8 +8151,14 @@ components:
                     description: Contents of the tool
                     nullable: true
                     type: string
+                created_at:
+                    description: The Unix timestamp (in seconds) for when the assistant file was created.
+                    type: integer
                 description:
                     description: Description of the tool
+                    type: string
+                id:
+                    description: The id of the tool
                     type: string
                 name:
                     description: The name of the tool
@@ -8131,10 +8168,19 @@ components:
                     enum:
                         - tool
                     type: string
+                sub_tool:
+                    description: The name of the sub tool to use rather than the first tool
+                    nullable: true
+                    type: string
                 url:
                     description: URL of the tool
                     nullable: true
                     type: string
+            required:
+                - id
+                - created_at
+                - name
+                - object
             type: object
     securitySchemes:
         ApiKeyAuth:
@@ -11363,7 +11409,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateAssistantRequest'
+                            $ref: '#/components/schemas/ExtendedCreateAssistantRequest'
                 required: true
             responses:
                 "200":
@@ -11642,7 +11688,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/ModifyAssistantRequest'
+                            $ref: '#/components/schemas/ExtendedModifyAssistantRequest'
                 required: true
             responses:
                 "200":
@@ -11848,7 +11894,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateAssistantFileRequest'
+                            $ref: '#/components/schemas/ExtendedCreateAssistantFileRequest'
                 required: true
             responses:
                 "200":
@@ -12046,7 +12092,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateSpeechRequest'
+                            $ref: '#/components/schemas/ExtendedCreateSpeechRequest'
                 required: true
             responses:
                 "200":
@@ -12118,7 +12164,7 @@ paths:
                 content:
                     multipart/form-data:
                         schema:
-                            $ref: '#/components/schemas/CreateTranscriptionRequest'
+                            $ref: '#/components/schemas/ExtendedCreateTranscriptionRequest'
                 required: true
             responses:
                 "200":
@@ -12177,7 +12223,7 @@ paths:
                 content:
                     multipart/form-data:
                         schema:
-                            $ref: '#/components/schemas/CreateTranslationRequest'
+                            $ref: '#/components/schemas/ExtendedCreateTranslationRequest'
                 required: true
             responses:
                 "200":
@@ -12236,7 +12282,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateChatCompletionRequest'
+                            $ref: '#/components/schemas/ExtendedCreateChatCompletionRequest'
                 required: true
             responses:
                 "200":
@@ -12876,7 +12922,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateCompletionRequest'
+                            $ref: '#/components/schemas/ExtendedCreateCompletionRequest'
                 required: true
             responses:
                 "200":
@@ -13019,7 +13065,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateEmbeddingRequest'
+                            $ref: '#/components/schemas/ExtendedCreateEmbeddingRequest'
                 required: true
             responses:
                 "200":
@@ -13167,7 +13213,7 @@ paths:
                 content:
                     multipart/form-data:
                         schema:
-                            $ref: '#/components/schemas/CreateFileRequest'
+                            $ref: '#/components/schemas/ExtendedCreateFileRequest'
                 required: true
             responses:
                 "200":
@@ -13458,7 +13504,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateFineTuningJobRequest'
+                            $ref: '#/components/schemas/ExtendedCreateFineTuningJobRequest'
                 required: true
             responses:
                 "200":
@@ -13859,7 +13905,7 @@ paths:
                 content:
                     multipart/form-data:
                         schema:
-                            $ref: '#/components/schemas/CreateImageEditRequest'
+                            $ref: '#/components/schemas/ExtendedCreateImageEditRequest'
                 required: true
             responses:
                 "200":
@@ -13931,7 +13977,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateImageRequest'
+                            $ref: '#/components/schemas/ExtendedCreateImageRequest'
                 required: true
             responses:
                 "200":
@@ -13999,7 +14045,7 @@ paths:
                 content:
                     multipart/form-data:
                         schema:
-                            $ref: '#/components/schemas/CreateImageVariationRequest'
+                            $ref: '#/components/schemas/ExtendedCreateImageVariationRequest'
                 required: true
             responses:
                 "200":
@@ -14236,7 +14282,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateModerationRequest'
+                            $ref: '#/components/schemas/ExtendedCreateModerationRequest'
                 required: true
             responses:
                 "200":
@@ -14320,7 +14366,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateThreadRequest'
+                            $ref: '#/components/schemas/ExtendedCreateThreadRequest'
             responses:
                 "200":
                     content:
@@ -14564,7 +14610,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/ModifyThreadRequest'
+                            $ref: '#/components/schemas/ExtendedModifyThreadRequest'
                 required: true
             responses:
                 "200":
@@ -14778,7 +14824,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateMessageRequest'
+                            $ref: '#/components/schemas/ExtendedCreateMessageRequest'
                 required: true
             responses:
                 "200":
@@ -14954,7 +15000,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/ModifyMessageRequest'
+                            $ref: '#/components/schemas/ExtendedModifyMessageRequest'
                 required: true
             responses:
                 "200":
@@ -15392,7 +15438,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateRunRequest'
+                            $ref: '#/components/schemas/ExtendedCreateRunRequest'
                 required: true
             responses:
                 "200":
@@ -15583,7 +15629,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/ModifyRunRequest'
+                            $ref: '#/components/schemas/ExtendedModifyRunRequest'
                 required: true
             responses:
                 "200":
@@ -16002,7 +16048,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/SubmitToolOutputsRunRequest'
+                            $ref: '#/components/schemas/ExtendedSubmitToolOutputsRunRequest'
                 required: true
             responses:
                 "200":
@@ -16128,7 +16174,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateThreadAndRunRequest'
+                            $ref: '#/components/schemas/ExtendedCreateThreadAndRunRequest'
                 required: true
             responses:
                 "200":
@@ -16212,6 +16258,118 @@ paths:
                 group: threads
                 name: Create thread and run
                 returns: A [run](/docs/api-reference/runs/object) object.
+    /rubra/x/tools:
+        get:
+            operationId: listTools
+            parameters:
+                - description: |
+                    A limit on the number of objects to be returned. Limit can range between 1 and 100, and the default is 20.
+                  in: query
+                  name: limit
+                  schema:
+                    default: 20
+                    type: integer
+                - description: |
+                    Sort order by the `created_at` timestamp of the objects. `asc` for ascending order and `desc` for descending order.
+                  in: query
+                  name: order
+                  schema:
+                    default: desc
+                    enum:
+                        - asc
+                        - desc
+                    type: string
+                - description: |
+                    A cursor for use in pagination. `after` is an object ID that defines your place in the list. For instance, if you make a list request and receive 100 objects, ending with obj_foo, your subsequent call can include after=obj_foo in order to fetch the next page of the list.
+                  in: query
+                  name: after
+                  schema:
+                    type: string
+                - description: |
+                    A cursor for use in pagination. `before` is an object ID that defines your place in the list. For instance, if you make a list request and receive 100 objects, ending with obj_foo, your subsequent call can include before=obj_foo in order to fetch the previous page of the list.
+                  in: query
+                  name: before
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListToolsResponse'
+                    description: OK
+            summary: List tools
+        post:
+            operationId: createTool
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateToolRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ToolObject'
+                    description: OK
+            summary: Creates a tool for use with gptscript engine.
+    /rubra/x/tools/{id}:
+        delete:
+            operationId: deleteTool
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteToolResponse'
+                    description: OK
+            summary: Delete tool
+        get:
+            operationId: getTool
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ToolObject'
+                    description: OK
+            summary: Get tool
+        post:
+            operationId: modifyTool
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ModifyToolRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ToolObject'
+                    description: OK
+            summary: Modify tool
     /threads:
         post:
             operationId: createThread
@@ -18111,90 +18269,6 @@ paths:
                 group: threads
                 name: Create thread and run
                 returns: A [run](/docs/api-reference/runs/object) object.
-    /tools:
-        get:
-            operationId: listTools
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                items:
-                                    $ref: '#/components/schemas/ToolObject'
-                                type: array
-                    description: OK
-            summary: List tools
-        post:
-            operationId: createTool
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/CreateToolRequest'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ToolObject'
-                    description: OK
-            summary: Creates a tool for use with gptscript engine.
-    /tools/{name}:
-        delete:
-            operationId: deleteTool
-            parameters:
-                - in: path
-                  name: name
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/DeleteToolResponse'
-                    description: OK
-            summary: Delete tool
-        get:
-            operationId: getTool
-            parameters:
-                - in: path
-                  name: name
-                  required: true
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ToolObject'
-                    description: OK
-            summary: Get tool
-        post:
-            operationId: modifyTool
-            parameters:
-                - in: path
-                  name: name
-                  required: true
-                  schema:
-                    type: string
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/ModifyToolRequest'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ToolObject'
-                    description: OK
-            summary: Modify tool
 security:
     - ApiKeyAuth: []
 servers:

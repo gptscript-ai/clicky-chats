@@ -12,6 +12,7 @@ import (
 	cclient "github.com/gptscript-ai/clicky-chats/pkg/client"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
+
 	// Blank import to register the github loader
 	_ "github.com/gptscript-ai/gptscript/pkg/loader/github"
 )
@@ -123,11 +124,12 @@ func streamResponses(ctx context.Context, response *http.Response) <-chan db.Cha
 		for {
 			select {
 			case <-ctx.Done():
+				//nolint:revive
 				for range stream {
-					// drain
 				}
 				return
 			default:
+				break
 			}
 			rawLine, readErr := reader.ReadBytes('\n')
 			if readErr != nil {

@@ -58,7 +58,8 @@ func (s *Server) Start(ctx context.Context, config Config) error {
 			nethttpmiddleware.OapiRequestValidatorWithOptions(swagger, &nethttpmiddleware.Options{
 				SilenceServersWarning: true,
 				Options: openapi3filter.Options{
-					AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
+					AuthenticationFunc:  openapi3filter.NoopAuthenticationFunc,
+					SkipSettingDefaults: true,
 				},
 			}),
 			LogRequest(slog.Default()),

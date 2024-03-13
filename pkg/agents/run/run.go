@@ -15,6 +15,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"github.com/gptscript-ai/gptscript/pkg/loader"
+	"github.com/gptscript-ai/gptscript/pkg/types"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -132,7 +133,7 @@ func (a *agent) Start(ctx context.Context) {
 func (a *agent) run(ctx context.Context) error {
 	slog.Debug("Checking for a run")
 	// Look for a new run and claim it. Also, query for the other objects we need.
-	run, assistant, messages, runSteps := new(db.Run), new(db.Assistant), make([]db.Message, 0), make([]db.RunStep, 0)
+	run, assistant, messages, runSteps, tools := new(db.Run), new(db.Assistant), make([]db.Message, 0), make([]db.RunStep, 0), make([]db.Tool, 0)
 	err := a.db.WithContext(ctx).Model(run).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("claimed_by IS NULL").Or("claimed_by = ? AND status = ? AND system_status IS NULL", a.id, openai.RunObjectStatusQueued).Order("created_at desc").First(run).Error; err != nil {
 			return err
@@ -149,6 +150,10 @@ func (a *agent) run(ctx context.Context) error {
 		}
 
 		if err := tx.Model(assistant).Where("id = ?", run.AssistantID).First(assistant).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(new(db.Tool)).Where("id IN ?", []string(assistant.GPTScriptTools)).Find(&tools).Error; err != nil {
 			return err
 		}
 
@@ -188,7 +193,7 @@ func (a *agent) run(ctx context.Context) error {
 	}()
 
 	l.Debug("Found run", "run", run)
-	cc, err := prepareChatCompletionRequest(a.builtInToolDefinitions, run, assistant, messages, runSteps)
+	cc, err := prepareChatCompletionRequest(ctx, a.builtInToolDefinitions, run, assistant, tools, messages, runSteps)
 	if err != nil {
 		l.Error("Failed to prepare chat completion request", "err", err)
 		return err
@@ -297,24 +302,31 @@ func populateTools(ctx context.Context) (map[string]*openai.FunctionObject, erro
 			return nil, fmt.Errorf("failed to initialize program %q: %w", toolName, err)
 		}
 
-		b, err := json.Marshal(prg.ToolSet[prg.EntryToolID].Parameters.Arguments)
+		builtInToolDefinitions[toolName], err = programToFunction(&prg, toolName)
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshal parameters for tool %q: %w", toolName, err)
-		}
-
-		var fp *openai.FunctionParameters
-		if err = json.Unmarshal(b, &fp); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal parameters for tool %q: %w", toolName, err)
-		}
-
-		builtInToolDefinitions[toolName] = &openai.FunctionObject{
-			Name:        agents.GPTScriptToolNamePrefix + toolName,
-			Description: z.Pointer(prg.ToolSet[prg.EntryToolID].Description),
-			Parameters:  fp,
+			return nil, err
 		}
 	}
 
 	return builtInToolDefinitions, nil
+}
+
+func programToFunction(prg *types.Program, toolName string) (*openai.FunctionObject, error) {
+	b, err := json.Marshal(prg.ToolSet[prg.EntryToolID].Parameters.Arguments)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal parameters for tool %q: %w", toolName, err)
+	}
+
+	var fp *openai.FunctionParameters
+	if err = json.Unmarshal(b, &fp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal parameters for tool %q: %w", toolName, err)
+	}
+
+	return &openai.FunctionObject{
+		Name:        agents.GPTScriptToolNamePrefix + toolName,
+		Description: z.Pointer(prg.ToolSet[prg.EntryToolID].Description),
+		Parameters:  fp,
+	}, nil
 }
 
 func failRun(l *slog.Logger, gdb *gorm.DB, run *db.Run, err error, errorCode openai.RunObjectLastErrorCode) {
@@ -355,14 +367,14 @@ func objectsForToolStep(run *db.Run, ccr *db.CreateChatCompletionResponse) (open
 					toolType = string(openai.AssistantToolsRetrievalTypeRetrieval)
 				}
 				if nonFunctionType {
-					//golint:govet
+					//nolint:govet
 					nonFunctionCalls = append(nonFunctionCalls, openai.RunToolCallObject{
 						tc.Function,
 						tc.Id,
 						openai.RunToolCallObjectType(toolType),
 					})
 				} else {
-					//golint:govet
+					//nolint:govet
 					functionCalls = append(functionCalls, openai.RunToolCallObject{
 						tc.Function,
 						tc.Id,
@@ -402,7 +414,7 @@ func objectsForToolStep(run *db.Run, ccr *db.CreateChatCompletionResponse) (open
 	if len(nonFunctionCalls) > 0 {
 		runSteps = append(runSteps, db.RunStep{
 			AssistantID: run.AssistantID,
-			RunId:       run.ID,
+			RunID:       run.ID,
 			StepDetails: datatypes.NewJSONType(*nonFunctionCallDetails),
 			Type:        string(openai.RunStepObjectTypeToolCalls),
 			Status:      string(openai.RunStepObjectStatusInProgress),
@@ -416,7 +428,7 @@ func objectsForToolStep(run *db.Run, ccr *db.CreateChatCompletionResponse) (open
 	if len(functionCalls) > 0 {
 		runSteps = append(runSteps, db.RunStep{
 			AssistantID: run.AssistantID,
-			RunId:       run.ID,
+			RunID:       run.ID,
 			StepDetails: datatypes.NewJSONType(*functionCallDetails),
 			Type:        string(openai.RunStepObjectTypeToolCalls),
 			Status:      string(openai.RunStepObjectStatusInProgress),
@@ -447,6 +459,7 @@ func objectsForMessageStep(run *db.Run, ccr *db.CreateChatCompletionResponse) ([
 	}
 
 	stepDetails := openai.RunStepDetailsMessageCreationObject{
+		//nolint:revive
 		MessageCreation: struct {
 			MessageId string `json:"message_id"`
 		}{
@@ -462,7 +475,7 @@ func objectsForMessageStep(run *db.Run, ccr *db.CreateChatCompletionResponse) ([
 
 	runStep := db.RunStep{
 		AssistantID: run.AssistantID,
-		RunId:       run.ID,
+		RunID:       run.ID,
 		StepDetails: datatypes.NewJSONType(*details),
 		Type:        string(openai.RunStepObjectTypeMessageCreation),
 		Usage: datatypes.NewJSONType(
@@ -484,7 +497,7 @@ func objectsForMessageStep(run *db.Run, ccr *db.CreateChatCompletionResponse) ([
 	return []db.RunStep{runStep}, newMessage, nil
 }
 
-func prepareChatCompletionRequest(builtInFunctionDefinitions map[string]*openai.FunctionObject, run *db.Run, assistant *db.Assistant, messages []db.Message, runSteps []db.RunStep) (*db.CreateChatCompletionRequest, error) {
+func prepareChatCompletionRequest(ctx context.Context, builtInFunctionDefinitions map[string]*openai.FunctionObject, run *db.Run, assistant *db.Assistant, tools []db.Tool, messages []db.Message, runSteps []db.RunStep) (*db.CreateChatCompletionRequest, error) {
 	chatMessages := make([]openai.ChatCompletionRequestMessage, 0, len(messages))
 
 	if run.Instructions != "" {
@@ -525,7 +538,20 @@ func prepareChatCompletionRequest(builtInFunctionDefinitions map[string]*openai.
 		chatMessages = append(chatMessages, messages...)
 	}
 
-	tools, err := assistant.ToolsToChatCompletionTools(builtInFunctionDefinitions)
+	toolDefinitions := make(map[string]*openai.FunctionObject, len(tools))
+	for _, tool := range tools {
+		prg, err := loader.ProgramFromSource(ctx, string(tool.Program), "")
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize program %q: %w", tool.ID, err)
+		}
+
+		toolDefinitions[tool.ID], err = programToFunction(&prg, tool.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	chatCompletionTools, err := assistant.ToolsToChatCompletionTools(builtInFunctionDefinitions, toolDefinitions)
 	if err != nil {
 		return nil, err
 	}
@@ -535,7 +561,7 @@ func prepareChatCompletionRequest(builtInFunctionDefinitions map[string]*openai.
 		Model:       assistant.Model,
 		Temperature: z.Pointer[float32](0.1),
 		TopP:        z.Pointer[float32](0.95),
-		Tools:       tools,
+		Tools:       chatCompletionTools,
 	}, nil
 }
 

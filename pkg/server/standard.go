@@ -80,9 +80,7 @@ func (s *Server) CreateEmbedding(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) ListFiles(w http.ResponseWriter, r *http.Request, params openai.ListFilesParams) {
 	//nolint:govet
-	s.ExtendedListFiles(w, r, openai.ExtendedListFilesParams{
-		params.Purpose,
-	})
+	s.ExtendedListFiles(w, r, openai.ExtendedListFilesParams(params))
 }
 
 func (s *Server) CreateFile(w http.ResponseWriter, r *http.Request) {
@@ -103,10 +101,7 @@ func (s *Server) DownloadFile(w http.ResponseWriter, r *http.Request, fileID str
 
 func (s *Server) ListPaginatedFineTuningJobs(w http.ResponseWriter, r *http.Request, params openai.ListPaginatedFineTuningJobsParams) {
 	//nolint:govet
-	s.ExtendedListPaginatedFineTuningJobs(w, r, openai.ExtendedListPaginatedFineTuningJobsParams{
-		params.After,
-		params.Limit,
-	})
+	s.ExtendedListPaginatedFineTuningJobs(w, r, openai.ExtendedListPaginatedFineTuningJobsParams(params))
 }
 
 func (s *Server) CreateFineTuningJob(w http.ResponseWriter, r *http.Request) {
@@ -123,10 +118,7 @@ func (s *Server) CancelFineTuningJob(w http.ResponseWriter, r *http.Request, fin
 
 func (s *Server) ListFineTuningEvents(w http.ResponseWriter, r *http.Request, fineTuningJobID string, params openai.ListFineTuningEventsParams) {
 	//nolint:govet
-	s.ExtendedListFineTuningEvents(w, r, fineTuningJobID, openai.ExtendedListFineTuningEventsParams{
-		params.After,
-		params.Limit,
-	})
+	s.ExtendedListFineTuningEvents(w, r, fineTuningJobID, openai.ExtendedListFineTuningEventsParams(params))
 }
 
 func (s *Server) CreateImageEdit(w http.ResponseWriter, r *http.Request) {

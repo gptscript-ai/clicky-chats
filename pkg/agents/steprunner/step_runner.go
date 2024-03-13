@@ -55,7 +55,7 @@ type agent struct {
 	client          *http.Client
 	db              *db.DB
 
-	builtInToolDefinitions map[string]*types.Program
+	builtInToolDefinitions map[string]types.Program
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
@@ -182,12 +182,20 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			return fmt.Errorf("failed to determine function and arguments: %w", err)
 		}
 
-		prg := a.builtInToolDefinitions[strings.TrimPrefix(functionName, agents.GPTScriptToolNamePrefix)]
-		if prg == nil {
-			return fmt.Errorf("tool %s not found", functionName)
+		prg, ok := a.builtInToolDefinitions[functionName]
+		if !ok {
+			tool := new(db.Tool)
+			if err = a.db.WithContext(ctx).Model(tool).Where("id = ?", functionName).First(tool).Error; err != nil {
+				return fmt.Errorf("failed to get tool %s: %w", functionName, err)
+			}
+
+			prg, err = loader.ProgramFromSource(ctx, string(tool.Program), "")
+			if err != nil {
+				return fmt.Errorf("failed to load program for tool %s: %w", functionName, err)
+			}
 		}
 
-		output, err := runner.Run(server.ContextWithNewID(ctx), *prg, os.Environ(), arguments)
+		output, err := runner.Run(server.ContextWithNewID(ctx), prg, os.Environ(), arguments)
 		if err != nil {
 			return fmt.Errorf("failed to run: %w", err)
 		}
@@ -227,8 +235,8 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 
 // populateTools loads the gptscript program from the provided link and subtool.
 // The run_step agent will use this program definition to run the tool with the gptscript engine.
-func populateTools(ctx context.Context) (map[string]*types.Program, error) {
-	builtInToolDefinitions := make(map[string]*types.Program, len(agents.GPTScriptDefinitions()))
+func populateTools(ctx context.Context) (map[string]types.Program, error) {
+	builtInToolDefinitions := make(map[string]types.Program, len(agents.GPTScriptDefinitions()))
 	for toolName, toolDef := range agents.GPTScriptDefinitions() {
 		if toolDef.Link == "" || toolDef.Link == agents.SkipLoadingTool {
 			slog.Info("Skipping tool", "name", toolName)
@@ -240,7 +248,7 @@ func populateTools(ctx context.Context) (map[string]*types.Program, error) {
 			return nil, fmt.Errorf("failed to initialize program %q: %w", toolName, err)
 		}
 
-		builtInToolDefinitions[toolName] = &prg
+		builtInToolDefinitions[toolName] = prg
 	}
 	return builtInToolDefinitions, nil
 }
@@ -297,5 +305,5 @@ func determineFunctionAndArguments(toolCall openai.RunStepDetailsToolCallsObject
 		return "", "", err
 	}
 
-	return info.Name, info.Arguments, nil
+	return strings.TrimPrefix(info.Name, agents.GPTScriptToolNamePrefix), info.Arguments, nil
 }

@@ -18,10 +18,10 @@ type RunStep struct {
 	ExpiredAt   *int                                                 `json:"expired_at"`
 	FailedAt    *int                                                 `json:"failed_at"`
 	LastError   datatypes.JSONType[RunLastError]                     `json:"last_error"`
-	RunId       string                                               `json:"run_id"`
+	RunID       string                                               `json:"run_id"`
 	Status      string                                               `json:"status"`
 	StepDetails datatypes.JSONType[openai.RunStepObject_StepDetails] `json:"step_details"`
-	ThreadId    string                                               `json:"thread_id"`
+	ThreadID    string                                               `json:"thread_id"`
 	Type        string                                               `json:"type"`
 	Usage       datatypes.JSONType[*openai.RunStepCompletionUsage]   `json:"usage"`
 
@@ -54,10 +54,10 @@ func (r *RunStep) ToPublic() any {
 		},
 		z.Pointer[map[string]interface{}](r.Metadata.Metadata),
 		openai.RunStepObjectObjectThreadRunStep,
-		r.RunId,
+		r.RunID,
 		openai.RunStepObjectStatus(r.Status),
 		r.StepDetails.Data(),
-		r.ThreadId,
+		r.ThreadID,
 		openai.RunStepObjectType(r.Type),
 		r.Usage.Data(),
 	}

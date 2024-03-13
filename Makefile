@@ -19,7 +19,7 @@ lint: setup-env
 	golangci-lint run
 
 # Runs linters and validates that all generated code is committed.
-validate-code: tidy lint
+validate-code: tidy lint generate
 	if [ -n "$$(git status --porcelain)" ]; then \
 		git status --porcelain; \
 		echo "Encountered dirty repo!"; \

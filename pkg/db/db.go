@@ -85,6 +85,8 @@ func (db *DB) AutoMigrate() error {
 		ImagesResponse{},
 		CreateEmbeddingRequest{},
 		CreateEmbeddingResponse{},
+
+		Tool{},
 	)
 }
 

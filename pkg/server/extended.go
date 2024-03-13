@@ -61,17 +61,12 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 		tools = append(tools, *t)
 	}
 
-	gptscriptTools := make([]openai.ExtendedAssistantObjectGptscriptTools, 0, len(z.Dereference(createAssistantRequest.GptscriptTools)))
-	for _, tool := range z.Dereference(createAssistantRequest.GptscriptTools) {
-		gptscriptTools = append(gptscriptTools, openai.ExtendedAssistantObjectGptscriptTools(tool))
-	}
-
 	//nolint:govet
 	publicAssistant := &openai.ExtendedAssistantObject{
 		0,
 		createAssistantRequest.Description,
 		z.Dereference(createAssistantRequest.FileIds),
-		z.Pointer(gptscriptTools),
+		createAssistantRequest.GptscriptTools,
 		"",
 		createAssistantRequest.Instructions,
 		createAssistantRequest.Metadata,
@@ -144,17 +139,12 @@ func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request,
 		tools = append(tools, *t)
 	}
 
-	gptscriptTools := make([]openai.ExtendedAssistantObjectGptscriptTools, 0, len(*modifyAssistantRequest.GptscriptTools))
-	for _, tool := range *modifyAssistantRequest.GptscriptTools {
-		gptscriptTools = append(gptscriptTools, openai.ExtendedAssistantObjectGptscriptTools(tool))
-	}
-
 	//nolint:govet
 	publicAssistant := &openai.ExtendedAssistantObject{
 		0,
 		modifyAssistantRequest.Description,
 		z.Dereference(modifyAssistantRequest.FileIds),
-		z.Pointer(gptscriptTools),
+		modifyAssistantRequest.GptscriptTools,
 		"",
 		modifyAssistantRequest.Instructions,
 		modifyAssistantRequest.Metadata,
@@ -268,12 +258,12 @@ func (s *Server) ExtendedCreateSpeech(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) ExtendedCreateTranscription(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ExtendedCreateTranscription(w http.ResponseWriter, _ *http.Request) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ExtendedCreateTranslation(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ExtendedCreateTranslation(w http.ResponseWriter, _ *http.Request) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
@@ -311,7 +301,7 @@ func (s *Server) ExtendedCreateChatCompletion(w http.ResponseWriter, r *http.Req
 	waitForAndStreamResponse[*db.ChatCompletionResponseChunk](r.Context(), w, gormDB, ccr.ID)
 }
 
-func (s *Server) ExtendedCreateCompletion(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ExtendedCreateCompletion(w http.ResponseWriter, _ *http.Request) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
@@ -426,17 +416,17 @@ func (s *Server) ExtendedRetrieveFile(w http.ResponseWriter, r *http.Request, fi
 	getAndRespond(s.db.WithContext(r.Context()), w, new(db.File), fileID)
 }
 
-func (s *Server) ExtendedDownloadFile(w http.ResponseWriter, r *http.Request, fileID string) {
+func (s *Server) ExtendedDownloadFile(w http.ResponseWriter, _ *http.Request, _ string) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ExtendedListPaginatedFineTuningJobs(w http.ResponseWriter, r *http.Request, params openai.ExtendedListPaginatedFineTuningJobsParams) {
+func (s *Server) ExtendedListPaginatedFineTuningJobs(w http.ResponseWriter, _ *http.Request, _ openai.ExtendedListPaginatedFineTuningJobsParams) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ExtendedCreateFineTuningJob(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ExtendedCreateFineTuningJob(w http.ResponseWriter, _ *http.Request) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
@@ -445,12 +435,12 @@ func (s *Server) ExtendedRetrieveFineTuningJob(w http.ResponseWriter, r *http.Re
 	getAndRespond(s.db.WithContext(r.Context()), w, new(db.FineTuningJob), fineTuningJobID)
 }
 
-func (s *Server) ExtendedCancelFineTuningJob(w http.ResponseWriter, r *http.Request, fineTuningJobID string) {
+func (s *Server) ExtendedCancelFineTuningJob(w http.ResponseWriter, _ *http.Request, _ string) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ExtendedListFineTuningEvents(w http.ResponseWriter, r *http.Request, fineTuningJobID string, params openai.ExtendedListFineTuningEventsParams) {
+func (s *Server) ExtendedListFineTuningEvents(w http.ResponseWriter, _ *http.Request, _ string, _ openai.ExtendedListFineTuningEventsParams) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
@@ -516,10 +506,9 @@ func (s *Server) ExtendedCreateImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	waitForAndWriteResponse(ctx, w, gormDB, agentReq.ID, new(db.ImagesResponse))
-	return
 }
 
-func (s *Server) ExtendedCreateImageVariation(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ExtendedCreateImageVariation(w http.ResponseWriter, _ *http.Request) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
@@ -541,7 +530,7 @@ func (s *Server) ExtendedRetrieveModel(w http.ResponseWriter, r *http.Request, m
 	getAndRespond(s.db.WithContext(r.Context()), w, new(db.Model), modelID)
 }
 
-func (s *Server) ExtendedCreateModeration(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ExtendedCreateModeration(w http.ResponseWriter, _ *http.Request) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
@@ -610,7 +599,7 @@ func (s *Server) ExtendedCreateThread(w http.ResponseWriter, r *http.Request) {
 	writeObjectToResponse(w, thread.ToPublic())
 }
 
-func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, _ *http.Request) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
@@ -1299,7 +1288,7 @@ func respondWithList(w http.ResponseWriter, publicObjs []any, limit int, firstID
 	if limit != -1 {
 		hasMore := len(publicObjs) >= limit
 		if hasMore {
-			publicObjs = publicObjs[:limit-1]
+			result["data"] = publicObjs[:limit-1]
 		}
 		result["has_more"] = hasMore
 		result["first_id"] = firstID
@@ -1425,25 +1414,25 @@ func waitForAndStreamResponse[T JobRespondStreamer](ctx context.Context, w http.
 		} else if errStr := respObj.GetErrorString(); errStr != "" {
 			_, _ = w.Write([]byte(fmt.Sprintf(`data: %v`, NewAPIError(errStr, InternalErrorType).Error())))
 			break
-		} else {
-			index = respObj.GetIndex()
-			if respObj.IsDone() {
-				break
-			}
+		}
 
-			respObj.SetID(id)
-			body, err := json.Marshal(respObj.ToPublic())
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				_, _ = w.Write([]byte(fmt.Sprintf(`data: %v`, NewAPIError(fmt.Sprintf("Failed to process streamed response: %v", err), InternalErrorType).Error())))
-				break
-			}
+		index = respObj.GetIndex()
+		if respObj.IsDone() {
+			break
+		}
 
-			d := make([]byte, 0, len(body)+8)
-			_, _ = w.Write(append(append(append(d, []byte("data: ")...), body...), byte('\n')))
-			if f, ok := w.(http.Flusher); ok {
-				f.Flush()
-			}
+		respObj.SetID(id)
+		body, err := json.Marshal(respObj.ToPublic())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(fmt.Sprintf(`data: %v`, NewAPIError(fmt.Sprintf("Failed to process streamed response: %v", err), InternalErrorType).Error())))
+			break
+		}
+
+		d := make([]byte, 0, len(body)+8)
+		_, _ = w.Write(append(append(append(d, []byte("data: ")...), body...), byte('\n')))
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
 		}
 	}
 

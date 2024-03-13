@@ -1,5 +1,5 @@
 paths:
-  /tools:
+  /rubra/x/tools:
     post:
       operationId: createTool
       summary: Creates a tool for use with gptscript engine.
@@ -19,23 +19,51 @@ paths:
     get:
       operationId: listTools
       summary: List tools
+      parameters:
+        - description: |
+            A limit on the number of objects to be returned. Limit can range between 1 and 100, and the default is 20.
+          in: query
+          name: limit
+          schema:
+            default: 20
+            type: integer
+        - description: |
+            Sort order by the `created_at` timestamp of the objects. `asc` for ascending order and `desc` for descending order.
+          in: query
+          name: order
+          schema:
+            default: desc
+            enum:
+              - asc
+              - desc
+            type: string
+        - description: |
+            A cursor for use in pagination. `after` is an object ID that defines your place in the list. For instance, if you make a list request and receive 100 objects, ending with obj_foo, your subsequent call can include after=obj_foo in order to fetch the next page of the list.
+          in: query
+          name: after
+          schema:
+            type: string
+        - description: |
+            A cursor for use in pagination. `before` is an object ID that defines your place in the list. For instance, if you make a list request and receive 100 objects, ending with obj_foo, your subsequent call can include before=obj_foo in order to fetch the previous page of the list.
+          in: query
+          name: before
+          schema:
+            type: string
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ToolObject"
+                $ref: "#/components/schemas/ListToolsResponse"
 
-  /tools/{name}:
+  /rubra/x/tools/{id}:
     get:
       operationId: getTool
       summary: Get tool
       parameters:
         - in: path
-          name: name
+          name: id
           required: true
           schema:
             type: string
@@ -51,7 +79,7 @@ paths:
       summary: Modify tool
       parameters:
         - in: path
-          name: name
+          name: id
           required: true
           schema:
             type: string
@@ -73,7 +101,7 @@ paths:
       summary: Delete tool
       parameters:
         - in: path
-          name: name
+          name: id
           required: true
           schema:
             type: string
@@ -105,6 +133,12 @@ components:
           type: string
           description: Contents of the tool
           nullable: true
+        subtool:
+          type: string
+          description: The name of the sub tool to use rather than the first tool
+          nullable: true
+      required:
+        - name
     ModifyToolRequest:
       additionalProperties: false
       type: object
@@ -123,10 +157,22 @@ components:
           type: string
           description: Contents of the tool
           nullable: true
+        retool:
+          default: false
+          type: boolean
+          description: Pull the contents of the tool from the URL to redefine the tool
+      required:
+        - name
     ToolObject:
       additionalProperties: false
       type: object
       properties:
+        id:
+          type: string
+          description: The id of the tool
+        created_at:
+          description: The Unix timestamp (in seconds) for when the assistant file was created.
+          type: integer
         name:
           type: string
           description: The name of the tool
@@ -141,10 +187,44 @@ components:
           type: string
           description: Contents of the tool
           nullable: true
+        subtool:
+          type: string
+          description: The name of the sub tool to use rather than the first tool
+          nullable: true
         object:
           description: The object type, which is always `tool`.
           type: string
           enum: [ tool ]
+      required:
+        - id
+        - created_at
+        - name
+        - object
+    ListToolsResponse:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/ToolObject'
+          type: array
+        first_id:
+          example: tool_abc123
+          type: string
+        has_more:
+          example: false
+          type: boolean
+        last_id:
+          example: tool_abc456
+          type: string
+        object:
+          example: list
+          type: string
+      required:
+        - object
+        - data
+        - first_id
+        - last_id
+        - has_more
+      type: object
     DeleteToolResponse:
       additionalProperties: false
       type: object

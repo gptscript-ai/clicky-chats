@@ -29,6 +29,7 @@ func (c *CreateChatCompletionResponse) FromPublic(obj any) error {
 	}
 
 	if o != nil && c != nil {
+		//nolint:govet
 		*c = CreateChatCompletionResponse{
 			JobResponse{},
 			Base{
@@ -46,6 +47,7 @@ func (c *CreateChatCompletionResponse) FromPublic(obj any) error {
 }
 
 func (c *CreateChatCompletionResponse) ToPublic() any {
+	//nolint:govet
 	return &openai.CreateChatCompletionResponse{
 		choices(c.Choices).toPublic(),
 		c.CreatedAt,

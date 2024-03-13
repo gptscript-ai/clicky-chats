@@ -439,11 +439,6 @@ const (
 	ExtendedAssistantFileObjectObjectAssistantFile ExtendedAssistantFileObjectObject = "assistant.file"
 )
 
-// Defines values for ExtendedAssistantObjectGptscriptTools.
-const (
-	ExtendedAssistantObjectGptscriptToolsWebBrowsing ExtendedAssistantObjectGptscriptTools = "web_browsing"
-)
-
 // Defines values for ExtendedAssistantObjectObject.
 const (
 	ExtendedAssistantObjectObjectAssistant ExtendedAssistantObjectObject = "assistant"
@@ -552,11 +547,6 @@ const (
 const (
 	ExtendedChatCompletionToolChoiceOption0Auto ExtendedChatCompletionToolChoiceOption0 = "auto"
 	ExtendedChatCompletionToolChoiceOption0None ExtendedChatCompletionToolChoiceOption0 = "none"
-)
-
-// Defines values for ExtendedCreateAssistantRequestGptscriptTools.
-const (
-	ExtendedCreateAssistantRequestGptscriptToolsWebBrowsing ExtendedCreateAssistantRequestGptscriptTools = "web_browsing"
 )
 
 // Defines values for ExtendedCreateChatCompletionFunctionResponseChoicesFinishReason.
@@ -952,11 +942,6 @@ const (
 	ExtendedModelObjectModel ExtendedModelObject = "model"
 )
 
-// Defines values for ExtendedModifyAssistantRequestGptscriptTools.
-const (
-	WebBrowsing ExtendedModifyAssistantRequestGptscriptTools = "web_browsing"
-)
-
 // Defines values for ExtendedOpenAIFileObject.
 const (
 	ExtendedOpenAIFileObjectFile ExtendedOpenAIFileObject = "file"
@@ -1341,6 +1326,12 @@ const (
 	ExtendedListRunStepsParamsOrderDesc ExtendedListRunStepsParamsOrder = "desc"
 )
 
+// Defines values for ListToolsParamsOrder.
+const (
+	ListToolsParamsOrderAsc  ListToolsParamsOrder = "asc"
+	ListToolsParamsOrderDesc ListToolsParamsOrder = "desc"
+)
+
 // Defines values for ListMessagesParamsOrder.
 const (
 	ListMessagesParamsOrderAsc  ListMessagesParamsOrder = "asc"
@@ -1361,8 +1352,8 @@ const (
 
 // Defines values for ListRunStepsParamsOrder.
 const (
-	ListRunStepsParamsOrderAsc  ListRunStepsParamsOrder = "asc"
-	ListRunStepsParamsOrderDesc ListRunStepsParamsOrder = "desc"
+	Asc  ListRunStepsParamsOrder = "asc"
+	Desc ListRunStepsParamsOrder = "desc"
 )
 
 // AssistantFileObject A list of [Files](/docs/api-reference/files) attached to an `assistant`.
@@ -2847,7 +2838,10 @@ type CreateToolRequest struct {
 	Description *string `json:"description,omitempty"`
 
 	// Name The name of the tool
-	Name *string `json:"name,omitempty"`
+	Name string `json:"name"`
+
+	// SubTool The name of the sub tool to use rather than the first tool
+	SubTool *string `json:"sub_tool"`
 
 	// Url URL of the tool
 	Url *string `json:"url"`
@@ -3058,7 +3052,7 @@ type ExtendedAssistantObject struct {
 	FileIds []string `json:"file_ids"`
 
 	// GptscriptTools A list of gptscript tools available to the assistant.
-	GptscriptTools *[]ExtendedAssistantObjectGptscriptTools `json:"gptscript_tools,omitempty"`
+	GptscriptTools *[]string `json:"gptscript_tools,omitempty"`
 
 	// Id The identifier, which can be referenced in API endpoints.
 	Id string `json:"id"`
@@ -3081,9 +3075,6 @@ type ExtendedAssistantObject struct {
 	// Tools A list of tool enabled on the assistant. There can be a maximum of 128 tools per assistant. Tools can be of types `code_interpreter`, `retrieval`, or `function`.
 	Tools []ExtendedAssistantObject_Tools_Item `json:"tools"`
 }
-
-// ExtendedAssistantObjectGptscriptTools defines model for ExtendedAssistantObject.GptscriptTools.
-type ExtendedAssistantObjectGptscriptTools string
 
 // ExtendedAssistantObjectObject The object type, which is always `assistant`.
 type ExtendedAssistantObjectObject string
@@ -3468,7 +3459,7 @@ type ExtendedCreateAssistantRequest struct {
 	FileIds *[]string `json:"file_ids,omitempty"`
 
 	// GptscriptTools A list of gptscript tools available to the assistant.
-	GptscriptTools *[]ExtendedCreateAssistantRequestGptscriptTools `json:"gptscript_tools,omitempty"`
+	GptscriptTools *[]string `json:"gptscript_tools,omitempty"`
 
 	// Instructions The system instructions that the assistant uses. The maximum length is 32768 characters.
 	Instructions *string `json:"instructions"`
@@ -3485,9 +3476,6 @@ type ExtendedCreateAssistantRequest struct {
 	// Tools A list of tool enabled on the assistant. There can be a maximum of 128 tools per assistant. Tools can be of types `code_interpreter`, `retrieval`, or `function`.
 	Tools *[]ExtendedCreateAssistantRequest_Tools_Item `json:"tools,omitempty"`
 }
-
-// ExtendedCreateAssistantRequestGptscriptTools defines model for ExtendedCreateAssistantRequest.GptscriptTools.
-type ExtendedCreateAssistantRequestGptscriptTools string
 
 // ExtendedCreateAssistantRequestModel0 defines model for .
 type ExtendedCreateAssistantRequestModel0 = string
@@ -5071,7 +5059,7 @@ type ExtendedModifyAssistantRequest struct {
 	FileIds *[]string `json:"file_ids,omitempty"`
 
 	// GptscriptTools A list of gptscript tools available to the assistant.
-	GptscriptTools *[]ExtendedModifyAssistantRequestGptscriptTools `json:"gptscript_tools,omitempty"`
+	GptscriptTools *[]string `json:"gptscript_tools,omitempty"`
 
 	// Instructions The system instructions that the assistant uses. The maximum length is 32768 characters.
 	Instructions *string `json:"instructions"`
@@ -5088,9 +5076,6 @@ type ExtendedModifyAssistantRequest struct {
 	// Tools A list of tool enabled on the assistant. There can be a maximum of 128 tools per assistant. Tools can be of types `code_interpreter`, `retrieval`, or `function`.
 	Tools *[]ExtendedModifyAssistantRequest_Tools_Item `json:"tools,omitempty"`
 }
-
-// ExtendedModifyAssistantRequestGptscriptTools defines model for ExtendedModifyAssistantRequest.GptscriptTools.
-type ExtendedModifyAssistantRequestGptscriptTools string
 
 // ExtendedModifyAssistantRequestModel0 defines model for .
 type ExtendedModifyAssistantRequestModel0 = string
@@ -5752,6 +5737,15 @@ type ListThreadsResponse struct {
 	Object  string         `json:"object"`
 }
 
+// ListToolsResponse defines model for ListToolsResponse.
+type ListToolsResponse struct {
+	Data    []ToolObject `json:"data"`
+	FirstId string       `json:"first_id"`
+	HasMore bool         `json:"has_more"`
+	LastId  string       `json:"last_id"`
+	Object  string       `json:"object"`
+}
+
 // MessageContentImageFileObject References an image [File](/docs/api-reference/files) in the content of a message.
 type MessageContentImageFileObject struct {
 	ImageFile struct {
@@ -5972,7 +5966,10 @@ type ModifyToolRequest struct {
 	Description *string `json:"description,omitempty"`
 
 	// Name The name of the tool
-	Name *string `json:"name,omitempty"`
+	Name string `json:"name"`
+
+	// Retool Pull the contents of the tool from the URL to redefine the tool
+	Retool *bool `json:"retool,omitempty"`
 
 	// Url URL of the tool
 	Url *string `json:"url"`
@@ -6384,14 +6381,23 @@ type ToolObject struct {
 	// Contents Contents of the tool
 	Contents *string `json:"contents"`
 
+	// CreatedAt The Unix timestamp (in seconds) for when the assistant file was created.
+	CreatedAt int `json:"created_at"`
+
 	// Description Description of the tool
 	Description *string `json:"description,omitempty"`
 
+	// Id The id of the tool
+	Id string `json:"id"`
+
 	// Name The name of the tool
-	Name *string `json:"name,omitempty"`
+	Name string `json:"name"`
 
 	// Object The object type, which is always `tool`.
-	Object *ToolObjectObject `json:"object,omitempty"`
+	Object ToolObjectObject `json:"object"`
+
+	// SubTool The name of the sub tool to use rather than the first tool
+	SubTool *string `json:"sub_tool"`
 
 	// Url URL of the tool
 	Url *string `json:"url"`
@@ -6592,6 +6598,24 @@ type ExtendedListRunStepsParams struct {
 // ExtendedListRunStepsParamsOrder defines parameters for ExtendedListRunSteps.
 type ExtendedListRunStepsParamsOrder string
 
+// ListToolsParams defines parameters for ListTools.
+type ListToolsParams struct {
+	// Limit A limit on the number of objects to be returned. Limit can range between 1 and 100, and the default is 20.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Order Sort order by the `created_at` timestamp of the objects. `asc` for ascending order and `desc` for descending order.
+	Order *ListToolsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
+
+	// After A cursor for use in pagination. `after` is an object ID that defines your place in the list. For instance, if you make a list request and receive 100 objects, ending with obj_foo, your subsequent call can include after=obj_foo in order to fetch the next page of the list.
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+
+	// Before A cursor for use in pagination. `before` is an object ID that defines your place in the list. For instance, if you make a list request and receive 100 objects, ending with obj_foo, your subsequent call can include before=obj_foo in order to fetch the previous page of the list.
+	Before *string `form:"before,omitempty" json:"before,omitempty"`
+}
+
+// ListToolsParamsOrder defines parameters for ListTools.
+type ListToolsParamsOrder string
+
 // ListMessagesParams defines parameters for ListMessages.
 type ListMessagesParams struct {
 	// Limit A limit on the number of objects to be returned. Limit can range between 1 and 100, and the default is 20.
@@ -6710,73 +6734,79 @@ type CreateImageVariationMultipartRequestBody = CreateImageVariationRequest
 type CreateModerationJSONRequestBody = CreateModerationRequest
 
 // ExtendedCreateAssistantJSONRequestBody defines body for ExtendedCreateAssistant for application/json ContentType.
-type ExtendedCreateAssistantJSONRequestBody = CreateAssistantRequest
+type ExtendedCreateAssistantJSONRequestBody = ExtendedCreateAssistantRequest
 
 // ExtendedModifyAssistantJSONRequestBody defines body for ExtendedModifyAssistant for application/json ContentType.
-type ExtendedModifyAssistantJSONRequestBody = ModifyAssistantRequest
+type ExtendedModifyAssistantJSONRequestBody = ExtendedModifyAssistantRequest
 
 // ExtendedCreateAssistantFileJSONRequestBody defines body for ExtendedCreateAssistantFile for application/json ContentType.
-type ExtendedCreateAssistantFileJSONRequestBody = CreateAssistantFileRequest
+type ExtendedCreateAssistantFileJSONRequestBody = ExtendedCreateAssistantFileRequest
 
 // ExtendedCreateSpeechJSONRequestBody defines body for ExtendedCreateSpeech for application/json ContentType.
-type ExtendedCreateSpeechJSONRequestBody = CreateSpeechRequest
+type ExtendedCreateSpeechJSONRequestBody = ExtendedCreateSpeechRequest
 
 // ExtendedCreateTranscriptionMultipartRequestBody defines body for ExtendedCreateTranscription for multipart/form-data ContentType.
-type ExtendedCreateTranscriptionMultipartRequestBody = CreateTranscriptionRequest
+type ExtendedCreateTranscriptionMultipartRequestBody = ExtendedCreateTranscriptionRequest
 
 // ExtendedCreateTranslationMultipartRequestBody defines body for ExtendedCreateTranslation for multipart/form-data ContentType.
-type ExtendedCreateTranslationMultipartRequestBody = CreateTranslationRequest
+type ExtendedCreateTranslationMultipartRequestBody = ExtendedCreateTranslationRequest
 
 // ExtendedCreateChatCompletionJSONRequestBody defines body for ExtendedCreateChatCompletion for application/json ContentType.
-type ExtendedCreateChatCompletionJSONRequestBody = CreateChatCompletionRequest
+type ExtendedCreateChatCompletionJSONRequestBody = ExtendedCreateChatCompletionRequest
 
 // ExtendedCreateCompletionJSONRequestBody defines body for ExtendedCreateCompletion for application/json ContentType.
-type ExtendedCreateCompletionJSONRequestBody = CreateCompletionRequest
+type ExtendedCreateCompletionJSONRequestBody = ExtendedCreateCompletionRequest
 
 // ExtendedCreateEmbeddingJSONRequestBody defines body for ExtendedCreateEmbedding for application/json ContentType.
-type ExtendedCreateEmbeddingJSONRequestBody = CreateEmbeddingRequest
+type ExtendedCreateEmbeddingJSONRequestBody = ExtendedCreateEmbeddingRequest
 
 // ExtendedCreateFileMultipartRequestBody defines body for ExtendedCreateFile for multipart/form-data ContentType.
-type ExtendedCreateFileMultipartRequestBody = CreateFileRequest
+type ExtendedCreateFileMultipartRequestBody = ExtendedCreateFileRequest
 
 // ExtendedCreateFineTuningJobJSONRequestBody defines body for ExtendedCreateFineTuningJob for application/json ContentType.
-type ExtendedCreateFineTuningJobJSONRequestBody = CreateFineTuningJobRequest
+type ExtendedCreateFineTuningJobJSONRequestBody = ExtendedCreateFineTuningJobRequest
 
 // ExtendedCreateImageEditMultipartRequestBody defines body for ExtendedCreateImageEdit for multipart/form-data ContentType.
-type ExtendedCreateImageEditMultipartRequestBody = CreateImageEditRequest
+type ExtendedCreateImageEditMultipartRequestBody = ExtendedCreateImageEditRequest
 
 // ExtendedCreateImageJSONRequestBody defines body for ExtendedCreateImage for application/json ContentType.
-type ExtendedCreateImageJSONRequestBody = CreateImageRequest
+type ExtendedCreateImageJSONRequestBody = ExtendedCreateImageRequest
 
 // ExtendedCreateImageVariationMultipartRequestBody defines body for ExtendedCreateImageVariation for multipart/form-data ContentType.
-type ExtendedCreateImageVariationMultipartRequestBody = CreateImageVariationRequest
+type ExtendedCreateImageVariationMultipartRequestBody = ExtendedCreateImageVariationRequest
 
 // ExtendedCreateModerationJSONRequestBody defines body for ExtendedCreateModeration for application/json ContentType.
-type ExtendedCreateModerationJSONRequestBody = CreateModerationRequest
+type ExtendedCreateModerationJSONRequestBody = ExtendedCreateModerationRequest
 
 // ExtendedCreateThreadJSONRequestBody defines body for ExtendedCreateThread for application/json ContentType.
-type ExtendedCreateThreadJSONRequestBody = CreateThreadRequest
+type ExtendedCreateThreadJSONRequestBody = ExtendedCreateThreadRequest
 
 // ExtendedCreateThreadAndRunJSONRequestBody defines body for ExtendedCreateThreadAndRun for application/json ContentType.
-type ExtendedCreateThreadAndRunJSONRequestBody = CreateThreadAndRunRequest
+type ExtendedCreateThreadAndRunJSONRequestBody = ExtendedCreateThreadAndRunRequest
 
 // ExtendedModifyThreadJSONRequestBody defines body for ExtendedModifyThread for application/json ContentType.
-type ExtendedModifyThreadJSONRequestBody = ModifyThreadRequest
+type ExtendedModifyThreadJSONRequestBody = ExtendedModifyThreadRequest
 
 // ExtendedCreateMessageJSONRequestBody defines body for ExtendedCreateMessage for application/json ContentType.
-type ExtendedCreateMessageJSONRequestBody = CreateMessageRequest
+type ExtendedCreateMessageJSONRequestBody = ExtendedCreateMessageRequest
 
 // ExtendedModifyMessageJSONRequestBody defines body for ExtendedModifyMessage for application/json ContentType.
-type ExtendedModifyMessageJSONRequestBody = ModifyMessageRequest
+type ExtendedModifyMessageJSONRequestBody = ExtendedModifyMessageRequest
 
 // ExtendedCreateRunJSONRequestBody defines body for ExtendedCreateRun for application/json ContentType.
-type ExtendedCreateRunJSONRequestBody = CreateRunRequest
+type ExtendedCreateRunJSONRequestBody = ExtendedCreateRunRequest
 
 // ExtendedModifyRunJSONRequestBody defines body for ExtendedModifyRun for application/json ContentType.
-type ExtendedModifyRunJSONRequestBody = ModifyRunRequest
+type ExtendedModifyRunJSONRequestBody = ExtendedModifyRunRequest
 
 // ExtendedSubmitToolOuputsToRunJSONRequestBody defines body for ExtendedSubmitToolOuputsToRun for application/json ContentType.
-type ExtendedSubmitToolOuputsToRunJSONRequestBody = SubmitToolOutputsRunRequest
+type ExtendedSubmitToolOuputsToRunJSONRequestBody = ExtendedSubmitToolOutputsRunRequest
+
+// CreateToolJSONRequestBody defines body for CreateTool for application/json ContentType.
+type CreateToolJSONRequestBody = CreateToolRequest
+
+// ModifyToolJSONRequestBody defines body for ModifyTool for application/json ContentType.
+type ModifyToolJSONRequestBody = ModifyToolRequest
 
 // CreateThreadJSONRequestBody defines body for CreateThread for application/json ContentType.
 type CreateThreadJSONRequestBody = CreateThreadRequest
@@ -6801,12 +6831,6 @@ type ModifyRunJSONRequestBody = ModifyRunRequest
 
 // SubmitToolOuputsToRunJSONRequestBody defines body for SubmitToolOuputsToRun for application/json ContentType.
 type SubmitToolOuputsToRunJSONRequestBody = SubmitToolOutputsRunRequest
-
-// CreateToolJSONRequestBody defines body for CreateTool for application/json ContentType.
-type CreateToolJSONRequestBody = CreateToolRequest
-
-// ModifyToolJSONRequestBody defines body for ModifyTool for application/json ContentType.
-type ModifyToolJSONRequestBody = ModifyToolRequest
 
 // AsAssistantToolsCode returns the union data inside the AssistantObject_Tools_Item as a AssistantToolsCode
 func (t AssistantObject_Tools_Item) AsAssistantToolsCode() (AssistantToolsCode, error) {

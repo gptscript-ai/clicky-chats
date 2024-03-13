@@ -77,7 +77,7 @@ func CancelRun(db *gdb.DB, id string) (*Run, error) {
 			return err
 		}
 
-		if run.Status != string(openai.RunObjectStatusInProgress) || run.Status != string(openai.RunObjectStatusRequiresAction) || run.Status != string(openai.RunObjectStatusQueued) {
+		if run.Status != string(openai.RunObjectStatusInProgress) && run.Status != string(openai.RunObjectStatusRequiresAction) && run.Status != string(openai.RunObjectStatusQueued) {
 			return fmt.Errorf("cannot cancel run with status %s", run.Status)
 		}
 
