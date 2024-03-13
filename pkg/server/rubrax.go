@@ -88,36 +88,38 @@ func (s *Server) ModifyTool(w http.ResponseWriter, r *http.Request, toolID strin
 	}
 
 	existingTool := new(db.Tool)
-	if err = db.Get(s.db.WithContext(r.Context()), existingTool, toolID); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(err.Error()))
-		return
-	}
-
-	existingTool.Name = modifyToolRequest.Name
-	if modifyToolRequest.Description != nil && *modifyToolRequest.Description != z.Dereference(existingTool.Description) {
-		existingTool.Description = modifyToolRequest.Description
-	}
-
-	retool := z.Dereference(modifyToolRequest.Retool)
-	if newURL := modifyToolRequest.Url; z.Dereference(newURL) != z.Dereference(existingTool.URL) {
-		retool = true
-		existingTool.URL = newURL
-	} else if newContents := modifyToolRequest.Contents; z.Dereference(newContents) != z.Dereference(existingTool.Contents) {
-		retool = true
-		existingTool.Contents = newContents
-	}
-
-	if retool {
-		existingTool.Program, err = toolToProgram(r.Context(), existingTool)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(err.Error()))
-			return
+	if err = s.db.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
+		if err = db.Get(tx, existingTool, toolID); err != nil {
+			return err
 		}
-	}
 
-	if err = db.Modify(s.db.WithContext(r.Context()), existingTool, toolID, existingTool); err != nil {
+		existingTool.Name = modifyToolRequest.Name
+		if modifyToolRequest.Description != nil && *modifyToolRequest.Description != z.Dereference(existingTool.Description) {
+			existingTool.Description = modifyToolRequest.Description
+		}
+
+		retool := z.Dereference(modifyToolRequest.Retool)
+		if newURL := modifyToolRequest.Url; z.Dereference(newURL) != z.Dereference(existingTool.URL) {
+			retool = true
+			existingTool.URL = newURL
+		} else if newContents := modifyToolRequest.Contents; z.Dereference(newContents) != z.Dereference(existingTool.Contents) {
+			retool = true
+			existingTool.Contents = newContents
+		}
+
+		if retool {
+			existingTool.Program, err = toolToProgram(r.Context(), existingTool)
+			if err != nil {
+				return err
+			}
+		}
+
+		if err = db.Modify(tx, existingTool, toolID, existingTool); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
 		return
