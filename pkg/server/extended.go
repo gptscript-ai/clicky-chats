@@ -263,9 +263,39 @@ func (s *Server) ExtendedCreateTranscription(w http.ResponseWriter, _ *http.Requ
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ExtendedCreateTranslation(w http.ResponseWriter, _ *http.Request) {
-	//TODO implement me
-	w.WriteHeader(http.StatusNotImplemented)
+func (s *Server) ExtendedCreateTranslation(w http.ResponseWriter, r *http.Request) {
+	reader, err := r.MultipartReader()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to parse multipart form.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	publicReq := new(openai.CreateTranslationRequest)
+	if err := runtime.BindMultipart(publicReq, *reader); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to bind multipart form.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	agentReq := new(db.CreateTranslationRequest)
+	if err := agentReq.FromPublic(publicReq); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to process request.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	var (
+		ctx    = r.Context()
+		gormDB = s.db.WithContext(ctx)
+	)
+	if err := db.Create(gormDB, agentReq); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError("Failed to create translation request.", InternalErrorType).Error()))
+		return
+	}
+
+	waitForAndWriteResponse(ctx, w, gormDB, agentReq.ID, new(db.CreateTranslationResponse))
 }
 
 func (s *Server) ExtendedCreateChatCompletion(w http.ResponseWriter, r *http.Request) {

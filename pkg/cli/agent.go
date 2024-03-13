@@ -11,6 +11,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/image"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/run"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/steprunner"
+	"github.com/gptscript-ai/clicky-chats/pkg/agents/translation"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/spf13/cobra"
 )
@@ -28,6 +29,8 @@ type Agent struct {
 	DefaultImagesURL string `usage:"The default base URL for the image agent to use" default:"https://api.openai.com/v1/images" env:"CLICKY_CHATS_IMAGES_SERVER_URL"`
 
 	DefaultEmbeddingsURL string `usage:"The defaultURL for the embedding agent to use" default:"https://api.openai.com/v1/embeddings" env:"CLICKY_CHATS_EMBEDDINGS_SERVER_URL"`
+
+	DefaultTranslationsURL string `usage:"The default URL for the translation agent to use" default:"https://api.openai.com/v1/audio/translations" env:"CLICKY_CHATS_TRANSLATIONS_SERVER_URL"`
 
 	APIURL      string `usage:"URL for API calls" default:"http://localhost:8080/v1/chat/completions" env:"CLICKY_CHATS_SERVER_URL"`
 	ModelAPIKey string `usage:"API key for API calls" env:"CLICKY_CHATS_MODEL_API_KEY"`
@@ -118,6 +121,17 @@ func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
 		AgentID:         s.AgentID,
 	}
 	if err = embeddings.Start(ctx, gormDB, embedCfg); err != nil {
+		return err
+	}
+
+	translationCfg := translation.Config{
+		PollingInterval: pollingInterval,
+		RetentionPeriod: retentionPeriod,
+		TranslationsURL: s.DefaultTranslationsURL,
+		APIKey:          apiKey,
+		AgentID:         s.AgentID,
+	}
+	if err = translation.Start(ctx, gormDB, translationCfg); err != nil {
 		return err
 	}
 
