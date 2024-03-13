@@ -77,13 +77,19 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 	}
 
 	if extendedapi.IsExtendedAPIKey(r.Context()) {
-		createAndRespond(s.db.WithContext(r.Context()), w, new(db.Assistant), publicAssistant)
-		return
+		writeObjectToResponse(w, a.ToPublic())
+	} else {
+		writeObjectToResponse(w, a.ToPublicOpenAI())
 	}
-	createAndRespondOpenAI(s.db.WithContext(r.Context()), w, new(db.Assistant), publicAssistant)
+
 }
 
 func (s *Server) ExtendedDeleteAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
+	err := s.kbm.DeleteKnowledgeBase(r.Context(), assistantID)
+	if err != nil {
+		slog.Error("Failed to delete assistant knowledge base", "id", assistantID, "err", err)
+	}
+
 	//nolint:govet
 	deleteAndRespond[*db.Assistant](s.db.WithContext(r.Context()), w, assistantID, openai.DeleteAssistantResponse{
 		true,
@@ -1233,24 +1239,28 @@ func create(gormDB *gorm.DB, obj Transformer, publicObj any) error {
 	return nil
 }
 
-func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj Transformer, publicObj any) {
+func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj Transformer, publicObj any) (Transformer, error) {
 	if err := create(gormDB, obj, publicObj); err != nil {
 		w.WriteHeader(http.StatusConflict)
 		_, _ = w.Write([]byte(err.Error()))
-		return
+		return nil, err
 	}
 
 	writeObjectToResponse(w, obj.ToPublic())
+
+	return obj, nil
 }
 
-func createAndRespondOpenAI(gormDB *gorm.DB, w http.ResponseWriter, obj ExtendedTransformer, publicObj any) {
+func createAndRespondOpenAI(gormDB *gorm.DB, w http.ResponseWriter, obj ExtendedTransformer, publicObj any) (ExtendedTransformer, error) {
 	if err := create(gormDB, obj, publicObj); err != nil {
 		w.WriteHeader(http.StatusConflict)
 		_, _ = w.Write([]byte(err.Error()))
-		return
+		return nil, err
 	}
 
 	writeObjectToResponse(w, obj.ToPublicOpenAI())
+
+	return obj, nil
 }
 
 func processAssistantsAPIListParams[T Transformer, O ~string](gormDB *gorm.DB, limit *int, before, after *string, order *O, ensureExists ...db.Storer) (*gorm.DB, int, error) {

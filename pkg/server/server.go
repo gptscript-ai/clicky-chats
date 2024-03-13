@@ -13,6 +13,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
+	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
 )
 
@@ -21,12 +22,14 @@ type Config struct {
 }
 
 type Server struct {
-	db *db.DB
+	db  *db.DB
+	kbm *kb.KnowledgeBaseManager
 }
 
-func NewServer(db *db.DB) *Server {
+func NewServer(db *db.DB, kbm *kb.KnowledgeBaseManager) *Server {
 	return &Server{
-		db: db,
+		db:  db,
+		kbm: kbm,
 	}
 }
 

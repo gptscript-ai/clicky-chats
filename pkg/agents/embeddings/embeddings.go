@@ -49,10 +49,10 @@ type agent struct {
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	if cfg.PollingInterval < minPollingInterval {
-		return nil, fmt.Errorf("polling interval must be at least %s", minPollingInterval)
+		return nil, fmt.Errorf("[embeddings] polling interval must be at least %s", minPollingInterval)
 	}
 	if cfg.RetentionPeriod < minRequestRetention {
-		return nil, fmt.Errorf("request retention must be at least %s", minRequestRetention)
+		return nil, fmt.Errorf("[embeddings] request retention must be at least %s", minRequestRetention)
 	}
 
 	return &agent{

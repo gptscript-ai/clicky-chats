@@ -2,6 +2,7 @@ package cli
 
 import (
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
+	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/gptscript-ai/clicky-chats/pkg/server"
 	"github.com/spf13/cobra"
 )
@@ -24,7 +25,9 @@ func (s *Server) Run(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	if err = server.NewServer(gormDB).Start(cmd.Context(), server.Config{
+	kbManager := kb.NewKnowledgeBaseManager(s.Config, gormDB)
+
+	if err = server.NewServer(gormDB, kbManager).Start(cmd.Context(), server.Config{
 		ServerURL: s.ServerURL,
 		Port:      s.ServerPort,
 		APIBase:   s.ServerAPIBase,

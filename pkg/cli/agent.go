@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
@@ -13,10 +14,13 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/steprunner"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/translation"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
+	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/spf13/cobra"
 )
 
 type Agent struct {
+	kb.Config
+
 	DSN string `usage:"Server datastore" default:"sqlite://clicky-chats.db" env:"CLICKY_CHATS_DSN"`
 
 	RetentionPeriod          string `usage:"Chat completion retention period" default:"5m" env:"CLICKY_CHATS_RETENTION_PERIOD"`
@@ -60,6 +64,8 @@ func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse chat completion polling interval: %w", err)
 	}
+
+	slog.Info("starting agents", "retention_period", retentionPeriod, "polling_interval", pollingInterval)
 
 	apiKey := s.ModelAPIKey
 	if apiKey == "" {
