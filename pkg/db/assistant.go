@@ -4,21 +4,20 @@ import (
 	"fmt"
 
 	"github.com/acorn-io/z"
-	"github.com/gptscript-ai/clicky-chats/pkg/extendedapi"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"gorm.io/datatypes"
 )
 
 type Assistant struct {
 	Metadata     `json:",inline"`
-	Description  *string                                                `json:"description"`
-	FileIDs      datatypes.JSONSlice[string]                            `json:"file_ids"`
-	Instructions *string                                                `json:"instructions"`
-	Model        string                                                 `json:"model"`
-	Name         *string                                                `json:"name"`
-	Tools        datatypes.JSONSlice[openai.AssistantObject_Tools_Item] `json:"tools"`
+	Description  *string                                                        `json:"description"`
+	FileIDs      datatypes.JSONSlice[string]                                    `json:"file_ids"`
+	Instructions *string                                                        `json:"instructions"`
+	Model        string                                                         `json:"model"`
+	Name         *string                                                        `json:"name"`
+	Tools        datatypes.JSONSlice[openai.ExtendedAssistantObject_Tools_Item] `json:"tools"`
 	// Not part of the OpenAI API
-	GPTScriptTools datatypes.JSONSlice[string] `json:"gptscript_tools"`
+	GPTScriptTools datatypes.JSONSlice[openai.ExtendedAssistantObjectGptscriptTools] `json:"gptscript_tools"`
 }
 
 func (a *Assistant) IDPrefix() string {
@@ -27,36 +26,47 @@ func (a *Assistant) IDPrefix() string {
 
 func (a *Assistant) ToPublic() any {
 	//nolint:govet
-	return a.toPublic()
-}
-
-func (a *Assistant) toPublic() *extendedapi.Assistant {
-	return &extendedapi.Assistant{
-		openai.AssistantObject{
-			a.CreatedAt,
-			a.Description,
-			a.FileIDs,
-			a.ID,
-			a.Instructions,
-			z.Pointer[map[string]interface{}](a.Metadata.Metadata),
-			a.Model,
-			a.Name,
-			openai.AssistantObjectObjectAssistant,
-			a.Tools,
-		},
-		a.GPTScriptTools,
+	return &openai.ExtendedAssistantObject{
+		a.CreatedAt,
+		a.Description,
+		a.FileIDs,
+		z.Pointer[[]openai.ExtendedAssistantObjectGptscriptTools](a.GPTScriptTools),
+		a.ID,
+		a.Instructions,
+		z.Pointer[map[string]interface{}](a.Metadata.Metadata),
+		a.Model,
+		a.Name,
+		openai.ExtendedAssistantObjectObjectAssistant,
+		a.Tools,
 	}
 }
 
 func (a *Assistant) ToPublicOpenAI() any {
-	return a.toPublic().AssistantObject
+	//nolint:govet
+	var tools []openai.AssistantObject_Tools_Item
+	for _, t := range a.Tools {
+		tools = append(tools, openai.AssistantObject_Tools_Item(t))
+	}
+	return &openai.AssistantObject{
+		a.CreatedAt,
+		a.Description,
+		a.FileIDs,
+		a.ID,
+		a.Instructions,
+		z.Pointer[map[string]interface{}](a.Metadata.Metadata),
+		a.Model,
+		a.Name,
+		openai.AssistantObjectObjectAssistant,
+		tools,
+	}
 }
 
 func (a *Assistant) FromPublic(obj any) error {
-	o, ok := obj.(*extendedapi.Assistant)
+	o, ok := obj.(*openai.ExtendedAssistantObject)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
 	}
+
 	if o != nil && a != nil {
 		//nolint:govet
 		*a = Assistant{
@@ -73,7 +83,7 @@ func (a *Assistant) FromPublic(obj any) error {
 			o.Model,
 			o.Name,
 			o.Tools,
-			o.GPTScriptTools,
+			datatypes.NewJSONSlice(z.Dereference(o.GptscriptTools)),
 		}
 	}
 
@@ -96,7 +106,7 @@ func (a *Assistant) ToolsToChatCompletionTools(gptScriptToolDefinitions map[stri
 
 	for _, t := range a.GPTScriptTools {
 		chatTool := openai.ChatCompletionTool{
-			Function: *gptScriptToolDefinitions[t],
+			Function: *gptScriptToolDefinitions[string(t)],
 			Type:     openai.ChatCompletionToolTypeFunction,
 		}
 		tools = append(tools, chatTool)
@@ -104,7 +114,7 @@ func (a *Assistant) ToolsToChatCompletionTools(gptScriptToolDefinitions map[stri
 	return tools, nil
 }
 
-func AssistantToolToChatCompletionTool(t *openai.AssistantObject_Tools_Item, gptScriptToolDefinitions map[string]*openai.FunctionObject) (openai.ChatCompletionTool, error) {
+func AssistantToolToChatCompletionTool(t *openai.ExtendedAssistantObject_Tools_Item, gptScriptToolDefinitions map[string]*openai.FunctionObject) (openai.ChatCompletionTool, error) {
 	if ob, err := t.AsAssistantToolsFunction(); err == nil && ob.Type == openai.AssistantToolsFunctionTypeFunction {
 		return openai.ChatCompletionTool{
 			Function: ob.Function,

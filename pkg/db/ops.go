@@ -82,7 +82,7 @@ func CancelRun(db *gdb.DB, id string) (*Run, error) {
 		}
 
 		update := map[string]any{
-			"status":       string(openai.Cancelled),
+			"status":       string(openai.RunStepObjectStatusCancelled),
 			"cancelled_at": int(time.Now().Unix()),
 		}
 
@@ -90,7 +90,7 @@ func CancelRun(db *gdb.DB, id string) (*Run, error) {
 			return err
 		}
 
-		return tx.Model(new(RunStep)).Where("run_id = ?", run.ID).Where("status = ?", string(openai.InProgress)).Updates(update).Error
+		return tx.Model(new(RunStep)).Where("run_id = ?", run.ID).Where("status = ?", string(openai.RunObjectStatusInProgress)).Updates(update).Error
 	}); err != nil {
 		return nil, err
 	}

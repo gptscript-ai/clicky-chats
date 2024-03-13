@@ -29,7 +29,7 @@ func (m *Message) ToPublic() any {
 		m.FileIDs,
 		m.ID,
 		z.Pointer[map[string]interface{}](m.Metadata.Metadata),
-		openai.ThreadMessage,
+		openai.MessageObjectObjectThreadMessage,
 		openai.MessageObjectRole(m.Role),
 		m.RunID,
 		m.ThreadID,
@@ -79,7 +79,7 @@ func (m *MessageFile) ToPublic() any {
 		m.CreatedAt,
 		m.ID,
 		m.MessageID,
-		openai.ThreadMessageFile,
+		openai.MessageFileObjectObjectThreadMessageFile,
 	}
 }
 

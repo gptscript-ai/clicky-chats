@@ -53,7 +53,7 @@ func (r *RunStep) ToPublic() any {
 			Message: lastError.Message,
 		},
 		z.Pointer[map[string]interface{}](r.Metadata.Metadata),
-		openai.ThreadRunStep,
+		openai.RunStepObjectObjectThreadRunStep,
 		r.RunId,
 		openai.RunStepObjectStatus(r.Status),
 		r.StepDetails.Data(),
@@ -194,7 +194,7 @@ func RunStepDetailsFromRunRequiredActionToolCalls(runRequiredActions []openai.Ru
 
 	stepDetails := openai.RunStepDetailsToolCallsObject{
 		ToolCalls: toolCalls,
-		Type:      openai.ToolCalls,
+		Type:      openai.RunStepDetailsToolCallsObjectTypeToolCalls,
 	}
 
 	details := new(openai.RunStepObject_StepDetails)
@@ -227,7 +227,7 @@ func constructRunStepToolCallItem(v any) (openai.RunStepDetailsToolCallsObject_T
 }
 
 func ExtractRunStepDetails(details openai.RunStepObject_StepDetails) (any, error) {
-	if tc, err := details.AsRunStepDetailsToolCallsObject(); err == nil && tc.Type == openai.ToolCalls {
+	if tc, err := details.AsRunStepDetailsToolCallsObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsObjectTypeToolCalls {
 		return tc, nil
 	}
 	if tc, err := details.AsRunStepDetailsMessageCreationObject(); err == nil && tc.Type == openai.RunStepDetailsMessageCreationObjectTypeMessageCreation {

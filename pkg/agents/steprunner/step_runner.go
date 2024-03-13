@@ -201,14 +201,14 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 
 	if err := stepDetails.FromRunStepDetailsToolCallsObject(openai.RunStepDetailsToolCallsObject{
 		ToolCalls: toolCalls,
-		Type:      openai.ToolCalls,
+		Type:      openai.RunStepDetailsToolCallsObjectTypeToolCalls,
 	}); err != nil {
 		return err
 	}
 
 	if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Update the run step with a fake output
-		if err := tx.Model(runStep).Where("id = ?", runStep.ID).Updates(map[string]interface{}{"status": openai.Completed, "completed_at": z.Pointer(int(time.Now().Unix())), "step_details": datatypes.NewJSONType(stepDetails)}).Error; err != nil {
+		if err := tx.Model(runStep).Where("id = ?", runStep.ID).Updates(map[string]interface{}{"status": openai.RunStepObjectStatusCompleted, "completed_at": z.Pointer(int(time.Now().Unix())), "step_details": datatypes.NewJSONType(stepDetails)}).Error; err != nil {
 			return err
 		}
 
@@ -263,7 +263,7 @@ func failRunStep(l *slog.Logger, gdb *gorm.DB, run *db.Run, runStep *db.RunStep,
 		}
 
 		if err := tx.Model(runStep).Where("id = ?", runStep.ID).Updates(map[string]interface{}{
-			"status":     openai.Failed,
+			"status":     openai.RunStepObjectStatusFailed,
 			"failed_at":  z.Pointer(int(time.Now().Unix())),
 			"last_error": datatypes.NewJSONType(runError),
 			"usage":      runStep.Usage,

@@ -384,7 +384,7 @@ func objectsForToolStep(run *db.Run, ccr *db.CreateChatCompletionResponse) (open
 
 	run.RequiredAction = datatypes.NewJSONType(&db.RunRequiredAction{
 		SubmitToolOutputs: functionCalls,
-		Type:              openai.SubmitToolOutputs,
+		Type:              openai.RunObjectRequiredActionTypeSubmitToolOutputs,
 	})
 
 	if run.Usage.Data() == nil {
@@ -405,7 +405,7 @@ func objectsForToolStep(run *db.Run, ccr *db.CreateChatCompletionResponse) (open
 			RunId:       run.ID,
 			StepDetails: datatypes.NewJSONType(*nonFunctionCallDetails),
 			Type:        string(openai.RunStepObjectTypeToolCalls),
-			Status:      string(openai.InProgress),
+			Status:      string(openai.RunStepObjectStatusInProgress),
 			RunnerType:  z.Pointer(agents.GPTScriptRunnerType),
 		})
 
@@ -419,7 +419,7 @@ func objectsForToolStep(run *db.Run, ccr *db.CreateChatCompletionResponse) (open
 			RunId:       run.ID,
 			StepDetails: datatypes.NewJSONType(*functionCallDetails),
 			Type:        string(openai.RunStepObjectTypeToolCalls),
-			Status:      string(openai.InProgress),
+			Status:      string(openai.RunStepObjectStatusInProgress),
 			RunnerType:  z.Pointer(agents.GPTScriptRunnerType),
 		})
 		newPublicStatus = openai.RunObjectStatusRequiresAction
@@ -439,7 +439,7 @@ func objectsForMessageStep(run *db.Run, ccr *db.CreateChatCompletionResponse) ([
 			Metadata: nil,
 		},
 		ThreadID:    run.ThreadID,
-		Role:        string(openai.MessageObjectRoleAssistant),
+		Role:        string(openai.Assistant),
 		Content:     []openai.MessageObject_Content_Item{*content},
 		AssistantID: z.Pointer(run.AssistantID),
 		RunID:       z.Pointer(run.ID),
@@ -587,7 +587,7 @@ func createChatMessageFromToolOutput(toolOutput openai.RunStepObject_StepDetails
 
 		m := new(openai.ChatCompletionRequestMessage)
 		if err = m.FromChatCompletionRequestToolMessage(openai.ChatCompletionRequestToolMessage{
-			Role:       openai.Tool,
+			Role:       openai.ChatCompletionRequestToolMessageRoleTool,
 			Content:    toolInfo.Output,
 			ToolCallId: toolInfo.ID,
 		}); err != nil {

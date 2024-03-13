@@ -1,0 +1,162 @@
+paths:
+  /tools:
+    post:
+      operationId: createTool
+      summary: Creates a tool for use with gptscript engine.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateToolRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToolObject"
+    get:
+      operationId: listTools
+      summary: List tools
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ToolObject"
+
+  /tools/{name}:
+    get:
+      operationId: getTool
+      summary: Get tool
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToolObject"
+    post:
+      operationId: modifyTool
+      summary: Modify tool
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModifyToolRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToolObject"
+    delete:
+      operationId: deleteTool
+      summary: Delete tool
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteToolResponse"
+
+components:
+  schemas:
+    CreateToolRequest:
+      additionalProperties: false
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the tool
+        description:
+          type: string
+          description: Description of the tool
+        url:
+          type: string
+          description: URL of the tool
+          nullable: true
+        contents:
+          type: string
+          description: Contents of the tool
+          nullable: true
+    ModifyToolRequest:
+      additionalProperties: false
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the tool
+        description:
+          type: string
+          description: Description of the tool
+        url:
+          type: string
+          description: URL of the tool
+          nullable: true
+        contents:
+          type: string
+          description: Contents of the tool
+          nullable: true
+    ToolObject:
+      additionalProperties: false
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the tool
+        description:
+          type: string
+          description: Description of the tool
+        url:
+          type: string
+          description: URL of the tool
+          nullable: true
+        contents:
+          type: string
+          description: Contents of the tool
+          nullable: true
+        object:
+          description: The object type, which is always `tool`.
+          type: string
+          enum: [ tool ]
+    DeleteToolResponse:
+      additionalProperties: false
+      type: object
+      properties:
+        id:
+          type: string
+        deleted:
+          type: boolean
+        object:
+          type: string
+          enum: [ tool.deleted ]
+      required:
+        - id
+        - object
+        - deleted

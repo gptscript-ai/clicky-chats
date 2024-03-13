@@ -25,7 +25,7 @@ func (t *Thread) ToPublic() any {
 		t.CreatedAt,
 		t.ID,
 		(*map[string]interface{})(z.Pointer(t.Metadata.Metadata)),
-		openai.Thread,
+		openai.ThreadObjectObjectThread,
 	}
 }
 
