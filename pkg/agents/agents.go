@@ -23,8 +23,7 @@ const (
 )
 
 var builtInFunctionNameToDefinition = map[string]ToolDefinition{
-	// Skipping the loading of the web_search tool because it is currently not working.
-	"web_browsing": {Link: "github.com/gptscript-ai/question-answerer", SubTool: "question-answerer-ddg"},
+	"web_browsing": {Link: "github.com/gptscript-ai/question-answerer/duckduckgo"},
 	// TODO(thedadams): This will be moved to gptscript-ai in the future.
 	"code_interpreter": {Link: "github.com/thedadams/code-interpreter"},
 }
