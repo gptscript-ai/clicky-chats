@@ -311,9 +311,128 @@ func (s *Server) ExtendedCreateSpeech(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) ExtendedCreateTranscription(w http.ResponseWriter, _ *http.Request) {
-	//TODO implement me
-	w.WriteHeader(http.StatusNotImplemented)
+func (s *Server) ExtendedCreateTranscription(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB max
+		w.WriteHeader(http.StatusNotAcceptable)
+		_, _ = w.Write([]byte(NewAPIError("Failed to parse multipart form.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	value := r.MultipartForm.Value
+	if len(value) < 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Invalid number of multipart form values.", InvalidRequestErrorType).Error()))
+	}
+
+	publicReq := new(openai.CreateTranscriptionRequest)
+
+	// Extract non-file fields
+	if languages, ok := value["language"]; ok {
+		if len(languages) != 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Invalid number of languages.", InvalidRequestErrorType).Error()))
+			return
+		}
+
+		publicReq.Prompt = &(languages[0])
+	}
+
+	models := value["model"]
+	if len(models) != 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Invalid number of models.", InvalidRequestErrorType).Error()))
+		return
+	}
+	if err := (&publicReq.Model).FromCreateTranscriptionRequestModel1(openai.CreateTranscriptionRequestModel1(models[0])); err != nil {
+		if err = (&publicReq.Model).FromCreateTranscriptionRequestModel0(models[0]); err != nil {
+			// Invalid model type
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Invalid number of models.", InvalidRequestErrorType).Error()))
+			return
+		}
+	}
+
+	if prompts, ok := value["prompt"]; ok {
+		if len(prompts) != 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Invalid number of prompts.", InvalidRequestErrorType).Error()))
+			return
+		}
+
+		publicReq.Prompt = &(prompts[0])
+	}
+
+	if formats, ok := value["response_format"]; ok {
+		if len(formats) != 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Invalid number of response_formats.", InvalidRequestErrorType).Error()))
+			return
+		}
+
+		publicReq.Prompt = &(formats[0])
+	}
+
+	if temperatures, ok := value["temperature"]; ok {
+		if len(temperatures) != 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Invalid number of temperatures.", InvalidRequestErrorType).Error()))
+			return
+		}
+
+		temperature, err := strconv.ParseFloat(temperatures[0], 32)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Failed to process temperature.", InvalidRequestErrorType).Error()))
+			return
+		}
+
+		publicReq.Temperature = z.Pointer(float32(temperature))
+	}
+
+	if timestampGranularities, ok := value["timestamp_granularities"]; ok {
+		if len(timestampGranularities) != 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Invalid number of timestamp_granularities.", InvalidRequestErrorType).Error()))
+			return
+		}
+
+		var granularities *[]openai.CreateTranscriptionRequestTimestampGranularities
+		for _, g := range timestampGranularities[0] {
+			*granularities = append(*granularities, openai.CreateTranscriptionRequestTimestampGranularities(g))
+		}
+
+		if len(*granularities) > 0 {
+			publicReq.TimestampGranularities = granularities
+		}
+	}
+
+	// Extract file field
+	files := r.MultipartForm.File["file"]
+	if len(files) != 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Invalid number of files.", InvalidRequestErrorType).Error()))
+		return
+	}
+	(&publicReq.File).InitFromMultipart(files[0])
+
+	agentReq := new(db.CreateTranscriptionRequest)
+	if err := agentReq.FromPublic(publicReq); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to process request.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	var (
+		ctx    = r.Context()
+		gormDB = s.db.WithContext(ctx)
+	)
+	if err := db.Create(gormDB, agentReq); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError("Failed to create transcription request.", InternalErrorType).Error()))
+		return
+	}
+
+	waitForAndWriteResponse(ctx, w, gormDB, agentReq.ID, new(db.CreateTranscriptionResponse))
 }
 
 func (s *Server) ExtendedCreateTranslation(w http.ResponseWriter, r *http.Request) {

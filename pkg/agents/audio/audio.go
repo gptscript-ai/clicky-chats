@@ -34,11 +34,11 @@ type Config struct {
 }
 
 type agent struct {
-	pollingInterval, requestRetention time.Duration
-	id, apiKey                        string
-	translationsURL                   string
-	client                            *http.Client
-	db                                *db.DB
+	pollingInterval, requestRetention  time.Duration
+	id, apiKey                         string
+	translationsURL, transcriptionsURL string
+	client                             *http.Client
+	db                                 *db.DB
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
@@ -50,13 +50,14 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}
 
 	return &agent{
-		pollingInterval:  cfg.PollingInterval,
-		requestRetention: cfg.RetentionPeriod,
-		translationsURL:  cfg.AudioBaseURL + "/translations",
-		client:           http.DefaultClient,
-		apiKey:           cfg.APIKey,
-		db:               db,
-		id:               cfg.AgentID,
+		pollingInterval:   cfg.PollingInterval,
+		requestRetention:  cfg.RetentionPeriod,
+		translationsURL:   cfg.AudioBaseURL + "/translations",
+		transcriptionsURL: cfg.AudioBaseURL + "/transcriptions",
+		client:            http.DefaultClient,
+		apiKey:            cfg.APIKey,
+		db:                db,
+		id:                cfg.AgentID,
 	}, nil
 }
 
@@ -64,6 +65,7 @@ func (a *agent) Start(ctx context.Context) {
 	// Start the "job runner"
 	for _, run := range []func(context.Context) error{
 		a.runTranslations,
+		a.runTranscriptions,
 	} {
 		r := run
 		go func() {
