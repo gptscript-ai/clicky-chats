@@ -87,7 +87,7 @@ func (a *Assistant) ToolsToChatCompletionTools(gptScriptToolDefinitions map[stri
 
 	tools := make([]openai.ChatCompletionTool, 0, len(a.Tools)+len(a.GPTScriptTools))
 	for _, t := range a.Tools {
-		chatTool, err := AssistantToolToChatCompletionTool(&t)
+		chatTool, err := AssistantToolToChatCompletionTool(&t, gptScriptToolDefinitions)
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +104,7 @@ func (a *Assistant) ToolsToChatCompletionTools(gptScriptToolDefinitions map[stri
 	return tools, nil
 }
 
-func AssistantToolToChatCompletionTool(t *openai.AssistantObject_Tools_Item) (openai.ChatCompletionTool, error) {
+func AssistantToolToChatCompletionTool(t *openai.AssistantObject_Tools_Item, gptScriptToolDefinitions map[string]*openai.FunctionObject) (openai.ChatCompletionTool, error) {
 	if ob, err := t.AsAssistantToolsFunction(); err == nil && ob.Type == openai.AssistantToolsFunctionTypeFunction {
 		return openai.ChatCompletionTool{
 			Function: ob.Function,
@@ -114,19 +114,15 @@ func AssistantToolToChatCompletionTool(t *openai.AssistantObject_Tools_Item) (op
 
 	if ob, err := t.AsAssistantToolsCode(); err == nil && ob.Type == openai.AssistantToolsCodeTypeCodeInterpreter {
 		return openai.ChatCompletionTool{
-			Function: openai.FunctionObject{
-				Name: string(ob.Type),
-			},
-			Type: openai.ChatCompletionToolTypeFunction,
+			Function: z.Dereference(gptScriptToolDefinitions[string(ob.Type)]),
+			Type:     openai.ChatCompletionToolTypeFunction,
 		}, nil
 	}
 
 	if ob, err := t.AsAssistantToolsRetrieval(); err == nil && ob.Type == openai.AssistantToolsRetrievalTypeRetrieval {
 		return openai.ChatCompletionTool{
-			Function: openai.FunctionObject{
-				Name: string(ob.Type),
-			},
-			Type: openai.ChatCompletionToolTypeFunction,
+			Function: z.Dereference(gptScriptToolDefinitions[string(ob.Type)]),
+			Type:     openai.ChatCompletionToolTypeFunction,
 		}, nil
 	}
 
