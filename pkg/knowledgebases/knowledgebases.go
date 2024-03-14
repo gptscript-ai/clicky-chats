@@ -159,11 +159,9 @@ func (m *KnowledgeBaseManager) AddFile(ctx context.Context, id string, fileID st
 	}
 
 	// try to read the response body to get the error message
-	var b []byte
-	b, _ = io.ReadAll(res.Body)
-
+	b, rerr := io.ReadAll(res.Body)
 	if res.StatusCode > 400 {
-		if len(b) > 0 {
+		if rerr != nil && len(b) > 0 {
 			return fmt.Errorf("failed to ingest file: %s", string(b))
 		}
 		return fmt.Errorf("failed to ingest file: %s", res.Status)
