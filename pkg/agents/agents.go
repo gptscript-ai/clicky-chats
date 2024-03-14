@@ -122,22 +122,13 @@ func streamResponses(ctx context.Context, response *http.Response) <-chan db.Cha
 		defer response.Body.Close()
 
 		for {
-			select {
-			case <-ctx.Done():
-				//nolint:revive
-				for range stream {
-				}
-				return
-			default:
-				break
-			}
 			rawLine, readErr := reader.ReadBytes('\n')
 			if readErr != nil {
-				stream <- db.ChatCompletionResponseChunk{
+				sendChunk(ctx, stream, db.ChatCompletionResponseChunk{
 					JobResponse: db.JobResponse{
 						Error: z.Pointer(readErr.Error()),
 					},
-				}
+				})
 				return
 			}
 
@@ -145,11 +136,11 @@ func streamResponses(ctx context.Context, response *http.Response) <-chan db.Cha
 			if len(bytes.TrimSpace(noPrefixLine)) == 0 {
 				emptyMessagesCount++
 				if emptyMessagesCount > 300 {
-					stream <- db.ChatCompletionResponseChunk{
+					sendChunk(ctx, stream, db.ChatCompletionResponseChunk{
 						JobResponse: db.JobResponse{
 							Error: z.Pointer("stream has sent too many empty messages"),
 						},
-					}
+					})
 					return
 				}
 
@@ -163,26 +154,42 @@ func streamResponses(ctx context.Context, response *http.Response) <-chan db.Cha
 			resp := new(openai.CreateChatCompletionStreamResponse)
 			unmarshalErr := json.Unmarshal(noPrefixLine, resp)
 			if unmarshalErr != nil {
-				stream <- db.ChatCompletionResponseChunk{
+				sendChunk(ctx, stream, db.ChatCompletionResponseChunk{
 					JobResponse: db.JobResponse{
 						Error: z.Pointer(unmarshalErr.Error()),
 					},
-				}
+				})
 				return
 			}
 
 			if err := dbResponse.FromPublic(resp); err != nil {
-				stream <- db.ChatCompletionResponseChunk{
+				sendChunk(ctx, stream, db.ChatCompletionResponseChunk{
 					JobResponse: db.JobResponse{
 						Error: z.Pointer(err.Error()),
 					},
-				}
+				})
 				return
 			}
 
-			stream <- *dbResponse
+			if !sendChunk(ctx, stream, *dbResponse) {
+				return
+			}
 		}
 	}()
 
 	return stream
+}
+
+// sendChunk sends a chunk to the stream. It returns false if the context is done and the stream should not continue.
+func sendChunk(ctx context.Context, stream chan db.ChatCompletionResponseChunk, chunk db.ChatCompletionResponseChunk) bool {
+	select {
+	case <-ctx.Done():
+		go func() {
+			for range stream {
+			}
+		}()
+		return false
+	case stream <- chunk:
+		return true
+	}
 }
