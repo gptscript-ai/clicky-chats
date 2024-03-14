@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
@@ -46,7 +47,12 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	kbm := kb.NewKnowledgeBaseManager(s.Config, gormDB)
+	var kbm *kb.KnowledgeBaseManager
+	if s.Config.KnowledgeRetrievalAPIURL != "" {
+		kbm = kb.NewKnowledgeBaseManager(s.Config, gormDB)
+	} else {
+		slog.Warn("No knowledge retrieval API URL provided, knowledge base manager will not be started - assistants using the `retrieval` tool won't work")
+	}
 
 	if err = runAgents(cmd.Context(), gormDB, kbm, s); err != nil {
 		return err

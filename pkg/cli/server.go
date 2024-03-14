@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"log/slog"
+
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/gptscript-ai/clicky-chats/pkg/server"
@@ -25,7 +27,12 @@ func (s *Server) Run(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	kbManager := kb.NewKnowledgeBaseManager(s.Config, gormDB)
+	var kbManager *kb.KnowledgeBaseManager
+	if s.Config.KnowledgeRetrievalAPIURL != "" {
+		kbManager = kb.NewKnowledgeBaseManager(s.Config, gormDB)
+	} else {
+		slog.Warn("No knowledge retrieval API URL provided, knowledge base manager will not be started - assistants cannot be created with the `retrieval` tool")
+	}
 
 	if err = server.NewServer(gormDB, kbManager).Start(cmd.Context(), server.Config{
 		ServerURL: s.ServerURL,

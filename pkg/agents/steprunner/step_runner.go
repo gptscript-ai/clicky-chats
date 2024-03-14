@@ -198,12 +198,16 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			}
 		}
 
+		envs := os.Environ()
+
 		// extra environment variables for knowledge retrieval
-		envs := append(os.Environ(),
-			// leading http:// removed, since GPTScript needs to have it in the #!http:// instruction to determine that it's an HTTP call
-			"knowledge_retrieval_api_url="+strings.TrimSuffix(strings.TrimPrefix(a.kbm.KnowledgeRetrievalAPIURL, "http://"), "/"),
-			"knowledge_retrieval_dataset="+strings.ToLower(run.AssistantID),
-		)
+		if a.kbm != nil {
+			envs = append(envs,
+				// leading http:// removed, since GPTScript needs to have it in the #!http:// instruction to determine that it's an HTTP call
+				"knowledge_retrieval_api_url="+strings.TrimSuffix(strings.TrimPrefix(a.kbm.KnowledgeRetrievalAPIURL, "http://"), "/"),
+				"knowledge_retrieval_dataset="+strings.ToLower(run.AssistantID),
+			)
+		}
 
 		output, err := runner.Run(server.ContextWithNewID(ctx), prg, envs, arguments)
 		if err != nil {
