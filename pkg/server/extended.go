@@ -90,21 +90,20 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 
 	// Handle the assistant knowledge base
 	initKnowledgeBase := func(kbm *kb.KnowledgeBaseManager, asst *db.Assistant) error {
-
-		kb, err := s.kbm.NewAssistantKnowledgeBase(r.Context(), a.ID)
+		kb, err := kbm.NewAssistantKnowledgeBase(r.Context(), asst.ID)
 		if err != nil {
 			return err
 		}
 
-		slog.Debug("Created assistant knowledge base", "id", a.ID, "name", a.Name, "kb", kb)
+		slog.Debug("Created assistant knowledge base", "id", asst.ID, "name", asst.Name, "kb", kb)
 
-		for _, file := range a.FileIDs {
-			err := s.kbm.AddFile(r.Context(), kb, file)
+		for _, file := range asst.FileIDs {
+			err := kbm.AddFile(r.Context(), kb, file)
 			if err != nil {
 				slog.Error("Failed to add file to assistant knowledge base", "file", file, "err", err)
 				return err
 			}
-			slog.Debug("Added files to assistant knowledge base", "id", a.ID, "name", a.Name, "kb", kb, "#files", len(a.FileIDs))
+			slog.Debug("Added files to assistant knowledge base", "id", asst.ID, "name", asst.Name, "kb", kb, "#files", len(asst.FileIDs))
 		}
 		return nil
 	}
@@ -126,7 +125,6 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 	} else {
 		writeObjectToResponse(w, a.ToPublicOpenAI())
 	}
-
 }
 
 func (s *Server) ExtendedDeleteAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
@@ -1284,28 +1282,25 @@ func create(gormDB *gorm.DB, obj Transformer, publicObj any) error {
 	return nil
 }
 
-func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj Transformer, publicObj any) (Transformer, error) {
+func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj Transformer, publicObj any) {
 	if err := create(gormDB, obj, publicObj); err != nil {
 		w.WriteHeader(http.StatusConflict)
 		_, _ = w.Write([]byte(err.Error()))
-		return nil, err
+		return
 	}
 
 	writeObjectToResponse(w, obj.ToPublic())
-
-	return obj, nil
 }
 
-func createAndRespondOpenAI(gormDB *gorm.DB, w http.ResponseWriter, obj ExtendedTransformer, publicObj any) (ExtendedTransformer, error) {
+// nolint:revive,unused
+func createAndRespondOpenAI(gormDB *gorm.DB, w http.ResponseWriter, obj ExtendedTransformer, publicObj any) {
 	if err := create(gormDB, obj, publicObj); err != nil {
 		w.WriteHeader(http.StatusConflict)
 		_, _ = w.Write([]byte(err.Error()))
-		return nil, err
+		return
 	}
 
 	writeObjectToResponse(w, obj.ToPublicOpenAI())
-
-	return obj, nil
 }
 
 func processAssistantsAPIListParams[T Transformer, O ~string](gormDB *gorm.DB, limit *int, before, after *string, order *O, ensureExists ...db.Storer) (*gorm.DB, int, error) {

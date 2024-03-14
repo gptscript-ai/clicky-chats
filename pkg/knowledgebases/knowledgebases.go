@@ -47,8 +47,7 @@ type CreateKnowledgeBaseResponse struct {
 	CreateKnowledgeBaseRequest `json:",inline"`
 }
 
-func (m *KnowledgeBaseManager) CreateKnowledgeBase(ctx context.Context, id string) (string, error) {
-
+func (m *KnowledgeBaseManager) CreateKnowledgeBase(_ context.Context, id string) (string, error) {
 	id = strings.ToLower(id)
 
 	url := m.KnowledgeRetrievalAPIURL + "/datasets/create"
@@ -93,7 +92,7 @@ func (m *KnowledgeBaseManager) CreateKnowledgeBase(ctx context.Context, id strin
 	return response.Name, nil
 }
 
-func (m *KnowledgeBaseManager) DeleteKnowledgeBase(ctx context.Context, id string) error {
+func (m *KnowledgeBaseManager) DeleteKnowledgeBase(_ context.Context, id string) error {
 	id = strings.ToLower(id)
 
 	url := m.KnowledgeRetrievalAPIURL + "/datasets/" + id
