@@ -22,7 +22,7 @@ func (t *Tool) IDPrefix() string {
 
 func (t *Tool) ToPublic() any {
 	//nolint:govet
-	return &openai.ToolObject{
+	return &openai.XToolObject{
 		t.Contents,
 		t.CreatedAt,
 		t.Description,
@@ -35,7 +35,7 @@ func (t *Tool) ToPublic() any {
 }
 
 func (t *Tool) FromPublic(obj any) error {
-	o, ok := obj.(*openai.ToolObject)
+	o, ok := obj.(*openai.XToolObject)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
 	}

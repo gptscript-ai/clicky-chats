@@ -21,7 +21,7 @@ func (s *Server) ListTools(w http.ResponseWriter, r *http.Request, params openai
 }
 
 func (s *Server) CreateTool(w http.ResponseWriter, r *http.Request) {
-	createToolRequest := new(openai.CreateToolRequest)
+	createToolRequest := new(openai.XCreateToolRequest)
 	err := readObjectFromRequest(r, createToolRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -61,7 +61,7 @@ func (s *Server) CreateTool(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) DeleteTool(w http.ResponseWriter, r *http.Request, toolID string) {
 	//nolint:govet
-	deleteAndRespond[*db.Tool](s.db.WithContext(r.Context()), w, toolID, openai.DeleteToolResponse{
+	deleteAndRespond[*db.Tool](s.db.WithContext(r.Context()), w, toolID, openai.XDeleteToolResponse{
 		true,
 		toolID,
 		openai.ToolDeleted,
@@ -73,7 +73,7 @@ func (s *Server) GetTool(w http.ResponseWriter, r *http.Request, toolID string) 
 }
 
 func (s *Server) ModifyTool(w http.ResponseWriter, r *http.Request, toolID string) {
-	modifyToolRequest := new(openai.ModifyToolRequest)
+	modifyToolRequest := new(openai.XModifyToolRequest)
 	err := readObjectFromRequest(r, modifyToolRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
