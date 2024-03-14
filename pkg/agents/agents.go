@@ -28,7 +28,7 @@ var builtInFunctionNameToDefinition = map[string]ToolDefinition{
 	// TODO(thedadams): This will be moved to gptscript-ai in the future.
 	"code_interpreter": {Link: "github.com/thedadams/code-interpreter"},
 	// TODO(@iwilltry42): This will be moved to the knowledge-retrieval-api repo once that's public
-	"retrieval": {Link: "/home/thklein/git/github.com/iwilltry42/kratool/tool.gpt"},
+	"retrieval": {Link: "github.com/iwilltry42/kratool"},
 }
 
 type ToolDefinition struct {

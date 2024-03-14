@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"time"
 
@@ -66,8 +65,6 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 	if err != nil {
 		return fmt.Errorf("failed to parse chat completion polling interval: %w", err)
 	}
-
-	slog.Info("starting agents", "retention_period", retentionPeriod, "polling_interval", pollingInterval)
 
 	apiKey := s.ModelAPIKey
 	if apiKey == "" {
