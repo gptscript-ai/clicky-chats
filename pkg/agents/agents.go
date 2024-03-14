@@ -185,6 +185,7 @@ func sendChunk(ctx context.Context, stream chan db.ChatCompletionResponseChunk, 
 	select {
 	case <-ctx.Done():
 		go func() {
+			//nolint:revive
 			for range stream {
 			}
 		}()
