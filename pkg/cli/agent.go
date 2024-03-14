@@ -13,10 +13,13 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/steprunner"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/translation"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
+	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/spf13/cobra"
 )
 
 type Agent struct {
+	kb.Config
+
 	DSN string `usage:"Server datastore" default:"sqlite://clicky-chats.db" env:"CLICKY_CHATS_DSN"`
 
 	RetentionPeriod          string `usage:"Chat completion retention period" default:"5m" env:"CLICKY_CHATS_RETENTION_PERIOD"`
@@ -43,7 +46,9 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	if err = runAgents(cmd.Context(), gormDB, s); err != nil {
+	kbm := kb.NewKnowledgeBaseManager(s.Config, gormDB)
+
+	if err = runAgents(cmd.Context(), gormDB, kbm, s); err != nil {
 		return err
 	}
 
@@ -51,7 +56,7 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
+func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager, s *Agent) error {
 	retentionPeriod, err := time.ParseDuration(s.RetentionPeriod)
 	if err != nil {
 		return fmt.Errorf("failed to parse chat completion retention period: %w", err)
@@ -95,7 +100,7 @@ func runAgents(ctx context.Context, gormDB *db.DB, s *Agent) error {
 		APIKey:          s.ModelAPIKey,
 		AgentID:         s.AgentID,
 	}
-	if err = steprunner.Start(ctx, gormDB, stepRunnerCfg); err != nil {
+	if err = steprunner.Start(ctx, gormDB, kbm, stepRunnerCfg); err != nil {
 		return err
 	}
 

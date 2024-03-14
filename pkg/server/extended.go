@@ -16,6 +16,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/extendedapi"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
+	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/oapi-codegen/runtime"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -76,14 +77,62 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 		tools,
 	}
 
-	if extendedapi.IsExtendedAPIKey(r.Context()) {
-		createAndRespond(s.db.WithContext(r.Context()), w, new(db.Assistant), publicAssistant)
+	// We're splitting creation in DB and returning the response here, since we first want
+	// to manage the assistant knowledge base
+
+	// Create the assistant in the database
+	a := new(db.Assistant)
+	if err := create(s.db.WithContext(r.Context()), a, publicAssistant); err != nil {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
-	createAndRespondOpenAI(s.db.WithContext(r.Context()), w, new(db.Assistant), publicAssistant)
+
+	// Handle the assistant knowledge base
+	initKnowledgeBase := func(kbm *kb.KnowledgeBaseManager, asst *db.Assistant) error {
+		kb, err := kbm.NewAssistantKnowledgeBase(r.Context(), asst.ID)
+		if err != nil {
+			return err
+		}
+
+		slog.Debug("Created assistant knowledge base", "id", asst.ID, "name", asst.Name, "kb", kb)
+
+		for _, file := range asst.FileIDs {
+			err := kbm.AddFile(r.Context(), kb, file)
+			if err != nil {
+				slog.Error("Failed to add file to assistant knowledge base", "file", file, "err", err)
+				return err
+			}
+			slog.Debug("Added files to assistant knowledge base", "id", asst.ID, "name", asst.Name, "kb", kb, "#files", len(asst.FileIDs))
+		}
+		return nil
+	}
+
+	if err := initKnowledgeBase(s.kbm, a); err != nil {
+		slog.Error("Failed to initialize assistant knowledge base", "id", a.ID, "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to initialize assistant knowledge base: %s", err.Error()), InternalErrorType).Error()))
+		err = db.Delete[db.Assistant](s.db.WithContext(r.Context()), a.ID)
+		if err != nil {
+			slog.Error("Failed to cleanup assistant that failed to create", "id", a.ID, "err", err)
+		}
+		return
+	}
+
+	// Now return the assistant in the response
+	if extendedapi.IsExtendedAPIKey(r.Context()) {
+		writeObjectToResponse(w, a.ToPublic())
+	} else {
+		writeObjectToResponse(w, a.ToPublicOpenAI())
+	}
 }
 
 func (s *Server) ExtendedDeleteAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
+	err := s.kbm.DeleteKnowledgeBase(r.Context(), assistantID)
+	if err != nil {
+		slog.Error("Failed to delete assistant knowledge base", "id", assistantID, "err", err)
+	}
+
 	//nolint:govet
 	deleteAndRespond[*db.Assistant](s.db.WithContext(r.Context()), w, assistantID, openai.DeleteAssistantResponse{
 		true,
@@ -1243,6 +1292,7 @@ func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj Transformer, p
 	writeObjectToResponse(w, obj.ToPublic())
 }
 
+// nolint:revive,unused
 func createAndRespondOpenAI(gormDB *gorm.DB, w http.ResponseWriter, obj ExtendedTransformer, publicObj any) {
 	if err := create(gormDB, obj, publicObj); err != nil {
 		w.WriteHeader(http.StatusConflict)
