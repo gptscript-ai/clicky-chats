@@ -595,6 +595,16 @@ func (s *Server) ExtendedCreateModeration(w http.ResponseWriter, _ *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+func (s *Server) ListThreads(w http.ResponseWriter, r *http.Request, params openai.ListThreadsParams) {
+	gormDB, limit, err := processAssistantsAPIListParams[*db.Thread](s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+	}
+
+	listAndRespond[*db.Thread](gormDB, w, limit)
+}
+
 func (s *Server) ExtendedCreateThread(w http.ResponseWriter, r *http.Request) {
 	createThreadRequest := new(openai.CreateThreadRequest)
 	if err := readObjectFromRequest(r, createThreadRequest); err != nil {

@@ -424,11 +424,6 @@ const (
 	DeleteThreadResponseObjectThreadDeleted DeleteThreadResponseObject = "thread.deleted"
 )
 
-// Defines values for DeleteToolResponseObject.
-const (
-	ToolDeleted DeleteToolResponseObject = "tool.deleted"
-)
-
 // Defines values for EmbeddingObject.
 const (
 	EmbeddingObjectEmbedding EmbeddingObject = "embedding"
@@ -1273,9 +1268,14 @@ const (
 	ThreadObjectObjectThread ThreadObjectObject = "thread"
 )
 
-// Defines values for ToolObjectObject.
+// Defines values for XDeleteToolResponseObject.
 const (
-	Tool ToolObjectObject = "tool"
+	ToolDeleted XDeleteToolResponseObject = "tool.deleted"
+)
+
+// Defines values for XToolObjectObject.
+const (
+	Tool XToolObjectObject = "tool"
 )
 
 // Defines values for ListAssistantsParamsOrder.
@@ -1326,6 +1326,12 @@ const (
 	ExtendedListRunStepsParamsOrderDesc ExtendedListRunStepsParamsOrder = "desc"
 )
 
+// Defines values for ListThreadsParamsOrder.
+const (
+	ListThreadsParamsOrderAsc  ListThreadsParamsOrder = "asc"
+	ListThreadsParamsOrderDesc ListThreadsParamsOrder = "desc"
+)
+
 // Defines values for ListToolsParamsOrder.
 const (
 	ListToolsParamsOrderAsc  ListToolsParamsOrder = "asc"
@@ -1352,8 +1358,8 @@ const (
 
 // Defines values for ListRunStepsParamsOrder.
 const (
-	Asc  ListRunStepsParamsOrder = "asc"
-	Desc ListRunStepsParamsOrder = "desc"
+	ListRunStepsParamsOrderAsc  ListRunStepsParamsOrder = "asc"
+	ListRunStepsParamsOrderDesc ListRunStepsParamsOrder = "desc"
 )
 
 // AssistantFileObject A list of [Files](/docs/api-reference/files) attached to an `assistant`.
@@ -2829,24 +2835,6 @@ type CreateThreadRequest struct {
 	Metadata *map[string]interface{} `json:"metadata"`
 }
 
-// CreateToolRequest defines model for CreateToolRequest.
-type CreateToolRequest struct {
-	// Contents Contents of the tool
-	Contents *string `json:"contents"`
-
-	// Description Description of the tool
-	Description *string `json:"description,omitempty"`
-
-	// Name The name of the tool
-	Name string `json:"name"`
-
-	// Subtool The name of the sub tool to use rather than the first tool
-	Subtool *string `json:"subtool"`
-
-	// Url URL of the tool
-	Url *string `json:"url"`
-}
-
 // CreateTranscriptionRequest defines model for CreateTranscriptionRequest.
 type CreateTranscriptionRequest struct {
 	// File The audio file object (not file name) to transcribe, in one of these formats: flac, mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm.
@@ -2983,16 +2971,6 @@ type DeleteThreadResponse struct {
 
 // DeleteThreadResponseObject defines model for DeleteThreadResponse.Object.
 type DeleteThreadResponseObject string
-
-// DeleteToolResponse defines model for DeleteToolResponse.
-type DeleteToolResponse struct {
-	Deleted bool                     `json:"deleted"`
-	Id      string                   `json:"id"`
-	Object  DeleteToolResponseObject `json:"object"`
-}
-
-// DeleteToolResponseObject defines model for DeleteToolResponse.Object.
-type DeleteToolResponseObject string
 
 // Embedding Represents an embedding vector returned by embedding endpoint.
 type Embedding struct {
@@ -5737,15 +5715,6 @@ type ListThreadsResponse struct {
 	Object  string         `json:"object"`
 }
 
-// ListToolsResponse defines model for ListToolsResponse.
-type ListToolsResponse struct {
-	Data    []ToolObject `json:"data"`
-	FirstId string       `json:"first_id"`
-	HasMore bool         `json:"has_more"`
-	LastId  string       `json:"last_id"`
-	Object  string       `json:"object"`
-}
-
 // MessageContentImageFileObject References an image [File](/docs/api-reference/files) in the content of a message.
 type MessageContentImageFileObject struct {
 	ImageFile struct {
@@ -5955,24 +5924,6 @@ type ModifyRunRequest struct {
 type ModifyThreadRequest struct {
 	// Metadata Set of 16 key-value pairs that can be attached to an object. This can be useful for storing additional information about the object in a structured format. Keys can be a maximum of 64 characters long and values can be a maxium of 512 characters long.
 	Metadata *map[string]interface{} `json:"metadata"`
-}
-
-// ModifyToolRequest defines model for ModifyToolRequest.
-type ModifyToolRequest struct {
-	// Contents Contents of the tool
-	Contents *string `json:"contents"`
-
-	// Description Description of the tool
-	Description *string `json:"description,omitempty"`
-
-	// Name The name of the tool
-	Name string `json:"name"`
-
-	// Retool Pull the contents of the tool from the URL to redefine the tool
-	Retool *bool `json:"retool,omitempty"`
-
-	// Url URL of the tool
-	Url *string `json:"url"`
 }
 
 // OpenAIFile The `File` object represents a document that has been uploaded to OpenAI.
@@ -6376,8 +6327,72 @@ type ThreadObject struct {
 // ThreadObjectObject The object type, which is always `thread`.
 type ThreadObjectObject string
 
-// ToolObject defines model for ToolObject.
-type ToolObject struct {
+// XCreateToolRequest defines model for XCreateToolRequest.
+type XCreateToolRequest struct {
+	// Contents Contents of the tool
+	Contents *string `json:"contents"`
+
+	// Description Description of the tool
+	Description *string `json:"description,omitempty"`
+
+	// Name The name of the tool
+	Name string `json:"name"`
+
+	// Subtool The name of the sub tool to use rather than the first tool
+	Subtool *string `json:"subtool"`
+
+	// Url URL of the tool
+	Url *string `json:"url"`
+}
+
+// XDeleteToolResponse defines model for XDeleteToolResponse.
+type XDeleteToolResponse struct {
+	Deleted bool                      `json:"deleted"`
+	Id      string                    `json:"id"`
+	Object  XDeleteToolResponseObject `json:"object"`
+}
+
+// XDeleteToolResponseObject defines model for XDeleteToolResponse.Object.
+type XDeleteToolResponseObject string
+
+// XListThreadsResponse defines model for XListThreadsResponse.
+type XListThreadsResponse struct {
+	Data    []ThreadObject `json:"data"`
+	FirstId string         `json:"first_id"`
+	HasMore bool           `json:"has_more"`
+	LastId  string         `json:"last_id"`
+	Object  string         `json:"object"`
+}
+
+// XListToolsResponse defines model for XListToolsResponse.
+type XListToolsResponse struct {
+	Data    []XToolObject `json:"data"`
+	FirstId string        `json:"first_id"`
+	HasMore bool          `json:"has_more"`
+	LastId  string        `json:"last_id"`
+	Object  string        `json:"object"`
+}
+
+// XModifyToolRequest defines model for XModifyToolRequest.
+type XModifyToolRequest struct {
+	// Contents Contents of the tool
+	Contents *string `json:"contents"`
+
+	// Description Description of the tool
+	Description *string `json:"description,omitempty"`
+
+	// Name The name of the tool
+	Name string `json:"name"`
+
+	// Retool Pull the contents of the tool from the URL to redefine the tool
+	Retool *bool `json:"retool,omitempty"`
+
+	// Url URL of the tool
+	Url *string `json:"url"`
+}
+
+// XToolObject defines model for XToolObject.
+type XToolObject struct {
 	// Contents Contents of the tool
 	Contents *string `json:"contents"`
 
@@ -6394,7 +6409,7 @@ type ToolObject struct {
 	Name string `json:"name"`
 
 	// Object The object type, which is always `tool`.
-	Object ToolObjectObject `json:"object"`
+	Object XToolObjectObject `json:"object"`
 
 	// Subtool The name of the sub tool to use rather than the first tool
 	Subtool *string `json:"subtool"`
@@ -6403,8 +6418,8 @@ type ToolObject struct {
 	Url *string `json:"url"`
 }
 
-// ToolObjectObject The object type, which is always `tool`.
-type ToolObjectObject string
+// XToolObjectObject The object type, which is always `tool`.
+type XToolObjectObject string
 
 // ListAssistantsParams defines parameters for ListAssistants.
 type ListAssistantsParams struct {
@@ -6597,6 +6612,24 @@ type ExtendedListRunStepsParams struct {
 
 // ExtendedListRunStepsParamsOrder defines parameters for ExtendedListRunSteps.
 type ExtendedListRunStepsParamsOrder string
+
+// ListThreadsParams defines parameters for ListThreads.
+type ListThreadsParams struct {
+	// Limit A limit on the number of objects to be returned. Limit can range between 1 and 100, and the default is 20.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Order Sort order by the `created_at` timestamp of the objects. `asc` for ascending order and `desc` for descending order.
+	Order *ListThreadsParamsOrder `form:"order,omitempty" json:"order,omitempty"`
+
+	// After A cursor for use in pagination. `after` is an object ID that defines your place in the list. For instance, if you make a list request and receive 100 objects, ending with obj_foo, your subsequent call can include after=obj_foo in order to fetch the next page of the list.
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+
+	// Before A cursor for use in pagination. `before` is an object ID that defines your place in the list. For instance, if you make a list request and receive 100 objects, ending with obj_foo, your subsequent call can include before=obj_foo in order to fetch the previous page of the list.
+	Before *string `form:"before,omitempty" json:"before,omitempty"`
+}
+
+// ListThreadsParamsOrder defines parameters for ListThreads.
+type ListThreadsParamsOrder string
 
 // ListToolsParams defines parameters for ListTools.
 type ListToolsParams struct {
@@ -6803,10 +6836,10 @@ type ExtendedModifyRunJSONRequestBody = ExtendedModifyRunRequest
 type ExtendedSubmitToolOuputsToRunJSONRequestBody = ExtendedSubmitToolOutputsRunRequest
 
 // CreateToolJSONRequestBody defines body for CreateTool for application/json ContentType.
-type CreateToolJSONRequestBody = CreateToolRequest
+type CreateToolJSONRequestBody = XCreateToolRequest
 
 // ModifyToolJSONRequestBody defines body for ModifyTool for application/json ContentType.
-type ModifyToolJSONRequestBody = ModifyToolRequest
+type ModifyToolJSONRequestBody = XModifyToolRequest
 
 // CreateThreadJSONRequestBody defines body for CreateThread for application/json ContentType.
 type CreateThreadJSONRequestBody = CreateThreadRequest

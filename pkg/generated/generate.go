@@ -99,6 +99,14 @@ func main() {
 	}
 
 	for key, component := range newS.Components.Schemas {
+		// This nonsense allows our extended APIs to reference types in the OpenAI API schema.
+		component.Ref = strings.TrimPrefix(component.Ref, "../../openapi.yaml")
+		for _, item := range component.Value.Properties {
+			item.Ref = strings.TrimPrefix(item.Ref, "../../openapi.yaml")
+			if item.Value != nil && item.Value.Items != nil {
+				item.Value.Items.Ref = strings.TrimPrefix(item.Value.Items.Ref, "../../openapi.yaml")
+			}
+		}
 		s.Components.Schemas[key] = component
 	}
 	for path, pathItem := range newS.Paths.Map() {
