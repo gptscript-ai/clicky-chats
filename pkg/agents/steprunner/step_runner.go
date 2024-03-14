@@ -17,6 +17,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/agents"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
+	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/gptscript-ai/gptscript/pkg/loader"
 	gptopenai "github.com/gptscript-ai/gptscript/pkg/openai"
 	"github.com/gptscript-ai/gptscript/pkg/repos/runtimes"
@@ -35,8 +36,8 @@ type Config struct {
 	APIURL, APIKey, AgentID string
 }
 
-func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
-	a, err := newAgent(gdb, cfg)
+func Start(ctx context.Context, gdb *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) error {
+	a, err := newAgent(gdb, kbm, cfg)
 	if err != nil {
 		return err
 	}
@@ -54,11 +55,12 @@ type agent struct {
 	id, apiKey, url string
 	client          *http.Client
 	db              *db.DB
+	kbm             *kb.KnowledgeBaseManager
 
 	builtInToolDefinitions map[string]types.Program
 }
 
-func newAgent(db *db.DB, cfg Config) (*agent, error) {
+func newAgent(db *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) (*agent, error) {
 	if cfg.PollingInterval < minPollingInterval {
 		return nil, fmt.Errorf("polling interval must be at least %s", minPollingInterval)
 	}
@@ -68,6 +70,7 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 		client:          http.DefaultClient,
 		apiKey:          cfg.APIKey,
 		db:              db,
+		kbm:             kbm,
 		id:              cfg.AgentID,
 		url:             cfg.APIURL,
 	}, nil
@@ -195,7 +198,14 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			}
 		}
 
-		output, err := runner.Run(server.ContextWithNewID(ctx), prg, os.Environ(), arguments)
+		// extra environment variables for knowledge retrieval
+		envs := append(os.Environ(),
+			// leading http:// removed, since GPTScript needs to have it in the #!http:// instruction to determine that it's an HTTP call
+			"knowledge_retrieval_api_url="+strings.TrimSuffix(strings.TrimPrefix(a.kbm.KnowledgeRetrievalAPIURL, "http://"), "/"),
+			"knowledge_retrieval_dataset="+strings.ToLower(run.AssistantID),
+		)
+
+		output, err := runner.Run(server.ContextWithNewID(ctx), prg, envs, arguments)
 		if err != nil {
 			return fmt.Errorf("failed to run: %w", err)
 		}

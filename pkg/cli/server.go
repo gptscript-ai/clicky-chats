@@ -36,7 +36,7 @@ func (s *Server) Run(cmd *cobra.Command, _ []string) error {
 	}
 
 	if s.WithAgents {
-		if err = runAgents(cmd.Context(), gormDB, &s.Agent); err != nil {
+		if err = runAgents(cmd.Context(), gormDB, kbManager, &s.Agent); err != nil {
 			return err
 		}
 	}

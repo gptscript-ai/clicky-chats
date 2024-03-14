@@ -26,7 +26,9 @@ const (
 var builtInFunctionNameToDefinition = map[string]ToolDefinition{
 	"web_browsing": {Link: "github.com/gptscript-ai/question-answerer/duckduckgo"},
 	// TODO(thedadams): This will be moved to gptscript-ai in the future.
-	"code_interpreter": {Link: "github.com/thedadams/code-interpreter"},
+	"code_interpreter": {Link: "<skip>"},
+	// TODO(@iwilltry42): This will be moved to the knowledge-retrieval-api repo once that's public
+	"retrieval": {Link: "github.com/iwilltry42/kratool"},
 }
 
 type ToolDefinition struct {

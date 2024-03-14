@@ -8,26 +8,22 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 )
 
 const (
-	AssistantPrefix string = "as-" // Assistant-internal (i.e. not shared) knowledge base prefix
-	SharedPrefix    string = "kb-" // Shared knowledge base prefix
+	SharedPrefix string = "kb-" // Shared knowledge base prefix
 )
 
 /*
  * Handling Knowledge Base IDs
  */
 
-func GetAssistantKnowledgeBaseID(assistantID string) string {
-	return AssistantPrefix + assistantID
-}
-
 func NewSharedKnowledgeBaseID() string {
-	return SharedPrefix + uuid.New().String()
+	return strings.ToLower(SharedPrefix + uuid.New().String())
 }
 
 /*
@@ -35,7 +31,7 @@ func NewSharedKnowledgeBaseID() string {
  */
 
 func (m *KnowledgeBaseManager) NewAssistantKnowledgeBase(ctx context.Context, assistantID string) (string, error) {
-	return m.CreateKnowledgeBase(ctx, GetAssistantKnowledgeBaseID(assistantID))
+	return m.CreateKnowledgeBase(ctx, assistantID)
 }
 
 func (m *KnowledgeBaseManager) NewSharedKnowledgeBase(ctx context.Context) (string, error) {
@@ -52,6 +48,8 @@ type CreateKnowledgeBaseResponse struct {
 }
 
 func (m *KnowledgeBaseManager) CreateKnowledgeBase(ctx context.Context, id string) (string, error) {
+
+	id = strings.ToLower(id)
 
 	url := m.KnowledgeRetrievalAPIURL + "/datasets/create"
 	payload := CreateKnowledgeBaseRequest{
@@ -96,6 +94,8 @@ func (m *KnowledgeBaseManager) CreateKnowledgeBase(ctx context.Context, id strin
 }
 
 func (m *KnowledgeBaseManager) DeleteKnowledgeBase(ctx context.Context, id string) error {
+	id = strings.ToLower(id)
+
 	url := m.KnowledgeRetrievalAPIURL + "/datasets/" + id
 
 	req, err := http.NewRequest("DELETE", url, nil)
@@ -123,6 +123,8 @@ type IngestFileRequest struct {
 }
 
 func (m *KnowledgeBaseManager) AddFile(ctx context.Context, id string, fileID string) error {
+	id = strings.ToLower(id)
+
 	url := m.KnowledgeRetrievalAPIURL + "/datasets/" + id + "/ingest"
 
 	gdb := m.db.WithContext(ctx)
