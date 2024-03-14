@@ -5,7 +5,7 @@ import (
 )
 
 type Config struct {
-	KnowledgeRetrievalAPIURL string `usage:"Knowledge retrieval API URL" default:"http://localhost:8000" env:"CLICKY_CHATS_KNOWLEDGE_RETRIEVAL_API_URL"`
+	KnowledgeRetrievalAPIURL string `usage:"Knowledge retrieval API URL" env:"CLICKY_CHATS_KNOWLEDGE_RETRIEVAL_API_URL"`
 }
 
 type KnowledgeBaseManager struct {

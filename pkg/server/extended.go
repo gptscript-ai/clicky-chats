@@ -108,15 +108,17 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 		return nil
 	}
 
-	if err := initKnowledgeBase(s.kbm, a); err != nil {
-		slog.Error("Failed to initialize assistant knowledge base", "id", a.ID, "err", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to initialize assistant knowledge base: %s", err.Error()), InternalErrorType).Error()))
-		err = db.Delete[db.Assistant](s.db.WithContext(r.Context()), a.ID)
-		if err != nil {
-			slog.Error("Failed to cleanup assistant that failed to create", "id", a.ID, "err", err)
+	if s.kbm != nil {
+		if err := initKnowledgeBase(s.kbm, a); err != nil {
+			slog.Error("Failed to initialize assistant knowledge base", "id", a.ID, "err", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to initialize assistant knowledge base: %s", err.Error()), InternalErrorType).Error()))
+			err = db.Delete[db.Assistant](s.db.WithContext(r.Context()), a.ID)
+			if err != nil {
+				slog.Error("Failed to cleanup assistant that failed to create", "id", a.ID, "err", err)
+			}
+			return
 		}
-		return
 	}
 
 	// Now return the assistant in the response
@@ -128,9 +130,11 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) ExtendedDeleteAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
-	err := s.kbm.DeleteKnowledgeBase(r.Context(), assistantID)
-	if err != nil {
-		slog.Error("Failed to delete assistant knowledge base", "id", assistantID, "err", err)
+	if s.kbm != nil {
+		err := s.kbm.DeleteKnowledgeBase(r.Context(), assistantID)
+		if err != nil {
+			slog.Error("Failed to delete assistant knowledge base", "id", assistantID, "err", err)
+		}
 	}
 
 	//nolint:govet

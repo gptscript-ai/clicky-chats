@@ -15,6 +15,9 @@ export OPENAI_API_KEY=<your-api-key>
 make run-dev
 ```
 
+If you need to create assistants that use the `retrieval` tool, you will also need to run the `knowledge-retrieval-api` service. See the Complimentary Services section for more information.
+In that case, you need to `export CLICKY_CHATS_KNOWLEDGE_RETRIEVAL_API_URL=http://localhost:8000` before starting clicky-chats.
+
 Setting the `CLICKY_CHATS_DEBUG` environment variable to anything will turn on debug logging:
 
 ```bash
@@ -78,6 +81,14 @@ The knowledge retrieval API is a simple API backed by a Vector Database that all
     ```bash
     make run-dev
     ```
+
+##### Note
+
+You have to start clicky-chats with the following environment variable pointing to the knowledge-retrieval-api:
+
+```bash
+export CLICKY_CHATS_KNOWLEDGE_RETRIEVAL_API_URL=http://localhost:8000
+```
 
 ## Extending the OpenAI API
 
