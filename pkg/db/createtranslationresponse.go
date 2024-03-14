@@ -41,10 +41,7 @@ func (c *CreateTranslationResponse) FromPublic(obj any) error {
 	//nolint:govet
 	*c = CreateTranslationResponse{
 		JobResponse{},
-		Base{
-			"",
-			0,
-		},
+		Base{},
 		o.Text,
 	}
 
