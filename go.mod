@@ -2,15 +2,19 @@ module github.com/gptscript-ai/clicky-chats
 
 go 1.22.0
 
+replace github.com/deepmap/oapi-codegen/v2 => github.com/deepmap/oapi-codegen/v2 v2.1.1-0.20240304154729-dd082985a9b6
+
 require (
 	github.com/acorn-io/broadcaster v0.0.0-20240105011354-bfadd4a7b45d
 	github.com/acorn-io/cmd v0.0.0-20240203032901-e9e631185ddb
 	github.com/acorn-io/z v0.0.0-20231104012607-4cab1b3ec5e5
 	github.com/adrg/xdg v0.4.0
+	github.com/deepmap/oapi-codegen/v2 v2.1.0
 	github.com/getkin/kin-openapi v0.123.0
 	github.com/glebarez/sqlite v1.10.0
 	github.com/google/uuid v1.5.0
 	github.com/gptscript-ai/gptscript v0.2.0-rc1.0.20240312205458-74a3d5681004
+	github.com/invopop/yaml v0.2.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/spf13/cobra v1.8.0
@@ -44,7 +48,6 @@ require (
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/invopop/yaml v0.2.0 // indirect
 	github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
@@ -74,10 +77,12 @@ require (
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc // indirect
+	golang.org/x/mod v0.15.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/tools v0.17.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 	modernc.org/libc v1.22.5 // indirect

@@ -19,7 +19,7 @@ lint: setup-env
 	golangci-lint run
 
 # Runs linters and validates that all generated code is committed.
-validate-code: tidy lint
+validate-code: tidy lint generate
 	if [ -n "$$(git status --porcelain)" ]; then \
 		git status --porcelain; \
 		echo "Encountered dirty repo!"; \
@@ -40,8 +40,7 @@ integration:
 	$(GOTESTSUM) ./integration/...
 
 generate:
-	oapi-codegen -package openai -generate types,skip-prune -o pkg/generated/openai/types.go https://raw.githubusercontent.com/openai/openai-openapi/6b64280c3db0082cbafa34495b9f3a3a58eb960d/openapi.yaml
-	oapi-codegen -package openai -generate std-http-server,spec -o pkg/generated/openai/server.go https://raw.githubusercontent.com/openai/openai-openapi/6b64280c3db0082cbafa34495b9f3a3a58eb960d/openapi.yaml
+	go generate ./pkg/generated/generate.go
 
 run-dev:
 	go run -tags "${GO_TAGS}" -ldflags "-s -w" ./main.go server --with-agents=true

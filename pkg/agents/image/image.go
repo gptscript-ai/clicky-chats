@@ -83,7 +83,6 @@ func (a *agent) Start(ctx context.Context) {
 				}
 			}
 		}()
-
 	}
 
 	// Start cleanup

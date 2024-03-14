@@ -70,6 +70,10 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 func (a *agent) listAndStoreModels(ctx context.Context, modelsURL string) error {
 	// List models
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, modelsURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
 	req.Header.Add("Authorization", "Bearer "+a.apiKey)
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")

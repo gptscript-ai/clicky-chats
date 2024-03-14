@@ -4,12 +4,12 @@ import (
 	"context"
 )
 
-type extendedApiKey struct{}
+type extendedAPIKey struct{}
 
 func NewExtendedContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, extendedApiKey{}, struct{}{})
+	return context.WithValue(ctx, extendedAPIKey{}, struct{}{})
 }
 
 func IsExtendedAPIKey(ctx context.Context) bool {
-	return ctx.Value(extendedApiKey{}) != nil
+	return ctx.Value(extendedAPIKey{}) != nil
 }

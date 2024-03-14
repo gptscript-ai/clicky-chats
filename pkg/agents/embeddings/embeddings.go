@@ -36,7 +36,7 @@ func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 
 	// Models are listed and stored by the chat completion agent - this includes embedding models
 
-	a.Start(ctx, cfg.PollingInterval, cfg.RetentionPeriod)
+	a.Start(ctx)
 	return nil
 }
 
@@ -48,7 +48,6 @@ type agent struct {
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
-
 	if cfg.PollingInterval < minPollingInterval {
 		return nil, fmt.Errorf("polling interval must be at least %s", minPollingInterval)
 	}
@@ -67,7 +66,7 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}, nil
 }
 
-func (a *agent) Start(ctx context.Context, pollingInterval, cleanupTickTime time.Duration) {
+func (a *agent) Start(ctx context.Context) {
 	/*
 	 * Embeddings Runner
 	 */
@@ -170,7 +169,6 @@ func (a *agent) run(ctx context.Context) error {
 }
 
 func makeEmbeddingsRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, er *db.CreateEmbeddingRequest) (*db.CreateEmbeddingResponse, error) {
-
 	b, err := json.Marshal(er.ToPublic())
 	if err != nil {
 		return nil, err

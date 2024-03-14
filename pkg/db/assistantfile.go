@@ -19,7 +19,7 @@ func (af *AssistantFile) ToPublic() any {
 		af.AssistantID,
 		af.CreatedAt,
 		af.ID,
-		openai.AssistantFile,
+		openai.AssistantFileObjectObjectAssistantFile,
 	}
 }
 

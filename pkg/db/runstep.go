@@ -18,10 +18,10 @@ type RunStep struct {
 	ExpiredAt   *int                                                 `json:"expired_at"`
 	FailedAt    *int                                                 `json:"failed_at"`
 	LastError   datatypes.JSONType[RunLastError]                     `json:"last_error"`
-	RunId       string                                               `json:"run_id"`
+	RunID       string                                               `json:"run_id"`
 	Status      string                                               `json:"status"`
 	StepDetails datatypes.JSONType[openai.RunStepObject_StepDetails] `json:"step_details"`
-	ThreadId    string                                               `json:"thread_id"`
+	ThreadID    string                                               `json:"thread_id"`
 	Type        string                                               `json:"type"`
 	Usage       datatypes.JSONType[*openai.RunStepCompletionUsage]   `json:"usage"`
 
@@ -53,11 +53,11 @@ func (r *RunStep) ToPublic() any {
 			Message: lastError.Message,
 		},
 		z.Pointer[map[string]interface{}](r.Metadata.Metadata),
-		openai.ThreadRunStep,
-		r.RunId,
+		openai.RunStepObjectObjectThreadRunStep,
+		r.RunID,
 		openai.RunStepObjectStatus(r.Status),
 		r.StepDetails.Data(),
-		r.ThreadId,
+		r.ThreadID,
 		openai.RunStepObjectType(r.Type),
 		r.Usage.Data(),
 	}
@@ -194,7 +194,7 @@ func RunStepDetailsFromRunRequiredActionToolCalls(runRequiredActions []openai.Ru
 
 	stepDetails := openai.RunStepDetailsToolCallsObject{
 		ToolCalls: toolCalls,
-		Type:      openai.ToolCalls,
+		Type:      openai.RunStepDetailsToolCallsObjectTypeToolCalls,
 	}
 
 	details := new(openai.RunStepObject_StepDetails)
@@ -227,7 +227,7 @@ func constructRunStepToolCallItem(v any) (openai.RunStepDetailsToolCallsObject_T
 }
 
 func ExtractRunStepDetails(details openai.RunStepObject_StepDetails) (any, error) {
-	if tc, err := details.AsRunStepDetailsToolCallsObject(); err == nil && tc.Type == openai.ToolCalls {
+	if tc, err := details.AsRunStepDetailsToolCallsObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsObjectTypeToolCalls {
 		return tc, nil
 	}
 	if tc, err := details.AsRunStepDetailsMessageCreationObject(); err == nil && tc.Type == openai.RunStepDetailsMessageCreationObjectTypeMessageCreation {
