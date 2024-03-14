@@ -932,6 +932,13 @@ const (
 	ExtendedMessageObjectRoleUser      ExtendedMessageObjectRole = "user"
 )
 
+// Defines values for ExtendedMessageObjectStatus.
+const (
+	ExtendedMessageObjectStatusCompleted  ExtendedMessageObjectStatus = "completed"
+	ExtendedMessageObjectStatusInProgress ExtendedMessageObjectStatus = "in_progress"
+	ExtendedMessageObjectStatusIncomplete ExtendedMessageObjectStatus = "incomplete"
+)
+
 // Defines values for ExtendedModelObject.
 const (
 	ExtendedModelObjectModel ExtendedModelObject = "model"
@@ -1140,8 +1147,8 @@ const (
 
 // Defines values for MessageObjectRole.
 const (
-	Assistant MessageObjectRole = "assistant"
-	User      MessageObjectRole = "user"
+	MessageObjectRoleAssistant MessageObjectRole = "assistant"
+	MessageObjectRoleUser      MessageObjectRole = "user"
 )
 
 // Defines values for ModelObject.
@@ -1245,11 +1252,11 @@ const (
 
 // Defines values for RunStepObjectStatus.
 const (
-	RunStepObjectStatusCancelled  RunStepObjectStatus = "cancelled"
-	RunStepObjectStatusCompleted  RunStepObjectStatus = "completed"
-	RunStepObjectStatusExpired    RunStepObjectStatus = "expired"
-	RunStepObjectStatusFailed     RunStepObjectStatus = "failed"
-	RunStepObjectStatusInProgress RunStepObjectStatus = "in_progress"
+	Cancelled  RunStepObjectStatus = "cancelled"
+	Completed  RunStepObjectStatus = "completed"
+	Expired    RunStepObjectStatus = "expired"
+	Failed     RunStepObjectStatus = "failed"
+	InProgress RunStepObjectStatus = "in_progress"
 )
 
 // Defines values for RunStepObjectType.
@@ -1260,7 +1267,7 @@ const (
 
 // Defines values for RunToolCallObjectType.
 const (
-	Function RunToolCallObjectType = "function"
+	RunToolCallObjectTypeFunction RunToolCallObjectType = "function"
 )
 
 // Defines values for ThreadObjectObject.
@@ -1271,6 +1278,77 @@ const (
 // Defines values for XDeleteToolResponseObject.
 const (
 	ToolDeleted XDeleteToolResponseObject = "tool.deleted"
+)
+
+// Defines values for XMessageDeltaContentImageFileObjectType.
+const (
+	ImageFile XMessageDeltaContentImageFileObjectType = "image_file"
+)
+
+// Defines values for XMessageDeltaContentTextObjectType.
+const (
+	Text XMessageDeltaContentTextObjectType = "text"
+)
+
+// Defines values for XMessageDeltaContentTextObjectTextAnnotationFileCitationType.
+const (
+	FileCitation XMessageDeltaContentTextObjectTextAnnotationFileCitationType = "file_citation"
+)
+
+// Defines values for XMessageDeltaContentTextObjectTextAnnotationFilePathType.
+const (
+	FilePath XMessageDeltaContentTextObjectTextAnnotationFilePathType = "file_path"
+)
+
+// Defines values for XMessageDeltaObjectObject.
+const (
+	ThreadMessageDelta XMessageDeltaObjectObject = "thread.message.delta"
+)
+
+// Defines values for XMessageDeltaObjectDeltaRole.
+const (
+	XMessageDeltaObjectDeltaRoleAssistant XMessageDeltaObjectDeltaRole = "assistant"
+	XMessageDeltaObjectDeltaRoleUser      XMessageDeltaObjectDeltaRole = "user"
+)
+
+// Defines values for XRunStepDeltaObjectObject.
+const (
+	ThreadRunStepDelta XRunStepDeltaObjectObject = "thread.run.step.delta"
+)
+
+// Defines values for XRunStepDeltaObjectDeltaMessageCreationType.
+const (
+	MessageCreation XRunStepDeltaObjectDeltaMessageCreationType = "message_creation"
+)
+
+// Defines values for XRunStepDeltaObjectDeltaToolCallsType.
+const (
+	ToolCalls XRunStepDeltaObjectDeltaToolCallsType = "tool_calls"
+)
+
+// Defines values for XRunStepDeltaObjectDeltaToolCallsObjectCodeType.
+const (
+	Code XRunStepDeltaObjectDeltaToolCallsObjectCodeType = "code"
+)
+
+// Defines values for XRunStepDeltaObjectDeltaToolCallsObjectFunctionType.
+const (
+	XRunStepDeltaObjectDeltaToolCallsObjectFunctionTypeFunction XRunStepDeltaObjectDeltaToolCallsObjectFunctionType = "function"
+)
+
+// Defines values for XRunStepDeltaObjectDeltaToolCallsObjectRetrievalType.
+const (
+	Retrieval XRunStepDeltaObjectDeltaToolCallsObjectRetrievalType = "retrieval"
+)
+
+// Defines values for XRunStepDetailsToolCallsCodeObjectImageOutputType.
+const (
+	XRunStepDetailsToolCallsCodeObjectImageOutputTypeImage XRunStepDetailsToolCallsCodeObjectImageOutputType = "image"
+)
+
+// Defines values for XRunStepDetailsToolCallsCodeObjectLogOutputType.
+const (
+	Log XRunStepDetailsToolCallsCodeObjectLogOutputType = "log"
 )
 
 // Defines values for XToolObjectObject.
@@ -4396,6 +4474,9 @@ type ExtendedCreateRunRequest struct {
 	// Model The ID of the [Model](/docs/api-reference/models) to be used to execute this run. If a value is provided here, it will override the model associated with the assistant. If not, the model associated with the assistant will be used.
 	Model *string `json:"model"`
 
+	// Stream If true, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a data: [DONE] message.
+	Stream *bool `json:"stream"`
+
 	// Tools Override the tools the assistant can use for this run. This is useful for modifying the behavior on a per-run basis.
 	Tools *[]ExtendedCreateRunRequest_Tools_Item `json:"tools"`
 }
@@ -4971,6 +5052,9 @@ type ExtendedMessageObject struct {
 	// AssistantId If applicable, the ID of the [assistant](/docs/api-reference/assistants) that authored this message.
 	AssistantId *string `json:"assistant_id"`
 
+	// CompletedAt The Unix timestamp (in seconds) for when the message was completed.
+	CompletedAt *int `json:"completed_at"`
+
 	// Content The content of the message in array of text and/or images.
 	Content []ExtendedMessageObject_Content_Item `json:"content"`
 
@@ -4983,6 +5067,14 @@ type ExtendedMessageObject struct {
 	// Id The identifier, which can be referenced in API endpoints.
 	Id string `json:"id"`
 
+	// IncompleteAt The Unix timestamp (in seconds) for when the message was completed.
+	IncompleteAt *int `json:"incomplete_at"`
+
+	// IncompleteDetails On an incomplete message, details about why the message is incomplete.
+	IncompleteDetails *struct {
+		Reason *string `json:"reason,omitempty"`
+	} `json:"incomplete_details"`
+
 	// Metadata Set of 16 key-value pairs that can be attached to an object. This can be useful for storing additional information about the object in a structured format. Keys can be a maximum of 64 characters long and values can be a maxium of 512 characters long.
 	Metadata *map[string]interface{} `json:"metadata"`
 
@@ -4994,6 +5086,9 @@ type ExtendedMessageObject struct {
 
 	// RunId If applicable, the ID of the [run](/docs/api-reference/runs) associated with the authoring of this message.
 	RunId *string `json:"run_id"`
+
+	// Status The status of the message, which can be either in_progress, incomplete, or completed.
+	Status *ExtendedMessageObjectStatus `json:"status,omitempty"`
 
 	// ThreadId The [thread](/docs/api-reference/threads) ID that this message belongs to.
 	ThreadId string `json:"thread_id"`
@@ -5009,6 +5104,9 @@ type ExtendedMessageObjectObject string
 
 // ExtendedMessageObjectRole The entity that produced the message. One of `user` or `assistant`.
 type ExtendedMessageObjectRole string
+
+// ExtendedMessageObjectStatus The status of the message, which can be either in_progress, incomplete, or completed.
+type ExtendedMessageObjectStatus string
 
 // ExtendedModel Describes an OpenAI model offering that can be used with the API.
 type ExtendedModel struct {
@@ -5459,6 +5557,9 @@ type ExtendedRunToolCallObjectType string
 
 // ExtendedSubmitToolOutputsRunRequest defines model for ExtendedSubmitToolOutputsRunRequest.
 type ExtendedSubmitToolOutputsRunRequest struct {
+	// Stream If true, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a data: [DONE] message.
+	Stream *bool `json:"stream"`
+
 	// ToolOutputs A list of tools for which the outputs are being submitted.
 	ToolOutputs []struct {
 		// Output The output of the tool call to be submitted to continue the run.
@@ -6376,6 +6477,126 @@ type XListToolsResponse struct {
 	Object  string        `json:"object"`
 }
 
+// XMessageDeltaContentImageFileObject References an image [File](/docs/api-reference/files) in the content of a message.
+type XMessageDeltaContentImageFileObject struct {
+	ImageFile struct {
+		// FileId The [File](/docs/api-reference/files) ID of the image in the message content.
+		FileId string `json:"file_id"`
+	} `json:"image_file"`
+
+	// Index The index of the content part in the message.
+	Index *int `json:"index,omitempty"`
+
+	// Type Always `image_file`.
+	Type XMessageDeltaContentImageFileObjectType `json:"type"`
+}
+
+// XMessageDeltaContentImageFileObjectType Always `image_file`.
+type XMessageDeltaContentImageFileObjectType string
+
+// XMessageDeltaContentTextObject defines model for XMessageDeltaContentTextObject.
+type XMessageDeltaContentTextObject struct {
+	// Index The index of the content part in the message.
+	Index *int                                `json:"index,omitempty"`
+	Text  *XMessageDeltaContentTextObjectText `json:"text,omitempty"`
+
+	// Type Always `text`.
+	Type XMessageDeltaContentTextObjectType `json:"type"`
+}
+
+// XMessageDeltaContentTextObjectType Always `text`.
+type XMessageDeltaContentTextObjectType string
+
+// XMessageDeltaContentTextObjectText defines model for XMessageDeltaContentTextObjectText.
+type XMessageDeltaContentTextObjectText struct {
+	Annotations *[]XMessageDeltaContentTextObjectText_Annotations_Item `json:"annotations,omitempty"`
+	Text        *string                                                `json:"text,omitempty"`
+}
+
+// XMessageDeltaContentTextObjectText_Annotations_Item defines model for XMessageDeltaContentTextObjectText.annotations.Item.
+type XMessageDeltaContentTextObjectText_Annotations_Item struct {
+	union json.RawMessage
+}
+
+// XMessageDeltaContentTextObjectTextAnnotationFileCitation defines model for XMessageDeltaContentTextObjectTextAnnotationFileCitation.
+type XMessageDeltaContentTextObjectTextAnnotationFileCitation struct {
+	EndIndex     *int                                                            `json:"end_index,omitempty"`
+	FileCitation *XMessageDeltaContentTextObjectTextAnnotationFileCitationObject `json:"file_citation,omitempty"`
+	Index        *int                                                            `json:"index,omitempty"`
+	StartIndex   *int                                                            `json:"start_index,omitempty"`
+	Text         *string                                                         `json:"text,omitempty"`
+	Type         *XMessageDeltaContentTextObjectTextAnnotationFileCitationType   `json:"type,omitempty"`
+}
+
+// XMessageDeltaContentTextObjectTextAnnotationFileCitationType defines model for XMessageDeltaContentTextObjectTextAnnotationFileCitation.Type.
+type XMessageDeltaContentTextObjectTextAnnotationFileCitationType string
+
+// XMessageDeltaContentTextObjectTextAnnotationFileCitationObject defines model for XMessageDeltaContentTextObjectTextAnnotationFileCitationObject.
+type XMessageDeltaContentTextObjectTextAnnotationFileCitationObject struct {
+	FileId string `json:"file_id"`
+	Quote  string `json:"quote"`
+}
+
+// XMessageDeltaContentTextObjectTextAnnotationFilePath defines model for XMessageDeltaContentTextObjectTextAnnotationFilePath.
+type XMessageDeltaContentTextObjectTextAnnotationFilePath struct {
+	EndIndex   *int                                                        `json:"end_index,omitempty"`
+	FilePath   *XMessageDeltaContentTextObjectTextAnnotationFilePathObject `json:"file_path,omitempty"`
+	Index      *int                                                        `json:"index,omitempty"`
+	StartIndex *int                                                        `json:"start_index,omitempty"`
+	Text       *string                                                     `json:"text,omitempty"`
+	Type       *XMessageDeltaContentTextObjectTextAnnotationFilePathType   `json:"type,omitempty"`
+}
+
+// XMessageDeltaContentTextObjectTextAnnotationFilePathType defines model for XMessageDeltaContentTextObjectTextAnnotationFilePath.Type.
+type XMessageDeltaContentTextObjectTextAnnotationFilePathType string
+
+// XMessageDeltaContentTextObjectTextAnnotationFilePathObject defines model for XMessageDeltaContentTextObjectTextAnnotationFilePathObject.
+type XMessageDeltaContentTextObjectTextAnnotationFilePathObject struct {
+	FileId string `json:"file_id"`
+}
+
+// XMessageDeltaObject Represents a message delta i.e. any changed fields on a message during streaming.
+type XMessageDeltaObject struct {
+	Delta *XMessageDeltaObjectDelta `json:"delta,omitempty"`
+
+	// Id The identifier, which can be referenced in API endpoints.
+	Id string `json:"id"`
+
+	// Object The object type, which is always `thread.message.delta`.
+	Object XMessageDeltaObjectObject `json:"object"`
+}
+
+// XMessageDeltaObjectObject The object type, which is always `thread.message.delta`.
+type XMessageDeltaObjectObject string
+
+// XMessageDeltaObjectDelta defines model for XMessageDeltaObjectDelta.
+type XMessageDeltaObjectDelta struct {
+	// Content The content of the message in array of text and/or images.
+	Content XMessageDeltaObjectDeltaContent `json:"content"`
+
+	// FileIds A list of [file](/docs/api-reference/files) IDs that the assistant should use. Useful for tools like retrieval and code_interpreter that can access files. A maximum of 10 files can be attached to a message.
+	FileIds *[]string `json:"file_ids,omitempty"`
+
+	// Role The entity that produced the message. One of `user` or `assistant`.
+	Role *XMessageDeltaObjectDeltaRole `json:"role,omitempty"`
+}
+
+// XMessageDeltaObjectDeltaRole The entity that produced the message. One of `user` or `assistant`.
+type XMessageDeltaObjectDeltaRole string
+
+// XMessageDeltaObjectDeltaContent The content of the message in array of text and/or images.
+type XMessageDeltaObjectDeltaContent = []XMessageDeltaObjectDeltaContent_Item
+
+// XMessageDeltaObjectDeltaContent_Item defines model for XMessageDeltaObjectDeltaContent.Item.
+type XMessageDeltaObjectDeltaContent_Item struct {
+	union json.RawMessage
+}
+
+// XMessageDeltaObjectDeltaMessageCreation defines model for XMessageDeltaObjectDeltaMessageCreation.
+type XMessageDeltaObjectDeltaMessageCreation struct {
+	MessageId string `json:"message_id"`
+}
+
 // XModifyToolRequest defines model for XModifyToolRequest.
 type XModifyToolRequest struct {
 	// Contents Contents of the tool
@@ -6399,6 +6620,128 @@ type XModifyToolRequest struct {
 	// Url URL of the tool
 	Url *string `json:"url"`
 }
+
+// XRunStepDeltaDetailsToolCallsFunctionObject defines model for XRunStepDeltaDetailsToolCallsFunctionObject.
+type XRunStepDeltaDetailsToolCallsFunctionObject struct {
+	Arguments *string `json:"arguments,omitempty"`
+	Name      string  `json:"name"`
+	Output    *string `json:"output,omitempty"`
+}
+
+// XRunStepDeltaObject defines model for XRunStepDeltaObject.
+type XRunStepDeltaObject struct {
+	Delta  XRunStepDeltaObjectDelta  `json:"delta"`
+	Id     string                    `json:"id"`
+	Object XRunStepDeltaObjectObject `json:"object"`
+}
+
+// XRunStepDeltaObjectObject defines model for XRunStepDeltaObject.Object.
+type XRunStepDeltaObjectObject string
+
+// XRunStepDeltaObjectDelta defines model for XRunStepDeltaObjectDelta.
+type XRunStepDeltaObjectDelta struct {
+	StepDetails *XRunStepDeltaObjectDelta_StepDetails `json:"step_details,omitempty"`
+}
+
+// XRunStepDeltaObjectDelta_StepDetails defines model for XRunStepDeltaObjectDelta.StepDetails.
+type XRunStepDeltaObjectDelta_StepDetails struct {
+	union json.RawMessage
+}
+
+// XRunStepDeltaObjectDeltaMessageCreation defines model for XRunStepDeltaObjectDeltaMessageCreation.
+type XRunStepDeltaObjectDeltaMessageCreation struct {
+	MessageCreation XMessageDeltaObjectDeltaMessageCreation     `json:"message_creation"`
+	Type            XRunStepDeltaObjectDeltaMessageCreationType `json:"type"`
+}
+
+// XRunStepDeltaObjectDeltaMessageCreationType defines model for XRunStepDeltaObjectDeltaMessageCreation.Type.
+type XRunStepDeltaObjectDeltaMessageCreationType string
+
+// XRunStepDeltaObjectDeltaToolCalls defines model for XRunStepDeltaObjectDeltaToolCalls.
+type XRunStepDeltaObjectDeltaToolCalls struct {
+	ToolCalls []XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item `json:"tool_calls"`
+	Type      XRunStepDeltaObjectDeltaToolCallsType              `json:"type"`
+}
+
+// XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item defines model for XRunStepDeltaObjectDeltaToolCalls.tool_calls.Item.
+type XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item struct {
+	union json.RawMessage
+}
+
+// XRunStepDeltaObjectDeltaToolCallsType defines model for XRunStepDeltaObjectDeltaToolCalls.Type.
+type XRunStepDeltaObjectDeltaToolCallsType string
+
+// XRunStepDeltaObjectDeltaToolCallsObjectCode defines model for XRunStepDeltaObjectDeltaToolCallsObjectCode.
+type XRunStepDeltaObjectDeltaToolCallsObjectCode struct {
+	CodeInterpreter XRunStepDetailsToolCallsCodeObject              `json:"code_interpreter"`
+	Id              string                                          `json:"id"`
+	Index           int                                             `json:"index"`
+	Type            XRunStepDeltaObjectDeltaToolCallsObjectCodeType `json:"type"`
+}
+
+// XRunStepDeltaObjectDeltaToolCallsObjectCodeType defines model for XRunStepDeltaObjectDeltaToolCallsObjectCode.Type.
+type XRunStepDeltaObjectDeltaToolCallsObjectCodeType string
+
+// XRunStepDeltaObjectDeltaToolCallsObjectFunction defines model for XRunStepDeltaObjectDeltaToolCallsObjectFunction.
+type XRunStepDeltaObjectDeltaToolCallsObjectFunction struct {
+	Function *XRunStepDeltaDetailsToolCallsFunctionObject        `json:"function,omitempty"`
+	Id       string                                              `json:"id"`
+	Index    int                                                 `json:"index"`
+	Type     XRunStepDeltaObjectDeltaToolCallsObjectFunctionType `json:"type"`
+}
+
+// XRunStepDeltaObjectDeltaToolCallsObjectFunctionType defines model for XRunStepDeltaObjectDeltaToolCallsObjectFunction.Type.
+type XRunStepDeltaObjectDeltaToolCallsObjectFunctionType string
+
+// XRunStepDeltaObjectDeltaToolCallsObjectRetrieval defines model for XRunStepDeltaObjectDeltaToolCallsObjectRetrieval.
+type XRunStepDeltaObjectDeltaToolCallsObjectRetrieval struct {
+	Id    string `json:"id"`
+	Index int    `json:"index"`
+
+	// Retrieval For now, this is always going to be an empty object.
+	Retrieval *map[string]interface{}                              `json:"retrieval,omitempty"`
+	Type      XRunStepDeltaObjectDeltaToolCallsObjectRetrievalType `json:"type"`
+}
+
+// XRunStepDeltaObjectDeltaToolCallsObjectRetrievalType defines model for XRunStepDeltaObjectDeltaToolCallsObjectRetrieval.Type.
+type XRunStepDeltaObjectDeltaToolCallsObjectRetrievalType string
+
+// XRunStepDetailsToolCallsCodeObject defines model for XRunStepDetailsToolCallsCodeObject.
+type XRunStepDetailsToolCallsCodeObject struct {
+	// Input The input to the Code Interpreter tool call.
+	Input   *string                                            `json:"input,omitempty"`
+	Outputs *[]XRunStepDetailsToolCallsCodeObject_Outputs_Item `json:"outputs,omitempty"`
+}
+
+// XRunStepDetailsToolCallsCodeObject_Outputs_Item defines model for XRunStepDetailsToolCallsCodeObject.outputs.Item.
+type XRunStepDetailsToolCallsCodeObject_Outputs_Item struct {
+	union json.RawMessage
+}
+
+// XRunStepDetailsToolCallsCodeObjectImageOutput defines model for XRunStepDetailsToolCallsCodeObjectImageOutput.
+type XRunStepDetailsToolCallsCodeObjectImageOutput struct {
+	Image XRunStepDetailsToolCallsCodeObjectImageOutputObject `json:"image"`
+	Index int                                                 `json:"index"`
+	Type  XRunStepDetailsToolCallsCodeObjectImageOutputType   `json:"type"`
+}
+
+// XRunStepDetailsToolCallsCodeObjectImageOutputType defines model for XRunStepDetailsToolCallsCodeObjectImageOutput.Type.
+type XRunStepDetailsToolCallsCodeObjectImageOutputType string
+
+// XRunStepDetailsToolCallsCodeObjectImageOutputObject defines model for XRunStepDetailsToolCallsCodeObjectImageOutputObject.
+type XRunStepDetailsToolCallsCodeObjectImageOutputObject struct {
+	FileId string `json:"file_id"`
+}
+
+// XRunStepDetailsToolCallsCodeObjectLogOutput defines model for XRunStepDetailsToolCallsCodeObjectLogOutput.
+type XRunStepDetailsToolCallsCodeObjectLogOutput struct {
+	Index int                                             `json:"index"`
+	Log   string                                          `json:"log"`
+	Type  XRunStepDetailsToolCallsCodeObjectLogOutputType `json:"type"`
+}
+
+// XRunStepDetailsToolCallsCodeObjectLogOutputType defines model for XRunStepDetailsToolCallsCodeObjectLogOutput.Type.
+type XRunStepDetailsToolCallsCodeObjectLogOutputType string
 
 // XToolObject defines model for XToolObject.
 type XToolObject struct {
@@ -12209,6 +12552,342 @@ func (t RunStepObject_StepDetails) MarshalJSON() ([]byte, error) {
 }
 
 func (t *RunStepObject_StepDetails) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsXMessageDeltaContentTextObjectTextAnnotationFileCitation returns the union data inside the XMessageDeltaContentTextObjectText_Annotations_Item as a XMessageDeltaContentTextObjectTextAnnotationFileCitation
+func (t XMessageDeltaContentTextObjectText_Annotations_Item) AsXMessageDeltaContentTextObjectTextAnnotationFileCitation() (XMessageDeltaContentTextObjectTextAnnotationFileCitation, error) {
+	var body XMessageDeltaContentTextObjectTextAnnotationFileCitation
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromXMessageDeltaContentTextObjectTextAnnotationFileCitation overwrites any union data inside the XMessageDeltaContentTextObjectText_Annotations_Item as the provided XMessageDeltaContentTextObjectTextAnnotationFileCitation
+func (t *XMessageDeltaContentTextObjectText_Annotations_Item) FromXMessageDeltaContentTextObjectTextAnnotationFileCitation(v XMessageDeltaContentTextObjectTextAnnotationFileCitation) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeXMessageDeltaContentTextObjectTextAnnotationFileCitation performs a merge with any union data inside the XMessageDeltaContentTextObjectText_Annotations_Item, using the provided XMessageDeltaContentTextObjectTextAnnotationFileCitation
+func (t *XMessageDeltaContentTextObjectText_Annotations_Item) MergeXMessageDeltaContentTextObjectTextAnnotationFileCitation(v XMessageDeltaContentTextObjectTextAnnotationFileCitation) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsXMessageDeltaContentTextObjectTextAnnotationFilePath returns the union data inside the XMessageDeltaContentTextObjectText_Annotations_Item as a XMessageDeltaContentTextObjectTextAnnotationFilePath
+func (t XMessageDeltaContentTextObjectText_Annotations_Item) AsXMessageDeltaContentTextObjectTextAnnotationFilePath() (XMessageDeltaContentTextObjectTextAnnotationFilePath, error) {
+	var body XMessageDeltaContentTextObjectTextAnnotationFilePath
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromXMessageDeltaContentTextObjectTextAnnotationFilePath overwrites any union data inside the XMessageDeltaContentTextObjectText_Annotations_Item as the provided XMessageDeltaContentTextObjectTextAnnotationFilePath
+func (t *XMessageDeltaContentTextObjectText_Annotations_Item) FromXMessageDeltaContentTextObjectTextAnnotationFilePath(v XMessageDeltaContentTextObjectTextAnnotationFilePath) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeXMessageDeltaContentTextObjectTextAnnotationFilePath performs a merge with any union data inside the XMessageDeltaContentTextObjectText_Annotations_Item, using the provided XMessageDeltaContentTextObjectTextAnnotationFilePath
+func (t *XMessageDeltaContentTextObjectText_Annotations_Item) MergeXMessageDeltaContentTextObjectTextAnnotationFilePath(v XMessageDeltaContentTextObjectTextAnnotationFilePath) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t XMessageDeltaContentTextObjectText_Annotations_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *XMessageDeltaContentTextObjectText_Annotations_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsXMessageDeltaContentTextObject returns the union data inside the XMessageDeltaObjectDeltaContent_Item as a XMessageDeltaContentTextObject
+func (t XMessageDeltaObjectDeltaContent_Item) AsXMessageDeltaContentTextObject() (XMessageDeltaContentTextObject, error) {
+	var body XMessageDeltaContentTextObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromXMessageDeltaContentTextObject overwrites any union data inside the XMessageDeltaObjectDeltaContent_Item as the provided XMessageDeltaContentTextObject
+func (t *XMessageDeltaObjectDeltaContent_Item) FromXMessageDeltaContentTextObject(v XMessageDeltaContentTextObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeXMessageDeltaContentTextObject performs a merge with any union data inside the XMessageDeltaObjectDeltaContent_Item, using the provided XMessageDeltaContentTextObject
+func (t *XMessageDeltaObjectDeltaContent_Item) MergeXMessageDeltaContentTextObject(v XMessageDeltaContentTextObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsXMessageDeltaContentImageFileObject returns the union data inside the XMessageDeltaObjectDeltaContent_Item as a XMessageDeltaContentImageFileObject
+func (t XMessageDeltaObjectDeltaContent_Item) AsXMessageDeltaContentImageFileObject() (XMessageDeltaContentImageFileObject, error) {
+	var body XMessageDeltaContentImageFileObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromXMessageDeltaContentImageFileObject overwrites any union data inside the XMessageDeltaObjectDeltaContent_Item as the provided XMessageDeltaContentImageFileObject
+func (t *XMessageDeltaObjectDeltaContent_Item) FromXMessageDeltaContentImageFileObject(v XMessageDeltaContentImageFileObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeXMessageDeltaContentImageFileObject performs a merge with any union data inside the XMessageDeltaObjectDeltaContent_Item, using the provided XMessageDeltaContentImageFileObject
+func (t *XMessageDeltaObjectDeltaContent_Item) MergeXMessageDeltaContentImageFileObject(v XMessageDeltaContentImageFileObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t XMessageDeltaObjectDeltaContent_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *XMessageDeltaObjectDeltaContent_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsXRunStepDeltaObjectDeltaMessageCreation returns the union data inside the XRunStepDeltaObjectDelta_StepDetails as a XRunStepDeltaObjectDeltaMessageCreation
+func (t XRunStepDeltaObjectDelta_StepDetails) AsXRunStepDeltaObjectDeltaMessageCreation() (XRunStepDeltaObjectDeltaMessageCreation, error) {
+	var body XRunStepDeltaObjectDeltaMessageCreation
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromXRunStepDeltaObjectDeltaMessageCreation overwrites any union data inside the XRunStepDeltaObjectDelta_StepDetails as the provided XRunStepDeltaObjectDeltaMessageCreation
+func (t *XRunStepDeltaObjectDelta_StepDetails) FromXRunStepDeltaObjectDeltaMessageCreation(v XRunStepDeltaObjectDeltaMessageCreation) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeXRunStepDeltaObjectDeltaMessageCreation performs a merge with any union data inside the XRunStepDeltaObjectDelta_StepDetails, using the provided XRunStepDeltaObjectDeltaMessageCreation
+func (t *XRunStepDeltaObjectDelta_StepDetails) MergeXRunStepDeltaObjectDeltaMessageCreation(v XRunStepDeltaObjectDeltaMessageCreation) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsXRunStepDeltaObjectDeltaToolCalls returns the union data inside the XRunStepDeltaObjectDelta_StepDetails as a XRunStepDeltaObjectDeltaToolCalls
+func (t XRunStepDeltaObjectDelta_StepDetails) AsXRunStepDeltaObjectDeltaToolCalls() (XRunStepDeltaObjectDeltaToolCalls, error) {
+	var body XRunStepDeltaObjectDeltaToolCalls
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromXRunStepDeltaObjectDeltaToolCalls overwrites any union data inside the XRunStepDeltaObjectDelta_StepDetails as the provided XRunStepDeltaObjectDeltaToolCalls
+func (t *XRunStepDeltaObjectDelta_StepDetails) FromXRunStepDeltaObjectDeltaToolCalls(v XRunStepDeltaObjectDeltaToolCalls) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeXRunStepDeltaObjectDeltaToolCalls performs a merge with any union data inside the XRunStepDeltaObjectDelta_StepDetails, using the provided XRunStepDeltaObjectDeltaToolCalls
+func (t *XRunStepDeltaObjectDelta_StepDetails) MergeXRunStepDeltaObjectDeltaToolCalls(v XRunStepDeltaObjectDeltaToolCalls) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t XRunStepDeltaObjectDelta_StepDetails) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *XRunStepDeltaObjectDelta_StepDetails) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsXRunStepDeltaObjectDeltaToolCallsObjectCode returns the union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item as a XRunStepDeltaObjectDeltaToolCallsObjectCode
+func (t XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) AsXRunStepDeltaObjectDeltaToolCallsObjectCode() (XRunStepDeltaObjectDeltaToolCallsObjectCode, error) {
+	var body XRunStepDeltaObjectDeltaToolCallsObjectCode
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromXRunStepDeltaObjectDeltaToolCallsObjectCode overwrites any union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item as the provided XRunStepDeltaObjectDeltaToolCallsObjectCode
+func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) FromXRunStepDeltaObjectDeltaToolCallsObjectCode(v XRunStepDeltaObjectDeltaToolCallsObjectCode) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeXRunStepDeltaObjectDeltaToolCallsObjectCode performs a merge with any union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item, using the provided XRunStepDeltaObjectDeltaToolCallsObjectCode
+func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) MergeXRunStepDeltaObjectDeltaToolCallsObjectCode(v XRunStepDeltaObjectDeltaToolCallsObjectCode) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsXRunStepDeltaObjectDeltaToolCallsObjectRetrieval returns the union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item as a XRunStepDeltaObjectDeltaToolCallsObjectRetrieval
+func (t XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) AsXRunStepDeltaObjectDeltaToolCallsObjectRetrieval() (XRunStepDeltaObjectDeltaToolCallsObjectRetrieval, error) {
+	var body XRunStepDeltaObjectDeltaToolCallsObjectRetrieval
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromXRunStepDeltaObjectDeltaToolCallsObjectRetrieval overwrites any union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item as the provided XRunStepDeltaObjectDeltaToolCallsObjectRetrieval
+func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) FromXRunStepDeltaObjectDeltaToolCallsObjectRetrieval(v XRunStepDeltaObjectDeltaToolCallsObjectRetrieval) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeXRunStepDeltaObjectDeltaToolCallsObjectRetrieval performs a merge with any union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item, using the provided XRunStepDeltaObjectDeltaToolCallsObjectRetrieval
+func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) MergeXRunStepDeltaObjectDeltaToolCallsObjectRetrieval(v XRunStepDeltaObjectDeltaToolCallsObjectRetrieval) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsXRunStepDeltaObjectDeltaToolCallsObjectFunction returns the union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item as a XRunStepDeltaObjectDeltaToolCallsObjectFunction
+func (t XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) AsXRunStepDeltaObjectDeltaToolCallsObjectFunction() (XRunStepDeltaObjectDeltaToolCallsObjectFunction, error) {
+	var body XRunStepDeltaObjectDeltaToolCallsObjectFunction
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromXRunStepDeltaObjectDeltaToolCallsObjectFunction overwrites any union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item as the provided XRunStepDeltaObjectDeltaToolCallsObjectFunction
+func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) FromXRunStepDeltaObjectDeltaToolCallsObjectFunction(v XRunStepDeltaObjectDeltaToolCallsObjectFunction) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeXRunStepDeltaObjectDeltaToolCallsObjectFunction performs a merge with any union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item, using the provided XRunStepDeltaObjectDeltaToolCallsObjectFunction
+func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) MergeXRunStepDeltaObjectDeltaToolCallsObjectFunction(v XRunStepDeltaObjectDeltaToolCallsObjectFunction) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsXRunStepDetailsToolCallsCodeObjectLogOutput returns the union data inside the XRunStepDetailsToolCallsCodeObject_Outputs_Item as a XRunStepDetailsToolCallsCodeObjectLogOutput
+func (t XRunStepDetailsToolCallsCodeObject_Outputs_Item) AsXRunStepDetailsToolCallsCodeObjectLogOutput() (XRunStepDetailsToolCallsCodeObjectLogOutput, error) {
+	var body XRunStepDetailsToolCallsCodeObjectLogOutput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromXRunStepDetailsToolCallsCodeObjectLogOutput overwrites any union data inside the XRunStepDetailsToolCallsCodeObject_Outputs_Item as the provided XRunStepDetailsToolCallsCodeObjectLogOutput
+func (t *XRunStepDetailsToolCallsCodeObject_Outputs_Item) FromXRunStepDetailsToolCallsCodeObjectLogOutput(v XRunStepDetailsToolCallsCodeObjectLogOutput) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeXRunStepDetailsToolCallsCodeObjectLogOutput performs a merge with any union data inside the XRunStepDetailsToolCallsCodeObject_Outputs_Item, using the provided XRunStepDetailsToolCallsCodeObjectLogOutput
+func (t *XRunStepDetailsToolCallsCodeObject_Outputs_Item) MergeXRunStepDetailsToolCallsCodeObjectLogOutput(v XRunStepDetailsToolCallsCodeObjectLogOutput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsXRunStepDetailsToolCallsCodeObjectImageOutput returns the union data inside the XRunStepDetailsToolCallsCodeObject_Outputs_Item as a XRunStepDetailsToolCallsCodeObjectImageOutput
+func (t XRunStepDetailsToolCallsCodeObject_Outputs_Item) AsXRunStepDetailsToolCallsCodeObjectImageOutput() (XRunStepDetailsToolCallsCodeObjectImageOutput, error) {
+	var body XRunStepDetailsToolCallsCodeObjectImageOutput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromXRunStepDetailsToolCallsCodeObjectImageOutput overwrites any union data inside the XRunStepDetailsToolCallsCodeObject_Outputs_Item as the provided XRunStepDetailsToolCallsCodeObjectImageOutput
+func (t *XRunStepDetailsToolCallsCodeObject_Outputs_Item) FromXRunStepDetailsToolCallsCodeObjectImageOutput(v XRunStepDetailsToolCallsCodeObjectImageOutput) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeXRunStepDetailsToolCallsCodeObjectImageOutput performs a merge with any union data inside the XRunStepDetailsToolCallsCodeObject_Outputs_Item, using the provided XRunStepDetailsToolCallsCodeObjectImageOutput
+func (t *XRunStepDetailsToolCallsCodeObject_Outputs_Item) MergeXRunStepDetailsToolCallsCodeObjectImageOutput(v XRunStepDetailsToolCallsCodeObjectImageOutput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t XRunStepDetailsToolCallsCodeObject_Outputs_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *XRunStepDetailsToolCallsCodeObject_Outputs_Item) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

@@ -31,6 +31,7 @@ type Run struct {
 	ClaimedBy       *string `json:"claimed_by,omitempty"`
 	SystemClaimedBy *string `json:"system_claimed_by,omitempty"`
 	SystemStatus    *string `json:"system_status,omitempty"`
+	EventIndex      int     `json:"event_index,omitempty"`
 }
 
 func (r *Run) IDPrefix() string {
@@ -115,6 +116,7 @@ func (r *Run) FromPublic(obj any) error {
 			nil,
 			nil,
 			nil,
+			0,
 		}
 	}
 

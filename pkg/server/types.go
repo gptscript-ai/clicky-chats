@@ -34,4 +34,5 @@ type JobRespondStreamer interface {
 	db.Storer
 	JobResponder
 	GetIndex() int
+	GetEvent() string
 }

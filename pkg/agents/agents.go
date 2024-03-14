@@ -17,31 +17,10 @@ import (
 	_ "github.com/gptscript-ai/gptscript/pkg/loader/github"
 )
 
-const (
-	GPTScriptRunnerType     = "gptscript"
-	GPTScriptToolNamePrefix = "gptscript_"
-	SkipLoadingTool         = "<skip>"
-)
-
-var builtInFunctionNameToDefinition = map[string]ToolDefinition{
-	"internet_search": {Link: "github.com/gptscript-ai/question-answerer/duckduckgo"},
-	"site_browsing":   {Link: "github.com/gptscript-ai/browse-web-page"},
-	// TODO(thedadams): This will be moved to gptscript-ai in the future.
-	"code_interpreter": {Link: "github.com/thedadams/code-interpreter"},
-	// TODO(@iwilltry42): This will be moved to the knowledge-retrieval-api repo once that's public
-	"retrieval": {Link: "github.com/iwilltry42/kratool"},
-}
-
-type ToolDefinition struct {
-	Link    string
-	Subtool string
-}
-
-func GPTScriptDefinitions() map[string]ToolDefinition {
-	return builtInFunctionNameToDefinition
-}
-
 func StreamChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, cc *db.CreateChatCompletionRequest) (<-chan db.ChatCompletionResponseChunk, error) {
+	// Ensure that streaming is enabled.
+	cc.Stream = z.Pointer(true)
+
 	b, err := json.Marshal(cc.ToPublic())
 	if err != nil {
 		return nil, err
@@ -71,6 +50,11 @@ func StreamChatCompletionRequest(ctx context.Context, l *slog.Logger, client *ht
 }
 
 func MakeChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, cc *db.CreateChatCompletionRequest) (*db.CreateChatCompletionResponse, error) {
+	if z.Dereference(cc.Stream) {
+		l.Warn("Non-streaming chat completion call with streaming enabled, disabling streaming")
+		cc.Stream = nil
+	}
+
 	b, err := json.Marshal(cc.ToPublic())
 	if err != nil {
 		return nil, err
@@ -116,9 +100,8 @@ func streamResponses(ctx context.Context, response *http.Response) <-chan db.Cha
 	var (
 		emptyMessagesCount int
 
-		dbResponse = new(db.ChatCompletionResponseChunk)
-		reader     = bufio.NewReader(response.Body)
-		stream     = make(chan db.ChatCompletionResponseChunk, 1)
+		reader = bufio.NewReader(response.Body)
+		stream = make(chan db.ChatCompletionResponseChunk, 1000)
 	)
 	go func() {
 		defer close(stream)
@@ -129,7 +112,8 @@ func streamResponses(ctx context.Context, response *http.Response) <-chan db.Cha
 			if readErr != nil {
 				sendChunk(ctx, stream, db.ChatCompletionResponseChunk{
 					JobResponse: db.JobResponse{
-						Error: z.Pointer(readErr.Error()),
+						StatusCode: http.StatusInternalServerError,
+						Error:      z.Pointer(readErr.Error()),
 					},
 				})
 				return
@@ -141,7 +125,8 @@ func streamResponses(ctx context.Context, response *http.Response) <-chan db.Cha
 				if emptyMessagesCount > 300 {
 					sendChunk(ctx, stream, db.ChatCompletionResponseChunk{
 						JobResponse: db.JobResponse{
-							Error: z.Pointer("stream has sent too many empty messages"),
+							StatusCode: http.StatusInternalServerError,
+							Error:      z.Pointer("stream has sent too many empty messages"),
 						},
 					})
 					return
@@ -154,21 +139,13 @@ func streamResponses(ctx context.Context, response *http.Response) <-chan db.Cha
 				return
 			}
 
-			resp := new(openai.CreateChatCompletionStreamResponse)
-			unmarshalErr := json.Unmarshal(noPrefixLine, resp)
+			dbResponse := new(db.ChatCompletionResponseChunk)
+			unmarshalErr := json.Unmarshal(noPrefixLine, dbResponse)
 			if unmarshalErr != nil {
 				sendChunk(ctx, stream, db.ChatCompletionResponseChunk{
 					JobResponse: db.JobResponse{
-						Error: z.Pointer(unmarshalErr.Error()),
-					},
-				})
-				return
-			}
-
-			if err := dbResponse.FromPublic(resp); err != nil {
-				sendChunk(ctx, stream, db.ChatCompletionResponseChunk{
-					JobResponse: db.JobResponse{
-						Error: z.Pointer(err.Error()),
+						StatusCode: http.StatusInternalServerError,
+						Error:      z.Pointer(unmarshalErr.Error()),
 					},
 				})
 				return

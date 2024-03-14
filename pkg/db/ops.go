@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
+	"gorm.io/datatypes"
 	gdb "gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -37,7 +38,7 @@ func Create(db *gdb.DB, obj Storer) error {
 func CreateAny(db *gdb.DB, dataObj any) error {
 	slog.Debug("Creating", "type", fmt.Sprintf("%T", dataObj))
 	return db.Transaction(func(tx *gdb.DB) error {
-		return tx.Create(dataObj).Error
+		return tx.Model(dataObj).Create(dataObj).Error
 	})
 }
 
@@ -107,15 +108,52 @@ func CancelRun(db *gdb.DB, id string) (*Run, error) {
 		}
 
 		update := map[string]any{
-			"status":       string(openai.RunStepObjectStatusCancelled),
+			"status":       string(openai.Cancelled),
 			"cancelled_at": int(time.Now().Unix()),
 		}
 
+		var runSteps []RunStep
+		if err := tx.Model(new(RunStep)).Where("run_id = ?", run.ID).Where("status = ?", string(openai.RunObjectStatusInProgress)).Find(&runSteps).Error; err != nil {
+			return err
+		}
+
+		for _, runStep := range runSteps {
+			if err := tx.Model(runStep).Clauses(clause.Returning{}).Where("id = ?", runStep.ID).Updates(update).Error; err != nil {
+				return err
+			}
+
+			run.EventIndex++
+			runEvent := &RunEvent{
+				EventName: ThreadRunStepCancelledEvent,
+				JobResponse: JobResponse{
+					RequestID: run.ID,
+				},
+				RunStep:     datatypes.NewJSONType(&runStep),
+				ResponseIdx: run.EventIndex,
+			}
+
+			if err := Create(tx, runEvent); err != nil {
+				return err
+			}
+		}
+
+		update["event_index"] = run.EventIndex
 		if err := tx.Model(run).Clauses(clause.Returning{}).Updates(update).Error; err != nil {
 			return err
 		}
 
-		return tx.Model(new(RunStep)).Where("run_id = ?", run.ID).Where("status = ?", string(openai.RunObjectStatusInProgress)).Updates(update).Error
+		run.EventIndex++
+		runEvent := &RunEvent{
+			EventName: ThreadRunCancelledEvent,
+			JobResponse: JobResponse{
+				RequestID: run.ID,
+				Done:      true,
+			},
+			Run:         datatypes.NewJSONType(run),
+			ResponseIdx: run.EventIndex + 1,
+		}
+
+		return Create(tx, runEvent)
 	}); err != nil {
 		return nil, err
 	}
