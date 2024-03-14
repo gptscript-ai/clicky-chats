@@ -93,7 +93,7 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 		PollingInterval: pollingInterval,
 		RetentionPeriod: retentionPeriod,
 		APIURL:          s.APIURL,
-		APIKey:          s.ModelAPIKey,
+		APIKey:          apiKey,
 		AgentID:         s.AgentID,
 	}
 	if err = run.Start(ctx, gormDB, runCfg); err != nil {
@@ -103,7 +103,7 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 	stepRunnerCfg := steprunner.Config{
 		PollingInterval: pollingInterval,
 		APIURL:          s.ToolRunnerBaseURL,
-		APIKey:          s.ModelAPIKey,
+		APIKey:          apiKey,
 		AgentID:         s.AgentID,
 	}
 	if err = steprunner.Start(ctx, gormDB, kbm, stepRunnerCfg); err != nil {
@@ -125,7 +125,7 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 	 * Embeddings Agent
 	 */
 	embedCfg := embeddings.Config{
-		APIKey:          s.ModelAPIKey,
+		APIKey:          apiKey,
 		EmbeddingsURL:   s.DefaultEmbeddingsURL,
 		PollingInterval: pollingInterval,
 		RetentionPeriod: retentionPeriod,
