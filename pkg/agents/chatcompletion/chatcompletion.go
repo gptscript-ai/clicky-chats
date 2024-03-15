@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/acorn-io/z"
@@ -21,6 +20,13 @@ const (
 	minPollingInterval  = time.Second
 	minRequestRetention = 5 * time.Minute
 )
+
+var supportedModels = map[string]struct{}{
+	"gpt-3.5":             {},
+	"gpt-3.5-turbo":       {},
+	"gpt-4":               {},
+	"gpt-4-turbo-preview": {},
+}
 
 type Config struct {
 	PollingInterval, RetentionPeriod              time.Duration
@@ -111,7 +117,7 @@ func (a *agent) listAndStoreModels(ctx context.Context, modelsURL string) error 
 		}
 
 		for _, publicModel := range m.Data {
-			if !strings.HasPrefix(publicModel.Id, "gpt-3.5") && !strings.HasPrefix(publicModel.Id, "gpt-4") {
+			if _, ok := supportedModels[publicModel.Id]; !ok {
 				continue
 			}
 			if _, ok := dbModelIDs[publicModel.Id]; ok {
