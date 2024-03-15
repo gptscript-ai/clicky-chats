@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/acorn-io/z"
@@ -110,6 +111,9 @@ func (a *agent) listAndStoreModels(ctx context.Context, modelsURL string) error 
 		}
 
 		for _, publicModel := range m.Data {
+			if !strings.HasPrefix(publicModel.Id, "gpt-3.5") && !strings.HasPrefix(publicModel.Id, "gpt-4") {
+				continue
+			}
 			if _, ok := dbModelIDs[publicModel.Id]; ok {
 				delete(dbModelIDs, publicModel.Id)
 				continue
@@ -129,7 +133,7 @@ func (a *agent) listAndStoreModels(ctx context.Context, modelsURL string) error 
 		}
 
 		for id := range dbModelIDs {
-			if err = tx.Model(new(db.Model)).Delete(new(db.Model), id).Error; err != nil {
+			if err = tx.Model(new(db.Model)).Delete(new(db.Model), "id = ?", id).Error; err != nil {
 				return err
 			}
 		}
