@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -12,23 +13,23 @@ import (
 // plainBodyDecoder is a custom body decoder for the text/plain content type.
 // It is used to correctly decode fields of multipart/form-data bodies to the type specified by their schema.
 func plainBodyDecoder(body io.Reader, _ http.Header, schema *openapi3.SchemaRef, _ openapi3filter.EncodingFn) (any, error) {
-	var (
-		value any
-		err   error
-	)
-	switch schema.Value.Type {
-	case "number", "integer", "boolean", "array", "object":
-		dec := json.NewDecoder(body)
-		dec.UseNumber()
-		err = dec.Decode(&value)
-	default:
-		var data []byte
-		data, err = io.ReadAll(body)
-		value = string(data)
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return nil, err
 	}
 
-	if err != nil {
-		return nil, &openapi3filter.ParseError{Kind: openapi3filter.KindInvalidFormat, Cause: err}
+	var (
+		value any
+		dec   = json.NewDecoder(bytes.NewBuffer(data))
+	)
+	dec.UseNumber()
+	if err := dec.Decode(&value); err != nil {
+		switch schema.Value.Type {
+		case "number", "integer", "boolean", "array", "object":
+			return nil, err
+		}
+
+		value = string(data)
 	}
 
 	return value, nil
