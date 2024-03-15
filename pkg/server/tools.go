@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/acorn-io/z"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
@@ -41,4 +42,15 @@ func toolToProgram(ctx context.Context, tool *db.Tool) ([]byte, error) {
 	}
 
 	return b.Bytes(), nil
+}
+
+func validateToolEnvVars(envVars []string) error {
+	for _, envVar := range envVars {
+		parts := strings.Split(envVar, "=")
+		if len(parts) != 2 {
+			return NewAPIError(fmt.Sprintf("invalid env var: %s", envVar), InvalidRequestErrorType)
+		}
+	}
+
+	return nil
 }

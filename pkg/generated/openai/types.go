@@ -1467,7 +1467,7 @@ type ChatCompletionFunctions struct {
 	// Parameters The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/text-generation/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.
 	//
 	// Omitting `parameters` defines a function with an empty parameter list.
-	Parameters *FunctionParameters `json:"parameters,omitempty"`
+	Parameters *FunctionParameters `json:"parameters"`
 }
 
 // ChatCompletionMessageToolCall defines model for ChatCompletionMessageToolCall.
@@ -3108,7 +3108,7 @@ type ExtendedChatCompletionFunctions struct {
 	// Parameters The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/text-generation/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.
 	//
 	// Omitting `parameters` defines a function with an empty parameter list.
-	Parameters *FunctionParameters `json:"parameters,omitempty"`
+	Parameters *FunctionParameters `json:"parameters"`
 }
 
 // ExtendedChatCompletionMessageToolCall defines model for ExtendedChatCompletionMessageToolCall.
@@ -4746,7 +4746,7 @@ type ExtendedFunctionObject struct {
 	// Parameters The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/text-generation/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.
 	//
 	// Omitting `parameters` defines a function with an empty parameter list.
-	Parameters *FunctionParameters `json:"parameters,omitempty"`
+	Parameters *FunctionParameters `json:"parameters"`
 }
 
 // ExtendedFunctionParameters The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/text-generation/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.
@@ -5589,7 +5589,7 @@ type FunctionObject struct {
 	// Parameters The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/text-generation/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.
 	//
 	// Omitting `parameters` defines a function with an empty parameter list.
-	Parameters *FunctionParameters `json:"parameters,omitempty"`
+	Parameters *FunctionParameters `json:"parameters"`
 }
 
 // FunctionParameters The parameters the functions accepts, described as a JSON Schema object. See the [guide](/docs/guides/text-generation/function-calling) for examples, and the [JSON Schema reference](https://json-schema.org/understanding-json-schema/) for documentation about the format.
@@ -6335,6 +6335,9 @@ type XCreateToolRequest struct {
 	// Description Description of the tool
 	Description *string `json:"description,omitempty"`
 
+	// EnvVars Environment variables
+	EnvVars *[]string `json:"env_vars,omitempty"`
+
 	// Name The name of the tool
 	Name string `json:"name"`
 
@@ -6381,11 +6384,17 @@ type XModifyToolRequest struct {
 	// Description Description of the tool
 	Description *string `json:"description,omitempty"`
 
+	// EnvVars Environment variables
+	EnvVars *[]string `json:"env_vars,omitempty"`
+
 	// Name The name of the tool
 	Name string `json:"name"`
 
 	// Retool Pull the contents of the tool from the URL to redefine the tool
 	Retool *bool `json:"retool,omitempty"`
+
+	// Subtool The name of the sub tool to use rather than the first tool
+	Subtool *string `json:"subtool"`
 
 	// Url URL of the tool
 	Url *string `json:"url"`
@@ -6401,6 +6410,9 @@ type XToolObject struct {
 
 	// Description Description of the tool
 	Description *string `json:"description,omitempty"`
+
+	// EnvVars Environment variables
+	EnvVars *[]string `json:"env_vars,omitempty"`
 
 	// Id The id of the tool
 	Id string `json:"id"`
