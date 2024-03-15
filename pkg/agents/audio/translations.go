@@ -62,7 +62,7 @@ func (a *agent) runTranslations(ctx context.Context) error {
 	}
 
 	if temperature := translationRequest.ResponseFormat; temperature != nil {
-		if err := writer.WriteField("response_format", *temperature); err != nil {
+		if err := writer.WriteField("temperature", *temperature); err != nil {
 			return fmt.Errorf("failed to write response format field: %w", err)
 		}
 	}

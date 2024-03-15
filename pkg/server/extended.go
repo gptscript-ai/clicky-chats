@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -436,19 +437,81 @@ func (s *Server) ExtendedCreateTranscription(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Server) ExtendedCreateTranslation(w http.ResponseWriter, r *http.Request) {
-	reader, err := r.MultipartReader()
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB max
+		w.WriteHeader(http.StatusNotAcceptable)
 		_, _ = w.Write([]byte(NewAPIError("Failed to parse multipart form.", InvalidRequestErrorType).Error()))
 		return
 	}
 
-	publicReq := new(openai.CreateTranslationRequest)
-	if err := runtime.BindMultipart(publicReq, *reader); err != nil {
+	value := r.MultipartForm.Value
+	if len(value) < 1 {
 		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(NewAPIError("Failed to bind multipart form.", InvalidRequestErrorType).Error()))
+		_, _ = w.Write([]byte(NewAPIError("Invalid number of multipart form values.", InvalidRequestErrorType).Error()))
+	}
+
+	publicReq := new(openai.CreateTranslationRequest)
+
+	// Extract non-file fields
+	models := value["model"]
+	if len(models) != 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Invalid number of models.", InvalidRequestErrorType).Error()))
 		return
 	}
+	if err := (&publicReq.Model).FromCreateTranslationRequestModel1(openai.CreateTranslationRequestModel1(models[0])); err != nil {
+		if err = (&publicReq.Model).FromCreateTranslationRequestModel0(models[0]); err != nil {
+			// Invalid model type
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Invalid number of models.", InvalidRequestErrorType).Error()))
+			return
+		}
+	}
+
+	if prompts, ok := value["prompt"]; ok {
+		if len(prompts) != 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Invalid number of prompts.", InvalidRequestErrorType).Error()))
+			return
+		}
+
+		publicReq.Prompt = &(prompts[0])
+	}
+
+	if formats, ok := value["response_format"]; ok {
+		if len(formats) != 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Invalid number of response_formats.", InvalidRequestErrorType).Error()))
+			return
+		}
+
+		publicReq.Prompt = &(formats[0])
+	}
+
+	if temperatures, ok := value["temperature"]; ok {
+		if len(temperatures) != 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Invalid number of temperatures.", InvalidRequestErrorType).Error()))
+			return
+		}
+
+		temperature, err := strconv.ParseFloat(temperatures[0], 32)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Failed to process temperature.", InvalidRequestErrorType).Error()))
+			return
+		}
+
+		publicReq.Temperature = z.Pointer(float32(temperature))
+	}
+
+	// Extract file field
+	files := r.MultipartForm.File["file"]
+	if len(files) != 1 {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Invalid number of files.", InvalidRequestErrorType).Error()))
+		return
+	}
+	(&publicReq.File).InitFromMultipart(files[0])
 
 	agentReq := new(db.CreateTranslationRequest)
 	if err := agentReq.FromPublic(publicReq); err != nil {

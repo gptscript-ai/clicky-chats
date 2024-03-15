@@ -8,6 +8,7 @@ import (
 type CreateTranslationRequest struct {
 	JobRequest `json:",inline"`
 
+	FileName       string   `json:"file_name"`
 	File           []byte   `json:"file"`
 	Model          string   `json:"model"`
 	Prompt         *string  `json:"prompt,omitempty"`
@@ -31,7 +32,7 @@ func (c *CreateTranslationRequest) ToPublic() any {
 
 	file := new(oapitypes.File)
 	if len(c.File) > 0 {
-		file.InitFromBytes(c.File, "image")
+		file.InitFromBytes(c.File, c.FileName)
 	}
 
 	//nolint:govet
@@ -67,6 +68,7 @@ func (c *CreateTranslationRequest) FromPublic(obj any) error {
 	//nolint:govet
 	*c = CreateTranslationRequest{
 		JobRequest{},
+		o.File.Filename(),
 		file,
 		model,
 		o.Prompt,
