@@ -13,7 +13,7 @@ require (
 	github.com/getkin/kin-openapi v0.123.0
 	github.com/glebarez/sqlite v1.10.0
 	github.com/google/uuid v1.5.0
-	github.com/gptscript-ai/gptscript v0.2.0-rc1.0.20240312205458-74a3d5681004
+	github.com/gptscript-ai/gptscript v0.2.0-rc1.0.20240314205417-f7c9a4338e67
 	github.com/invopop/yaml v0.2.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.1.1
@@ -61,7 +61,7 @@ require (
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/nwaples/rardecode/v2 v2.0.0-beta.2 // indirect
 	github.com/olahol/melody v1.1.4 // indirect
-	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/olekukonko/tablewriter v0.0.6-0.20230925090304-df64c4bbad77 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
