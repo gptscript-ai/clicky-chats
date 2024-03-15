@@ -7,12 +7,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/gptscript-ai/clicky-chats/pkg/agents/audio"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/chatcompletion"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/embeddings"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/image"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/run"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/steprunner"
-	"github.com/gptscript-ai/clicky-chats/pkg/agents/translation"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/spf13/cobra"
@@ -34,7 +34,7 @@ type Agent struct {
 
 	DefaultEmbeddingsURL string `usage:"The defaultURL for the embedding agent to use" default:"https://api.openai.com/v1/embeddings" env:"CLICKY_CHATS_EMBEDDINGS_SERVER_URL"`
 
-	DefaultTranslationsURL string `usage:"The default URL for the translation agent to use" default:"https://api.openai.com/v1/audio/translations" env:"CLICKY_CHATS_TRANSLATIONS_SERVER_URL"`
+	DefaultAudioURL string `usage:"The default URL for the translation agent to use" default:"https://api.openai.com/v1/audio" env:"CLICKY_CHATS_AUDIO_SERVER_URL"`
 
 	APIURL      string `usage:"URL for API calls" default:"http://localhost:8080/v1/chat/completions" env:"CLICKY_CHATS_SERVER_URL"`
 	ModelAPIKey string `usage:"API key for API calls" env:"CLICKY_CHATS_MODEL_API_KEY"`
@@ -121,9 +121,6 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 		return err
 	}
 
-	/*
-	 * Embeddings Agent
-	 */
 	embedCfg := embeddings.Config{
 		APIKey:          apiKey,
 		EmbeddingsURL:   s.DefaultEmbeddingsURL,
@@ -135,14 +132,14 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 		return err
 	}
 
-	translationCfg := translation.Config{
+	audioCfg := audio.Config{
 		PollingInterval: pollingInterval,
 		RetentionPeriod: retentionPeriod,
-		TranslationsURL: s.DefaultTranslationsURL,
+		AudioBaseURL:    s.DefaultAudioURL,
 		APIKey:          apiKey,
 		AgentID:         s.AgentID,
 	}
-	if err = translation.Start(ctx, gormDB, translationCfg); err != nil {
+	if err = audio.Start(ctx, gormDB, audioCfg); err != nil {
 		return err
 	}
 

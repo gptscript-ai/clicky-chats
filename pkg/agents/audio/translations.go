@@ -1,15 +1,13 @@
-package translation
+package audio
 
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"mime/multipart"
 	"net/http"
-	"time"
 
 	"github.com/acorn-io/z"
 	cclient "github.com/gptscript-ai/clicky-chats/pkg/client"
@@ -18,98 +16,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	minPollingInterval  = time.Second
-	minRequestRetention = 5 * time.Minute
-)
-
-func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
-	a, err := newAgent(gdb, cfg)
-	if err != nil {
-		return err
-	}
-
-	a.Start(ctx)
-
-	return nil
-}
-
-type Config struct {
-	PollingInterval, RetentionPeriod time.Duration
-	TranslationsURL, APIKey, AgentID string
-}
-
-type agent struct {
-	pollingInterval, requestRetention time.Duration
-	id, apiKey, url                   string
-	client                            *http.Client
-	db                                *db.DB
-}
-
-func newAgent(db *db.DB, cfg Config) (*agent, error) {
-	if cfg.PollingInterval < minPollingInterval {
-		return nil, fmt.Errorf("polling interval must be at least %s", minPollingInterval)
-	}
-	if cfg.RetentionPeriod < minRequestRetention {
-		return nil, fmt.Errorf("request retention must be at least %s", minRequestRetention)
-	}
-
-	return &agent{
-		pollingInterval:  cfg.PollingInterval,
-		requestRetention: cfg.RetentionPeriod,
-		url:              cfg.TranslationsURL,
-		client:           http.DefaultClient,
-		apiKey:           cfg.APIKey,
-		db:               db,
-		id:               cfg.AgentID,
-	}, nil
-}
-
-func (a *agent) Start(ctx context.Context) {
-	// Start the "job runner"
-	go func() {
-		for {
-			if err := a.run(ctx); err != nil {
-				if !errors.Is(err, gorm.ErrRecordNotFound) {
-					slog.Error("failed run iteration", "err", err)
-				}
-
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(a.pollingInterval):
-				}
-			}
-		}
-	}()
-
-	// Start cleanup
-	go func() {
-		var (
-			cleanupInterval = a.requestRetention / 2
-			jobObjects      = []db.Storer{
-				new(db.CreateTranslationRequest),
-				new(db.CreateTranslationResponse),
-			}
-			cdb = a.db.WithContext(ctx)
-		)
-		for {
-			slog.Debug("looking for expired translation requests and responses")
-			expiration := time.Now().Add(-a.requestRetention)
-			if err := db.DeleteExpired(cdb, expiration, jobObjects...); err != nil {
-				slog.Error("failed to delete expired translation requests and responses", "err", err)
-			}
-
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(cleanupInterval):
-			}
-		}
-	}()
-}
-
-func (a *agent) run(ctx context.Context) error {
+func (a *agent) runTranslations(ctx context.Context) error {
 	slog.Debug("checking for an translation request to process")
 	var (
 		translationRequest = new(db.CreateTranslationRequest)
@@ -164,7 +71,7 @@ func (a *agent) run(ctx context.Context) error {
 		return fmt.Errorf("failed to close body writer: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.url, &requestBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.translationsURL, &requestBody)
 	if err != nil {
 		return fmt.Errorf("failed to create translation request: %w", err)
 	}
@@ -177,6 +84,8 @@ func (a *agent) run(ctx context.Context) error {
 
 	oir, ir := new(openai.CreateTranslationResponse), new(db.CreateTranslationResponse)
 	code, err := cclient.SendRequest(a.client, req, oir)
+
+	// err must be shadowed here.
 	if err := ir.FromPublic(oir); err != nil {
 		l.Error("failed to convert translation response", "err", err)
 	}
