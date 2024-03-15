@@ -34,11 +34,11 @@ type Config struct {
 }
 
 type agent struct {
-	pollingInterval, requestRetention  time.Duration
-	id, apiKey                         string
-	translationsURL, transcriptionsURL string
-	client                             *http.Client
-	db                                 *db.DB
+	pollingInterval, requestRetention             time.Duration
+	id, apiKey                                    string
+	speechURL, translationsURL, transcriptionsURL string
+	client                                        *http.Client
+	db                                            *db.DB
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
@@ -52,6 +52,7 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	return &agent{
 		pollingInterval:   cfg.PollingInterval,
 		requestRetention:  cfg.RetentionPeriod,
+		speechURL:         cfg.AudioBaseURL + "/speech",
 		translationsURL:   cfg.AudioBaseURL + "/translations",
 		transcriptionsURL: cfg.AudioBaseURL + "/transcriptions",
 		client:            http.DefaultClient,
@@ -64,6 +65,7 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 func (a *agent) Start(ctx context.Context) {
 	// Start the "job runner"
 	for _, run := range []func(context.Context) error{
+		a.runSpeech,
 		a.runTranslations,
 		a.runTranscriptions,
 	} {
@@ -90,8 +92,12 @@ func (a *agent) Start(ctx context.Context) {
 		var (
 			cleanupInterval = a.requestRetention / 2
 			jobObjects      = []db.Storer{
+				new(db.CreateSpeechRequest),
+				new(db.CreateSpeechResponse),
 				new(db.CreateTranslationRequest),
 				new(db.CreateTranslationResponse),
+				new(db.CreateTranscriptionRequest),
+				new(db.CreateTranscriptionResponse),
 			}
 			cdb = a.db.WithContext(ctx)
 		)

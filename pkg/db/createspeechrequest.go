@@ -5,7 +5,9 @@ import (
 	"gorm.io/datatypes"
 )
 
-type Speech struct {
+type CreateSpeechRequest struct {
+	JobRequest `json:",inline"`
+
 	Input          string                                               `json:"input"`
 	Model          datatypes.JSONType[openai.CreateSpeechRequest_Model] `json:"model"`
 	ResponseFormat *string                                              `json:"response_format,omitempty"`
@@ -13,11 +15,11 @@ type Speech struct {
 	Voice          string                                               `json:"voice"`
 }
 
-func (s *Speech) IDPrefix() string {
+func (s *CreateSpeechRequest) IDPrefix() string {
 	return "speech-"
 }
 
-func (s *Speech) ToPublic() any {
+func (s *CreateSpeechRequest) ToPublic() any {
 	//nolint:govet
 	return &openai.CreateSpeechRequest{
 		s.Input,
@@ -28,7 +30,7 @@ func (s *Speech) ToPublic() any {
 	}
 }
 
-func (s *Speech) FromPublic(obj any) error {
+func (s *CreateSpeechRequest) FromPublic(obj any) error {
 	o, ok := obj.(*openai.CreateSpeechRequest)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
@@ -36,7 +38,8 @@ func (s *Speech) FromPublic(obj any) error {
 
 	if o != nil && s != nil {
 		//nolint:govet
-		*s = Speech{
+		*s = CreateSpeechRequest{
+			JobRequest{},
 			o.Input,
 			datatypes.NewJSONType(o.Model),
 			(*string)(o.ResponseFormat),

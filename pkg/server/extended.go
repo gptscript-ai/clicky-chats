@@ -414,24 +414,45 @@ func (s *Server) ExtendedCreateSpeech(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var responseFormat *string
-	if createSpeechRequest.ResponseFormat != nil {
-		responseFormat = (*string)(createSpeechRequest.ResponseFormat)
+	speech := new(db.CreateSpeechRequest)
+	if err := speech.FromPublic(createSpeechRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
 	}
 
-	//nolint:govet
-	newSpeech := &db.Speech{
-		createSpeechRequest.Input,
-		datatypes.NewJSONType(createSpeechRequest.Model),
-		responseFormat,
-		createSpeechRequest.Speed,
-		string(createSpeechRequest.Voice),
-	}
-
-	// FIXME: The correct response here is the audio for the speech.
-	if err := db.CreateAny(s.db.WithContext(r.Context()), newSpeech); err != nil {
+	var (
+		ctx    = r.Context()
+		gormDB = s.db.WithContext(ctx)
+	)
+	if err := db.Create(gormDB, speech); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(NewAPIError("Failed to create speech.", InternalErrorType).Error()))
+		return
+	}
+
+	speechResponse := new(db.CreateSpeechResponse)
+	if err := waitForResponse(ctx, gormDB, speech.ID, speechResponse); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to get response: %v", err), InternalErrorType).Error()))
+		return
+	}
+
+	if errStr := speechResponse.GetErrorString(); errStr != "" {
+		code := speechResponse.GetStatusCode()
+		errorType := InternalErrorType
+		if code < 500 {
+			errorType = InvalidRequestErrorType
+		}
+		w.WriteHeader(code)
+		_, _ = w.Write([]byte(NewAPIError(errStr, errorType).Error()))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	if _, err := w.Write(speechResponse.Content); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to write response: %v", err), InternalErrorType).Error()))
 		return
 	}
 }

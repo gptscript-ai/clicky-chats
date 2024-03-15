@@ -25,8 +25,20 @@ func SendRequest(client *http.Client, req *http.Request, respObj any) (code int,
 		return code, decodeError(res)
 	}
 
-	if err := json.NewDecoder(res.Body).Decode(respObj); err != nil {
-		return http.StatusInternalServerError, err
+	if data, ok := respObj.(*[]byte); ok {
+		if data == nil {
+			return http.StatusInternalServerError, fmt.Errorf("can't decode to nil slice pointer")
+		}
+
+		d, err := io.ReadAll(res.Body)
+		if err != nil {
+			return http.StatusInternalServerError, fmt.Errorf("failed to read response body")
+		}
+		*data = d
+	} else {
+		if err := json.NewDecoder(res.Body).Decode(respObj); err != nil {
+			return http.StatusInternalServerError, err
+		}
 	}
 
 	return code, nil

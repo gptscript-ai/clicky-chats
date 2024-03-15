@@ -26,7 +26,7 @@ func (a *agent) runGenerations(ctx context.Context) error {
 	}
 
 	l := slog.With("type", "createimage", "id", createRequest.ID)
-	l.Debug("Processing request")
+	l.Debug("processing request")
 
 	data, err := json.Marshal(createRequest.ToPublic())
 	if err != nil {
