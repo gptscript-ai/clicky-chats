@@ -52,6 +52,7 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	var retrievalEnabled bool
 	tools := make([]openai.ExtendedAssistantObject_Tools_Item, 0, len(z.Dereference(createAssistantRequest.Tools)))
 	for _, tool := range z.Dereference(createAssistantRequest.Tools) {
 		t := new(openai.ExtendedAssistantObject_Tools_Item)
@@ -60,7 +61,25 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 			_, _ = w.Write([]byte(NewAPIError("Failed to process tool.", InvalidRequestErrorType).Error()))
 			return
 		}
+
+		if t, err := t.AsAssistantToolsRetrieval(); err == nil && t.Type == openai.AssistantToolsRetrievalTypeRetrieval {
+			retrievalEnabled = true
+		}
 		tools = append(tools, *t)
+	}
+
+	if len(z.Dereference(createAssistantRequest.FileIds)) != 0 && !retrievalEnabled {
+		// Turn on retrieval automatically if we have files
+		retrievalTool := new(openai.ExtendedAssistantObject_Tools_Item)
+		//nolint:govet
+		if err = retrievalTool.FromAssistantToolsRetrieval(openai.AssistantToolsRetrieval{
+			openai.AssistantToolsRetrievalTypeRetrieval,
+		}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(NewAPIError("Failed to add retrieval tool.", InvalidRequestErrorType).Error()))
+			return
+		}
+		tools = append(tools, *retrievalTool)
 	}
 
 	//nolint:govet
@@ -169,13 +188,13 @@ func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if err := validateMetadata(modifyAssistantRequest.Metadata); err != nil {
+	err := validateMetadata(modifyAssistantRequest.Metadata)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	var err error
 	var model openai.ExtendedModifyAssistantRequestModel0
 	if modifyAssistantRequest.Model != nil {
 		model, err = modifyAssistantRequest.Model.AsExtendedModifyAssistantRequestModel0()
@@ -239,6 +258,55 @@ func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request,
 				}
 			}
 		}
+	}
+
+	if len(tools) == 0 {
+		// This request isn't updating the tools on the assistant.
+		// Therefore, get the tool from the existing assistant.
+		existingAssistant := &db.Assistant{
+			Metadata: db.Metadata{
+				Base: db.Base{ID: assistantID},
+			},
+		}
+		if err = db.Get(s.db.WithContext(r.Context()), existingAssistant, assistantID); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				w.WriteHeader(http.StatusNotFound)
+				_, _ = w.Write([]byte(NewNotFoundError(existingAssistant).Error()))
+				return
+			}
+			slog.Error("Failed to get assistant", "id", assistantID, "err", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(NewAPIError("Failed to get assistant.", InternalErrorType).Error()))
+			return
+		}
+
+		tools = existingAssistant.Tools
+	}
+
+	retrievalIndex := -1
+	for i, tool := range tools {
+		if t, err := tool.AsAssistantToolsRetrieval(); err == nil && t.Type == openai.AssistantToolsRetrievalTypeRetrieval {
+			retrievalIndex = i
+			break
+		}
+	}
+
+	if len(targetFileIDs) > 0 && retrievalIndex == -1 {
+		// Ensure the assistant has the retrieval tool
+		retrievalTool := new(openai.ExtendedAssistantObject_Tools_Item)
+		//nolint:govet
+		if err = retrievalTool.FromAssistantToolsRetrieval(openai.AssistantToolsRetrieval{
+			openai.AssistantToolsRetrievalTypeRetrieval,
+		}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(NewAPIError("Failed to add retrieval tool.", InvalidRequestErrorType).Error()))
+			return
+		}
+
+		tools = append(tools, *retrievalTool)
+	} else if len(targetFileIDs) == 0 && retrievalIndex != -1 {
+		// Ensure the assistant does not have the retrieval tool
+		tools = append(tools[:retrievalIndex], tools[retrievalIndex+1:]...)
 	}
 
 	assistant := &db.Assistant{
