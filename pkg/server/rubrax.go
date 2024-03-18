@@ -11,7 +11,7 @@ import (
 )
 
 func (s *Server) ListTools(w http.ResponseWriter, r *http.Request, params openai.ListToolsParams) {
-	gormDB, limit, err := processAssistantsAPIListParams[*db.Tool](s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order)
+	gormDB, limit, err := processAssistantsAPIListParams(s.db.WithContext(r.Context()), new(db.Tool), params.Limit, params.Before, params.After, params.Order)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))

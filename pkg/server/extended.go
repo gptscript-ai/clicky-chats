@@ -23,7 +23,7 @@ import (
 )
 
 func (s *Server) ExtendedListAssistants(w http.ResponseWriter, r *http.Request, params openai.ExtendedListAssistantsParams) {
-	gormDB, limit, err := processAssistantsAPIListParams[*db.Assistant](s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order)
+	gormDB, limit, err := processAssistantsAPIListParams(s.db.WithContext(r.Context()), new(db.Assistant), params.Limit, params.Before, params.After, params.Order)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -221,8 +221,8 @@ func (s *Server) ExtendedListAssistantFiles(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	gormDB, limit, err := processAssistantsAPIListParams[*db.AssistantFile](
-		s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order,
+	gormDB, limit, err := processAssistantsAPIListParams(
+		s.db.WithContext(r.Context()), new(db.AssistantFile), params.Limit, params.Before, params.After, params.Order,
 		&db.Assistant{Metadata: db.Metadata{Base: db.Base{ID: assistantID}}},
 	)
 	if err != nil {
@@ -649,7 +649,7 @@ func (s *Server) ExtendedCreateModeration(w http.ResponseWriter, _ *http.Request
 }
 
 func (s *Server) ListThreads(w http.ResponseWriter, r *http.Request, params openai.ListThreadsParams) {
-	gormDB, limit, err := processAssistantsAPIListParams[*db.Thread](s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order)
+	gormDB, limit, err := processAssistantsAPIListParams(s.db.WithContext(r.Context()), new(db.Thread), params.Limit, params.Before, params.After, params.Order)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -764,8 +764,8 @@ func (s *Server) ExtendedListMessages(w http.ResponseWriter, r *http.Request, th
 		return
 	}
 
-	gormDB, limit, err := processAssistantsAPIListParams[*db.Message](
-		s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order,
+	gormDB, limit, err := processAssistantsAPIListParams(
+		s.db.WithContext(r.Context()), new(db.Message), params.Limit, params.Before, params.After, params.Order,
 		&db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}},
 	)
 	if err != nil {
@@ -860,8 +860,8 @@ func (s *Server) ExtendedListMessageFiles(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	gormDB, limit, err := processAssistantsAPIListParams[*db.MessageFile](
-		s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order,
+	gormDB, limit, err := processAssistantsAPIListParams(
+		s.db.WithContext(r.Context()), new(db.MessageFile), params.Limit, params.Before, params.After, params.Order,
 		&db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}},
 		&db.Message{Metadata: db.Metadata{Base: db.Base{ID: messageID}}},
 	)
@@ -896,8 +896,8 @@ func (s *Server) ExtendedListRuns(w http.ResponseWriter, r *http.Request, thread
 		return
 	}
 
-	gormDB, limit, err := processAssistantsAPIListParams[*db.Run](
-		s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order,
+	gormDB, limit, err := processAssistantsAPIListParams(
+		s.db.WithContext(r.Context()), new(db.Run), params.Limit, params.Before, params.After, params.Order,
 		&db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}},
 	)
 	if err != nil {
@@ -1094,8 +1094,8 @@ func (s *Server) ExtendedListRunSteps(w http.ResponseWriter, r *http.Request, th
 		return
 	}
 
-	gormDB, limit, err := processAssistantsAPIListParams[*db.RunStep](
-		s.db.WithContext(r.Context()), params.Limit, params.Before, params.After, params.Order,
+	gormDB, limit, err := processAssistantsAPIListParams(
+		s.db.WithContext(r.Context()), new(db.RunStep), params.Limit, params.Before, params.After, params.Order,
 		&db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}},
 		&db.Run{Metadata: db.Metadata{Base: db.Base{ID: runID}}},
 	)
@@ -1307,7 +1307,7 @@ func createAndRespondOpenAI(gormDB *gorm.DB, w http.ResponseWriter, obj Extended
 	writeObjectToResponse(w, obj.ToPublicOpenAI())
 }
 
-func processAssistantsAPIListParams[T Transformer, O ~string](gormDB *gorm.DB, limit *int, before, after *string, order *O, ensureExists ...db.Storer) (*gorm.DB, int, error) {
+func processAssistantsAPIListParams[O ~string](gormDB *gorm.DB, obj Transformer, limit *int, before, after *string, order *O, ensureExists ...db.Storer) (*gorm.DB, int, error) {
 	for _, e := range ensureExists {
 		if err := gormDB.First(e).Error; err != nil {
 			return nil, 0, NewNotFoundError(e)
@@ -1323,27 +1323,27 @@ func processAssistantsAPIListParams[T Transformer, O ~string](gormDB *gorm.DB, l
 		*limit++
 	}
 
-	gormDB = gormDB.Limit(*limit)
+	gormDBInstance := gormDB.Limit(*limit)
 
 	// TODO(thedadams): what happens if before/after are not valid object IDs?
 	// TODO(thedadams): what happens if before and after are set?
 	// TODO(thedadams): what happens if before/after are in the wrong order?
 
 	if b := z.Dereference(before); b != "" {
-		beforeObj := *new(T)
-		if err := db.Get(gormDB, beforeObj, b); err != nil {
-			return nil, 0, NewNotFoundError(beforeObj)
+		obj.SetID(b)
+		if err := db.Get(gormDB, obj, b); err != nil {
+			return nil, 0, NewNotFoundError(obj)
 		}
 
-		gormDB = gormDB.Where("created_at < ?", beforeObj.GetCreatedAt())
+		gormDBInstance = gormDBInstance.Where("created_at < ?", obj.GetCreatedAt())
 	}
 	if a := z.Dereference(after); a != "" {
-		afterObj := *new(T)
-		if err := db.Get(gormDB, afterObj, a); err != nil {
-			return nil, 0, NewNotFoundError(afterObj)
+		obj.SetID(a)
+		if err := db.Get(gormDB, obj, a); err != nil {
+			return nil, 0, NewNotFoundError(obj)
 		}
 
-		gormDB = gormDB.Where("created_at > ?", afterObj.GetCreatedAt())
+		gormDBInstance = gormDBInstance.Where("created_at > ?", obj.GetCreatedAt())
 	}
 
 	ordering := string(z.Dereference(order))
@@ -1353,9 +1353,9 @@ func processAssistantsAPIListParams[T Transformer, O ~string](gormDB *gorm.DB, l
 		return nil, 0, NewAPIError("Order must be 'asc' or 'desc'.", InvalidRequestErrorType)
 	}
 
-	gormDB = gormDB.Order(fmt.Sprintf("created_at %s", ordering))
+	gormDBInstance = gormDBInstance.Order(fmt.Sprintf("created_at %s", ordering))
 
-	return gormDB, *limit, nil
+	return gormDBInstance, *limit, nil
 }
 
 func list[T Transformer](gormDB *gorm.DB, objs *[]T) error {
