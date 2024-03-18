@@ -38,7 +38,7 @@ type Config struct {
 }
 
 var inputModifiers = map[string]func(*agent, *db.RunStep, []string, string) ([]string, string, error){
-	"retrieval": func(agent *agent, runStep *db.RunStep, env []string, args string) ([]string, string, error) {
+	"retrieval": func(agent *agent, runStep *db.RunStep, env []string, _ string) ([]string, string, error) {
 		// extra environment variables for knowledge retrieval
 		env = append(env,
 			// leading http:// removed, since GPTScript needs to have it in the #!http:// instruction to determine that it's an HTTP call
