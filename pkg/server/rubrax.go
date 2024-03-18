@@ -38,8 +38,8 @@ func (s *Server) CreateTool(w http.ResponseWriter, r *http.Request) {
 	//nolint:govet
 	tool := &db.Tool{
 		db.Base{},
-		createToolRequest.Name,
-		createToolRequest.Description,
+		"",
+		"",
 		createToolRequest.Contents,
 		createToolRequest.Url,
 		createToolRequest.Subtool,
@@ -47,7 +47,7 @@ func (s *Server) CreateTool(w http.ResponseWriter, r *http.Request) {
 		nil,
 	}
 
-	tool.Program, err = toolToProgram(r.Context(), tool)
+	tool.Name, tool.Description, tool.Program, err = toolToProgram(r.Context(), tool)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -106,11 +106,6 @@ func (s *Server) ModifyTool(w http.ResponseWriter, r *http.Request, toolID strin
 			return err
 		}
 
-		existingTool.Name = modifyToolRequest.Name
-		if modifyToolRequest.Description != nil && *modifyToolRequest.Description != z.Dereference(existingTool.Description) {
-			existingTool.Description = modifyToolRequest.Description
-		}
-
 		existingTool.Subtool = modifyToolRequest.Subtool
 		existingTool.EnvVars = z.Dereference(modifyToolRequest.EnvVars)
 
@@ -124,7 +119,7 @@ func (s *Server) ModifyTool(w http.ResponseWriter, r *http.Request, toolID strin
 		}
 
 		if retool {
-			existingTool.Program, err = toolToProgram(r.Context(), existingTool)
+			existingTool.Name, existingTool.Description, existingTool.Program, err = toolToProgram(r.Context(), existingTool)
 			if err != nil {
 				return err
 			}

@@ -185,12 +185,6 @@ components:
       additionalProperties: false
       type: object
       properties:
-        name:
-          type: string
-          description: The name of the tool
-        description:
-          type: string
-          description: Description of the tool
         url:
           type: string
           description: URL of the tool
@@ -208,18 +202,10 @@ components:
           type: string
           description: The name of the sub tool to use rather than the first tool
           nullable: true
-      required:
-        - name
     XModifyToolRequest:
       additionalProperties: false
       type: object
       properties:
-        name:
-          type: string
-          description: The name of the tool
-        description:
-          type: string
-          description: Description of the tool
         url:
           type: string
           description: URL of the tool
@@ -241,8 +227,6 @@ components:
           default: false
           type: boolean
           description: Pull the contents of the tool from the URL to redefine the tool
-      required:
-        - name
     XToolObject:
       additionalProperties: false
       type: object
@@ -283,7 +267,6 @@ components:
       required:
         - id
         - created_at
-        - name
         - object
     XListToolsResponse:
       properties:

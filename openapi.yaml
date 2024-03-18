@@ -8097,17 +8097,11 @@ components:
                     description: Contents of the tool
                     nullable: true
                     type: string
-                description:
-                    description: Description of the tool
-                    type: string
                 env_vars:
                     description: Environment variables
                     items:
                         type: string
                     type: array
-                name:
-                    description: The name of the tool
-                    type: string
                 subtool:
                     description: The name of the sub tool to use rather than the first tool
                     nullable: true
@@ -8116,8 +8110,6 @@ components:
                     description: URL of the tool
                     nullable: true
                     type: string
-            required:
-                - name
             type: object
         XDeleteToolResponse:
             additionalProperties: false
@@ -8359,17 +8351,11 @@ components:
                     description: Contents of the tool
                     nullable: true
                     type: string
-                description:
-                    description: Description of the tool
-                    type: string
                 env_vars:
                     description: Environment variables
                     items:
                         type: string
                     type: array
-                name:
-                    description: The name of the tool
-                    type: string
                 retool:
                     default: false
                     description: Pull the contents of the tool from the URL to redefine the tool
@@ -8382,8 +8368,6 @@ components:
                     description: URL of the tool
                     nullable: true
                     type: string
-            required:
-                - name
             type: object
         XRunStepDeltaDetailsToolCallsFunctionObject:
             additionalProperties: false
@@ -8606,7 +8590,6 @@ components:
             required:
                 - id
                 - created_at
-                - name
                 - object
             type: object
     securitySchemes:

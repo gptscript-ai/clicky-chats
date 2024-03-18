@@ -13,13 +13,16 @@ import (
 	"github.com/gptscript-ai/gptscript/pkg/types"
 )
 
-func toolToProgram(ctx context.Context, tool *db.Tool) ([]byte, error) {
+func toolToProgram(ctx context.Context, tool *db.Tool) (string, string, []byte, error) {
 	var (
 		err error
 		prg types.Program
+
+		url      = z.Dereference(tool.URL)
+		contents = z.Dereference(tool.Contents)
 	)
 
-	if url := z.Dereference(tool.URL); url != "" {
+	if url != "" {
 		if !strings.HasSuffix(url, ".gpt") {
 			url = strings.TrimPrefix(strings.TrimPrefix(url, "https://"), "http://")
 			tool.URL = &url
@@ -28,7 +31,7 @@ func toolToProgram(ctx context.Context, tool *db.Tool) ([]byte, error) {
 		if err != nil {
 			err = NewAPIError(fmt.Sprintf("failed parsing request object: %v", err), InvalidRequestErrorType)
 		}
-	} else if contents := z.Dereference(tool.Contents); contents != "" {
+	} else if contents != "" {
 		prg, err = loader.ProgramFromSource(ctx, contents, z.Dereference(tool.Subtool))
 		if err != nil {
 			err = NewAPIError(fmt.Sprintf("failed parsing request object: %v", err), InvalidRequestErrorType)
@@ -37,15 +40,22 @@ func toolToProgram(ctx context.Context, tool *db.Tool) ([]byte, error) {
 		err = NewMustNotBeEmptyError("url or contents")
 	}
 	if err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
+
+	name := prg.ToolSet[prg.EntryToolID].Parameters.Name
+	if name == "" && url != "" {
+		name = url[strings.LastIndex(strings.TrimSuffix(url, "/"), "/")+1:]
+	}
+
+	description := prg.ToolSet[prg.EntryToolID].Parameters.Description
 
 	b := new(bytes.Buffer)
 	if err = assemble.Assemble(prg, b); err != nil {
-		return nil, err
+		return "", "", nil, err
 	}
 
-	return b.Bytes(), nil
+	return name, description, b.Bytes(), nil
 }
 
 func validateToolEnvVars(envVars []string) error {
