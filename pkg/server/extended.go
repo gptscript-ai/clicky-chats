@@ -192,26 +192,25 @@ func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request,
 		tools = append(tools, *t)
 	}
 
-	//nolint:govet
-	publicAssistant := &openai.ExtendedAssistantObject{
-		0,
-		modifyAssistantRequest.Description,
-		z.Dereference(modifyAssistantRequest.FileIds),
-		modifyAssistantRequest.GptscriptTools,
-		"",
-		modifyAssistantRequest.Instructions,
-		modifyAssistantRequest.Metadata,
-		model,
-		modifyAssistantRequest.Name,
-		openai.ExtendedAssistantObjectObjectAssistant,
-		tools,
+	assistant := &db.Assistant{
+		Metadata: db.Metadata{
+			Base:     db.Base{ID: assistantID},
+			Metadata: z.Dereference(modifyAssistantRequest.Metadata),
+		},
+		Description:    modifyAssistantRequest.Description,
+		FileIDs:        z.Dereference(modifyAssistantRequest.FileIds),
+		GPTScriptTools: z.Dereference(modifyAssistantRequest.GptscriptTools),
+		Instructions:   modifyAssistantRequest.Instructions,
+		Model:          model,
+		Name:           modifyAssistantRequest.Name,
+		Tools:          datatypes.NewJSONSlice(tools),
 	}
 
 	if extendedapi.IsExtendedAPIKey(r.Context()) {
-		modifyAndRespond(s.db.WithContext(r.Context()), w, &db.Assistant{Metadata: db.Metadata{Base: db.Base{ID: assistantID}}}, publicAssistant)
+		modifyAndRespond(s.db.WithContext(r.Context()), w, assistant, assistant)
 		return
 	}
-	modifyAndRespondOpenAI(s.db.WithContext(r.Context()), w, &db.Assistant{Metadata: db.Metadata{Base: db.Base{ID: assistantID}}}, publicAssistant)
+	modifyAndRespondOpenAI(s.db.WithContext(r.Context()), w, assistant, assistant)
 }
 
 func (s *Server) ExtendedListAssistantFiles(w http.ResponseWriter, r *http.Request, assistantID string, params openai.ExtendedListAssistantFilesParams) {
