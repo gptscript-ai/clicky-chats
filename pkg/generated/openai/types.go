@@ -6433,14 +6433,8 @@ type XCreateToolRequest struct {
 	// Contents Contents of the tool
 	Contents *string `json:"contents"`
 
-	// Description Description of the tool
-	Description *string `json:"description,omitempty"`
-
 	// EnvVars Environment variables
 	EnvVars *[]string `json:"env_vars,omitempty"`
-
-	// Name The name of the tool
-	Name string `json:"name"`
 
 	// Subtool The name of the sub tool to use rather than the first tool
 	Subtool *string `json:"subtool"`
@@ -6602,14 +6596,8 @@ type XModifyToolRequest struct {
 	// Contents Contents of the tool
 	Contents *string `json:"contents"`
 
-	// Description Description of the tool
-	Description *string `json:"description,omitempty"`
-
 	// EnvVars Environment variables
 	EnvVars *[]string `json:"env_vars,omitempty"`
-
-	// Name The name of the tool
-	Name string `json:"name"`
 
 	// Retool Pull the contents of the tool from the URL to redefine the tool
 	Retool *bool `json:"retool,omitempty"`
@@ -6761,7 +6749,7 @@ type XToolObject struct {
 	Id string `json:"id"`
 
 	// Name The name of the tool
-	Name string `json:"name"`
+	Name *string `json:"name,omitempty"`
 
 	// Object The object type, which is always `tool`.
 	Object XToolObjectObject `json:"object"`

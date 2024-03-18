@@ -9,7 +9,7 @@ import (
 type Tool struct {
 	Base        `json:",inline"`
 	Name        string                      `json:"name"`
-	Description *string                     `json:"description"`
+	Description string                      `json:"description"`
 	Contents    *string                     `json:"contents"`
 	URL         *string                     `json:"url"`
 	Subtool     *string                     `json:"subtool"`
@@ -27,10 +27,10 @@ func (t *Tool) ToPublic() any {
 	return &openai.XToolObject{
 		t.Contents,
 		t.CreatedAt,
-		t.Description,
+		&t.Description,
 		z.Pointer[[]string](t.EnvVars),
 		t.ID,
-		t.Name,
+		&t.Name,
 		openai.Tool,
 		t.Subtool,
 		t.URL,
@@ -50,8 +50,8 @@ func (t *Tool) FromPublic(obj any) error {
 				o.Id,
 				o.CreatedAt,
 			},
-			o.Name,
-			o.Description,
+			z.Dereference(o.Name),
+			z.Dereference(o.Description),
 			o.Contents,
 			o.Url,
 			o.Subtool,
