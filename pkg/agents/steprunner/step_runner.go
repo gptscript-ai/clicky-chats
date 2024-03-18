@@ -14,10 +14,10 @@ import (
 	"github.com/acorn-io/broadcaster"
 	"github.com/acorn-io/z"
 	"github.com/adrg/xdg"
-	"github.com/gptscript-ai/clicky-chats/pkg/agents"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
+	"github.com/gptscript-ai/clicky-chats/pkg/tools"
 	"github.com/gptscript-ai/gptscript/pkg/loader"
 	gptopenai "github.com/gptscript-ai/gptscript/pkg/openai"
 	"github.com/gptscript-ai/gptscript/pkg/repos/runtimes"
@@ -27,6 +27,7 @@ import (
 	"github.com/gptscript-ai/gptscript/pkg/version"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const minPollingInterval = time.Second
@@ -133,13 +134,13 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 	slog.Debug("Checking for a run")
 	// Look for a new run and claim it. Also, query for the other objects we need.
 	run, runStep := new(db.Run), new(db.RunStep)
-	err = a.db.WithContext(ctx).Model(run).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("system_status = ?", "requires_action").Where("system_claimed_by IS NULL OR system_claimed_by = ?", a.id).Order("created_at desc").First(run).Error; err != nil {
+	err = a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(run).Where("system_status = ?", "requires_action").Where("system_claimed_by IS NULL OR system_claimed_by = ?", a.id).Order("created_at desc").First(run).Error; err != nil {
 			return err
 		}
 
 		thread := new(db.Thread)
-		if err := tx.Model(new(db.Thread)).Where("id = ?", run.ThreadID).First(thread).Error; err != nil {
+		if err := tx.Model(thread).Where("id = ?", run.ThreadID).First(thread).Error; err != nil {
 			return err
 		}
 
@@ -148,15 +149,16 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			return fmt.Errorf("thread %s found to be locked by %s while processing run %s", run.ThreadID, thread.LockedByRunID, run.ID)
 		}
 
-		if err := tx.Model(runStep).Where("run_id = ?", run.ID).Where("type = ?", openai.RunStepObjectTypeToolCalls).Where("runner_type = ?", agents.GPTScriptRunnerType).Order("created_at asc").First(runStep).Error; err != nil {
+		if err := tx.Model(runStep).Where("run_id = ?", run.ID).Where("type = ?", openai.RunStepObjectTypeToolCalls).Where("runner_type = ?", tools.GPTScriptRunnerType).Order("created_at asc").First(runStep).Error; err != nil {
 			return err
 		}
 
-		if err := tx.Model(run).Where("id = ?", run.ID).Updates(map[string]interface{}{"system_claimed_by": a.id, "system_status": "in_progress"}).Error; err != nil {
-			return err
+		updates := map[string]any{
+			"system_claimed_by": a.id,
+			"system_status":     string(openai.InProgress),
+			"event_index":       run.EventIndex,
 		}
-
-		return nil
+		return tx.Model(run).Clauses(clause.Returning{}).Where("id = ?", run.ID).Updates(updates).Error
 	})
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -183,6 +185,11 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 		functionName, arguments, err := determineFunctionAndArguments(tc)
 		if err != nil {
 			return fmt.Errorf("failed to determine function and arguments: %w", err)
+		}
+
+		// If this is a retrieval call, then use the arguments from the run step because OpenAI doesn't have a field for them.
+		if functionName == string(openai.Retrieval) {
+			arguments = runStep.RetrievalArguments
 		}
 
 		envs := os.Environ()
@@ -221,26 +228,47 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 		}
 
 		toolCalls[i] = tc
+
+		if err = db.EmitRunStepDeltaOutputEvent(a.db.WithContext(ctx), run, tc, i); err != nil {
+			return err
+		}
 	}
 
-	if err := stepDetails.FromRunStepDetailsToolCallsObject(openai.RunStepDetailsToolCallsObject{
+	if err = stepDetails.FromRunStepDetailsToolCallsObject(openai.RunStepDetailsToolCallsObject{
 		ToolCalls: toolCalls,
 		Type:      openai.RunStepDetailsToolCallsObjectTypeToolCalls,
 	}); err != nil {
 		return err
 	}
 
-	if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	if err = a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Update the run step with a fake output
-		if err := tx.Model(runStep).Where("id = ?", runStep.ID).Updates(map[string]interface{}{"status": openai.RunStepObjectStatusCompleted, "completed_at": z.Pointer(int(time.Now().Unix())), "step_details": datatypes.NewJSONType(stepDetails)}).Error; err != nil {
+		if err = tx.Model(runStep).Clauses(clause.Returning{}).Where("id = ?", runStep.ID).Updates(
+			map[string]any{
+				"status":       openai.RunObjectStatusCompleted,
+				"completed_at": z.Pointer(int(time.Now().Unix())),
+				"step_details": datatypes.NewJSONType(stepDetails),
+			}).Error; err != nil {
 			return err
 		}
 
-		if err := tx.Model(run).Where("id = ?", run.ID).Updates(map[string]interface{}{"system_status": nil, "status": openai.RunObjectStatusQueued}).Error; err != nil {
+		run.EventIndex++
+		runEvent := &db.RunEvent{
+			EventName: db.ThreadRunStepCompletedEvent,
+			JobResponse: db.JobResponse{
+				RequestID: run.ID,
+			},
+			ResponseIdx: run.EventIndex,
+			RunStep:     datatypes.NewJSONType(runStep),
+		}
+		if err = db.Create(tx, runEvent); err != nil {
 			return err
 		}
 
-		return nil
+		return tx.Model(run).Where("id = ?", run.ID).Updates(map[string]any{
+			"system_status": string(openai.RunObjectStatusQueued),
+			"event_index":   run.EventIndex,
+		}).Error
 	}); err != nil {
 		l.Error("Failed to update run step", "err", err)
 		return err
@@ -252,9 +280,9 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 // populateTools loads the gptscript program from the provided link and subtool.
 // The run_step agent will use this program definition to run the tool with the gptscript engine.
 func populateTools(ctx context.Context) (map[string]types.Program, error) {
-	builtInToolDefinitions := make(map[string]types.Program, len(agents.GPTScriptDefinitions()))
-	for toolName, toolDef := range agents.GPTScriptDefinitions() {
-		if toolDef.Link == "" || toolDef.Link == agents.SkipLoadingTool {
+	builtInToolDefinitions := make(map[string]types.Program, len(tools.GPTScriptDefinitions()))
+	for toolName, toolDef := range tools.GPTScriptDefinitions() {
+		if toolDef.Link == "" || toolDef.Link == tools.SkipLoadingTool {
 			slog.Info("Skipping tool", "name", toolName)
 			continue
 		}
@@ -275,23 +303,49 @@ func failRunStep(l *slog.Logger, gdb *gorm.DB, run *db.Run, runStep *db.RunStep,
 		Code:    string(errorCode),
 		Message: err.Error(),
 	}
-	if err := gdb.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(run).Where("id = ?", run.ID).Updates(map[string]interface{}{
-			"status":        openai.RunObjectStatusFailed,
-			"system_status": openai.RunObjectStatusFailed,
-			"failed_at":     z.Pointer(int(time.Now().Unix())),
-			"last_error":    datatypes.NewJSONType(runError),
-			"usage":         run.Usage,
-		}).Error; err != nil {
+
+	updates := map[string]any{
+		"status":     openai.RunObjectStatusFailed,
+		"failed_at":  z.Pointer(int(time.Now().Unix())),
+		"last_error": datatypes.NewJSONType(runError),
+		"usage":      runStep.Usage,
+	}
+	if err = gdb.Transaction(func(tx *gorm.DB) error {
+		if err = tx.Model(runStep).Where("id = ?", runStep.ID).Updates(updates).Error; err != nil {
 			return err
 		}
 
-		if err := tx.Model(runStep).Where("id = ?", runStep.ID).Updates(map[string]interface{}{
-			"status":     openai.RunStepObjectStatusFailed,
-			"failed_at":  z.Pointer(int(time.Now().Unix())),
-			"last_error": datatypes.NewJSONType(runError),
-			"usage":      runStep.Usage,
-		}).Error; err != nil {
+		run.EventIndex++
+		runEvent := &db.RunEvent{
+			EventName: db.ThreadRunStepFailedEvent,
+			JobResponse: db.JobResponse{
+				RequestID: run.ID,
+			},
+			RunStep:     datatypes.NewJSONType(runStep),
+			ResponseIdx: run.EventIndex,
+		}
+
+		if err = db.Create(tx, runEvent); err != nil {
+			return err
+		}
+
+		run.EventIndex++
+		updates["system_status"] = openai.RunObjectStatusFailed
+		updates["event_index"] = run.EventIndex
+		if err = tx.Model(run).Where("id = ?", run.ID).Updates(updates).Error; err != nil {
+			return err
+		}
+
+		runEvent = &db.RunEvent{
+			EventName: db.ThreadRunFailedEvent,
+			JobResponse: db.JobResponse{
+				RequestID: run.ID,
+				Done:      true,
+			},
+			Run:         datatypes.NewJSONType(run),
+			ResponseIdx: run.EventIndex,
+		}
+		if err = db.Create(tx, runEvent); err != nil {
 			return err
 		}
 
@@ -321,5 +375,5 @@ func determineFunctionAndArguments(toolCall openai.RunStepDetailsToolCallsObject
 		return "", "", err
 	}
 
-	return strings.TrimPrefix(info.Name, agents.GPTScriptToolNamePrefix), info.Arguments, nil
+	return strings.TrimPrefix(info.Name, tools.GPTScriptToolNamePrefix), info.Arguments, nil
 }

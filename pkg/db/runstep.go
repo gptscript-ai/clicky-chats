@@ -3,9 +3,11 @@ package db
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/acorn-io/z"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
+	"github.com/gptscript-ai/clicky-chats/pkg/tools"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -26,8 +28,9 @@ type RunStep struct {
 	Usage       datatypes.JSONType[*openai.RunStepCompletionUsage]   `json:"usage"`
 
 	// These are not part of the public API
-	ClaimedBy  *string `json:"claimed_by,omitempty"`
-	RunnerType *string `json:"runner_type,omitempty"`
+	ClaimedBy          *string `json:"claimed_by,omitempty"`
+	RunnerType         *string `json:"runner_type,omitempty"`
+	RetrievalArguments string  `json:"retrieval_arguments,omitempty"`
 }
 
 func (r *RunStep) IDPrefix() string {
@@ -102,10 +105,116 @@ func (r *RunStep) FromPublic(obj any) error {
 
 			nil,
 			nil,
+			"",
 		}
 	}
 
 	return nil
+}
+
+// Merge will merge the given chunk into the current run step.
+func (r *RunStep) Merge(toolCalls *[]GenericToolCallInfo, chunk ChatCompletionResponseChunk) (*RunStepDelta, error) {
+	chunkChoice := chunk.Choices[0]
+	delta := chunkChoice.Delta.Data()
+
+	var runStepDelta *RunStepDelta
+	if delta.ToolCalls != nil {
+		for _, chunkTC := range *delta.ToolCalls {
+			*toolCalls = expandSlice(*toolCalls, chunkTC.Index)
+			//nolint:govet
+			tc := (*toolCalls)[chunkTC.Index]
+
+			if id := z.Dereference(chunkTC.Id); id != "" {
+				tc.ID = id
+			}
+			if chunkFunction := chunkTC.Function; chunkFunction != nil {
+				if name := z.Dereference(chunkFunction.Name); name != "" {
+					tc.Name += name
+				}
+				args := chunkFunction.Arguments
+				if a := z.Dereference(args); a != "" {
+					tc.Arguments += a
+				}
+
+				deltaStepToolCall := new(openai.XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item)
+
+				trimmedName := strings.TrimPrefix(tc.Name, tools.GPTScriptToolNamePrefix)
+				switch trimmedName {
+				case "code_interpreter":
+					//nolint:govet
+					if err := deltaStepToolCall.FromXRunStepDeltaObjectDeltaToolCallsObjectCode(openai.XRunStepDeltaObjectDeltaToolCallsObjectCode{
+						openai.XRunStepDetailsToolCallsCodeObject{
+							Input: args,
+						},
+						tc.ID,
+						chunkTC.Index,
+						openai.Code,
+					}); err != nil {
+						return nil, err
+					}
+
+				case "retrieval":
+					//nolint:govet
+					if err := deltaStepToolCall.FromXRunStepDeltaObjectDeltaToolCallsObjectRetrieval(openai.XRunStepDeltaObjectDeltaToolCallsObjectRetrieval{
+						tc.ID,
+						chunkTC.Index,
+						z.Pointer(make(map[string]interface{})),
+						openai.Retrieval,
+					}); err != nil {
+						return nil, err
+					}
+
+				default:
+					//nolint:govet
+					if err := deltaStepToolCall.FromXRunStepDeltaObjectDeltaToolCallsObjectFunction(openai.XRunStepDeltaObjectDeltaToolCallsObjectFunction{
+						&openai.XRunStepDeltaDetailsToolCallsFunctionObject{
+							args,
+							trimmedName,
+							nil,
+						},
+						tc.ID,
+						chunkTC.Index,
+						openai.XRunStepDeltaObjectDeltaToolCallsObjectFunctionTypeFunction,
+					}); err != nil {
+						return nil, err
+					}
+				}
+
+				stepDetails := new(openai.XRunStepDeltaObjectDelta_StepDetails)
+				//nolint:govet
+				if err := stepDetails.FromXRunStepDeltaObjectDeltaToolCalls(openai.XRunStepDeltaObjectDeltaToolCalls{
+					[]openai.XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item{*deltaStepToolCall},
+					openai.ToolCalls,
+				}); err != nil {
+					return nil, err
+				}
+				runStepDelta = &RunStepDelta{
+					tc.ID,
+					datatypes.NewJSONType(openai.XRunStepDeltaObjectDelta{StepDetails: stepDetails}),
+				}
+			}
+
+			(*toolCalls)[chunkTC.Index] = tc
+
+			toolCall, err := runStepFromGenericToolCallInfo(tc)
+			if err != nil {
+				return nil, err
+			}
+
+			stepDetails := r.StepDetails.Data()
+			//nolint:govet
+			if err = stepDetails.FromRunStepDetailsToolCallsObject(openai.RunStepDetailsToolCallsObject{
+				[]openai.RunStepDetailsToolCallsObject_ToolCalls_Item{*toolCall},
+				openai.RunStepDetailsToolCallsObjectTypeToolCalls,
+			}); err != nil {
+				return nil, err
+			}
+
+			r.StepDetails = datatypes.NewJSONType(stepDetails)
+		}
+	}
+
+	return runStepDelta, nil
 }
 
 func (r *RunStep) BeforeUpdate(tx *gorm.DB) error {
@@ -150,80 +259,10 @@ func (r *RunStep) GetRunStepFunctionCalls() ([]openai.RunStepDetailsToolCallsFun
 	return toolCalls, nil
 }
 
-func RunStepDetailsFromRunRequiredActionToolCalls(runRequiredActions []openai.RunToolCallObject) (*openai.RunStepObject_StepDetails, error) {
-	toolCalls := make([]openai.RunStepDetailsToolCallsObject_ToolCalls_Item, 0, len(runRequiredActions))
-	for _, tc := range runRequiredActions {
-		var runStepToolCallItem openai.RunStepDetailsToolCallsObject_ToolCalls_Item
-		var err error
-		if tc.Function.Name == string(openai.AssistantToolsCodeTypeCodeInterpreter) {
-			runStepToolCallItem, err = constructRunStepToolCallItem(openai.RunStepDetailsToolCallsCodeObject{
-				CodeInterpreter: struct {
-					Input   string                                                                  `json:"input"`
-					Outputs []openai.RunStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item `json:"outputs"`
-				}{
-					tc.Function.Arguments,
-					nil,
-				},
-				Id:   tc.Id,
-				Type: openai.RunStepDetailsToolCallsCodeObjectType(tc.Type),
-			})
-		} else if tc.Function.Name == string(openai.AssistantToolsRetrievalTypeRetrieval) {
-			runStepToolCallItem, err = constructRunStepToolCallItem(openai.RunStepDetailsToolCallsRetrievalObject{
-				// For now, this is always going to be an empty object.
-				Retrieval: nil,
-				Id:        tc.Id,
-				Type:      openai.RunStepDetailsToolCallsRetrievalObjectType(tc.Type),
-			})
-		} else {
-			runStepToolCallItem, err = constructRunStepToolCallItem(openai.RunStepDetailsToolCallsFunctionObject{
-				Function: RunStepDetailsFunction{
-					tc.Function.Arguments,
-					tc.Function.Name,
-					nil,
-				},
-				Id:   tc.Id,
-				Type: openai.RunStepDetailsToolCallsFunctionObjectType(tc.Type),
-			})
-		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert tool call id %s: %w", tc.Id, err)
-		}
-
-		toolCalls = append(toolCalls, runStepToolCallItem)
-	}
-
-	stepDetails := openai.RunStepDetailsToolCallsObject{
-		ToolCalls: toolCalls,
-		Type:      openai.RunStepDetailsToolCallsObjectTypeToolCalls,
-	}
-
-	details := new(openai.RunStepObject_StepDetails)
-	if err := details.FromRunStepDetailsToolCallsObject(stepDetails); err != nil {
-		return nil, fmt.Errorf("failed to convert step details: %w", err)
-	}
-
-	return details, nil
-}
-
 type RunStepDetailsFunction struct {
 	Arguments string  `json:"arguments"`
 	Name      string  `json:"name"`
 	Output    *string `json:"output"`
-}
-
-func constructRunStepToolCallItem(v any) (openai.RunStepDetailsToolCallsObject_ToolCalls_Item, error) {
-	var err error
-	runStepToolCallItem := new(openai.RunStepDetailsToolCallsObject_ToolCalls_Item)
-	switch v := v.(type) {
-	case openai.RunStepDetailsToolCallsFunctionObject:
-		err = runStepToolCallItem.FromRunStepDetailsToolCallsFunctionObject(v)
-	case openai.RunStepDetailsToolCallsCodeObject:
-		err = runStepToolCallItem.FromRunStepDetailsToolCallsCodeObject(v)
-	case openai.RunStepDetailsToolCallsRetrievalObject:
-		err = runStepToolCallItem.FromRunStepDetailsToolCallsRetrievalObject(v)
-	}
-
-	return *runStepToolCallItem, err
 }
 
 func ExtractRunStepDetails(details openai.RunStepObject_StepDetails) (any, error) {
@@ -303,6 +342,46 @@ func GetOutputForRunStepToolCall(item openai.RunStepDetailsToolCallsObject_ToolC
 	}
 
 	return info, fmt.Errorf("failed to extract tool call output")
+}
+
+func runStepFromGenericToolCallInfo(info GenericToolCallInfo) (*openai.RunStepDetailsToolCallsObject_ToolCalls_Item, error) {
+	item := new(openai.RunStepDetailsToolCallsObject_ToolCalls_Item)
+	name := strings.TrimPrefix(info.Name, tools.GPTScriptToolNamePrefix)
+	if name == string(openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter) {
+		//nolint:govet
+		return item, item.FromRunStepDetailsToolCallsCodeObject(openai.RunStepDetailsToolCallsCodeObject{
+			struct {
+				Input   string                                                                  `json:"input"`
+				Outputs []openai.RunStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item `json:"outputs"`
+			}{
+				Input: info.Arguments,
+			},
+			info.ID,
+			openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter,
+		})
+	} else if name == string(openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval) {
+		//nolint:govet
+		return item, item.FromRunStepDetailsToolCallsRetrievalObject(openai.RunStepDetailsToolCallsRetrievalObject{
+			info.ID,
+			make(map[string]any),
+			openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval,
+		})
+	}
+
+	//nolint:govet
+	return item, item.FromRunStepDetailsToolCallsFunctionObject(openai.RunStepDetailsToolCallsFunctionObject{
+		struct {
+			Arguments string  `json:"arguments"`
+			Name      string  `json:"name"`
+			Output    *string `json:"output"`
+		}{
+			Arguments: info.Arguments,
+			Name:      name,
+			Output:    nil,
+		},
+		info.ID,
+		openai.RunStepDetailsToolCallsFunctionObjectTypeFunction,
+	})
 }
 
 type GenericToolCallInfo struct {

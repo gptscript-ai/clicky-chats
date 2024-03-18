@@ -90,6 +90,7 @@ func (db *DB) AutoMigrate() error {
 		CreateTranslationResponse{},
 
 		Tool{},
+		RunEvent{},
 	)
 }
 

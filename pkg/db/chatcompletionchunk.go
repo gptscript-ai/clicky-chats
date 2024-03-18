@@ -24,6 +24,10 @@ func (c *ChatCompletionResponseChunk) GetIndex() int {
 	return c.ResponseIdx
 }
 
+func (c *ChatCompletionResponseChunk) GetEvent() string {
+	return ""
+}
+
 func (c *ChatCompletionResponseChunk) ToPublic() any {
 	//nolint:govet
 	return &openai.CreateChatCompletionStreamResponse{

@@ -325,3 +325,385 @@ components:
         - id
         - object
         - deleted
+
+    XMessageDeltaObject:
+      additionalProperties: false
+      description: Represents a message delta i.e. any changed fields on a message during streaming.
+      properties:
+        id:
+          description: The identifier, which can be referenced in API endpoints.
+          type: string
+        object:
+          description: The object type, which is always `thread.message.delta`.
+          enum:
+            - thread.message.delta
+          type: string
+        delta:
+          description: The message delta.
+          $ref: '#/components/schemas/XMessageDeltaObjectDelta'
+      required:
+        - id
+        - object
+      title: The message delta object
+      type: object
+
+    XMessageDeltaObjectDelta:
+      additionalProperties: false
+      properties:
+        content:
+          description: The content of the message delta.
+          type: object
+          $ref: '#/components/schemas/XMessageDeltaObjectDeltaContent'
+        role:
+          description: The entity that produced the message. One of `user` or `assistant`.
+          enum:
+            - user
+            - assistant
+          type: string
+        file_ids:
+          default: []
+          description: A list of [file](/docs/api-reference/files) IDs that the assistant should use. Useful for tools like retrieval and code_interpreter that can access files. A maximum of 10 files can be attached to a message.
+          items:
+            type: string
+          maxItems: 10
+          type: array
+      required:
+        - content
+      type: object
+
+    XMessageDeltaObjectDeltaContent:
+      additionalProperties: false
+      description: The content of the message in array of text and/or images.
+      type: array
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/XMessageDeltaContentTextObject'
+          - $ref: '#/components/schemas/XMessageDeltaContentImageFileObject'
+
+    XMessageDeltaContentImageFileObject:
+      description: References an image [File](/docs/api-reference/files) in the content of a message.
+      properties:
+        index:
+          description: The index of the content part in the message.
+          type: integer
+        image_file:
+          properties:
+            file_id:
+              description: The [File](/docs/api-reference/files) ID of the image in the message content.
+              type: string
+          required:
+            - file_id
+          type: object
+        type:
+          description: Always `image_file`.
+          enum:
+            - image_file
+          type: string
+      required:
+        - type
+        - image_file
+      title: Image file
+      type: object
+
+    XMessageDeltaContentTextObject:
+      additionalProperties: false
+      properties:
+        index:
+          description: The index of the content part in the message.
+          type: integer
+        text:
+          type: object
+          $ref: '#/components/schemas/XMessageDeltaContentTextObjectText'
+        type:
+          description: Always `text`.
+          enum:
+            - text
+          type: string
+      required:
+        - type
+      title: Text
+      type: object
+
+    XMessageDeltaContentTextObjectText:
+      additionalProperties: false
+      properties:
+        annotations:
+          items:
+            type: object
+            oneOf:
+              - $ref: '#/components/schemas/XMessageDeltaContentTextObjectTextAnnotationFileCitation'
+              - $ref: '#/components/schemas/XMessageDeltaContentTextObjectTextAnnotationFilePath'
+          type: array
+        text:
+          type: string
+      type: object
+
+    XMessageDeltaContentTextObjectTextAnnotationFileCitation:
+      additionalProperties: false
+      properties:
+        index:
+          type: integer
+        type:
+          type: string
+          enum:
+            - file_citation
+        text:
+          type: string
+        file_citation:
+          type: object
+          $ref: '#/components/schemas/XMessageDeltaContentTextObjectTextAnnotationFileCitationObject'
+        start_index:
+          type: integer
+        end_index:
+          type: integer
+      title: File citation
+      type: object
+
+    XMessageDeltaContentTextObjectTextAnnotationFileCitationObject:
+      additionalProperties: false
+      properties:
+        file_id:
+          type: string
+        quote:
+          type: string
+      required:
+        - file_id
+        - quote
+      type: object
+
+    XMessageDeltaContentTextObjectTextAnnotationFilePath:
+      additionalProperties: false
+      properties:
+        index:
+          type: integer
+        type:
+          type: string
+          enum:
+            - file_path
+        text:
+          type: string
+        file_path:
+          type: object
+          $ref: '#/components/schemas/XMessageDeltaContentTextObjectTextAnnotationFilePathObject'
+        start_index:
+          type: integer
+        end_index:
+          type: integer
+      title: File path
+      type: object
+
+    XMessageDeltaContentTextObjectTextAnnotationFilePathObject:
+      additionalProperties: false
+      properties:
+        file_id:
+          type: string
+      required:
+        - file_id
+      type: object
+
+    XRunStepDeltaObject:
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        object:
+          enum:
+            - thread.run.step.delta
+          type: string
+        delta:
+          type: object
+          $ref: '#/components/schemas/XRunStepDeltaObjectDelta'
+      required:
+        - id
+        - object
+        - delta
+      type: object
+
+    XRunStepDeltaObjectDelta:
+      additionalProperties: false
+      properties:
+        step_details:
+          type: object
+          oneOf:
+            - $ref: '#/components/schemas/XRunStepDeltaObjectDeltaMessageCreation'
+            - $ref: '#/components/schemas/XRunStepDeltaObjectDeltaToolCalls'
+      type: object
+
+    XRunStepDeltaObjectDeltaMessageCreation:
+      title: Message creation
+      additionalProperties: false
+      properties:
+        type:
+          enum:
+            - message_creation
+          type: string
+        message_creation:
+          type: object
+          $ref: '#/components/schemas/XMessageDeltaObjectDeltaMessageCreation'
+      required:
+        - type
+        - message_creation
+      type: object
+
+    XMessageDeltaObjectDeltaMessageCreation:
+      additionalProperties: false
+      properties:
+        message_id:
+          type: string
+      required:
+        - message_id
+      type: object
+
+    XRunStepDeltaObjectDeltaToolCalls:
+      title: Tool calls
+      additionalProperties: false
+      properties:
+        type:
+          enum:
+            - tool_calls
+          type: string
+        tool_calls:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/XRunStepDeltaObjectDeltaToolCallsObjectCode'
+              - $ref: '#/components/schemas/XRunStepDeltaObjectDeltaToolCallsObjectRetrieval'
+              - $ref: '#/components/schemas/XRunStepDeltaObjectDeltaToolCallsObjectFunction'
+            x-oaiExpandable: true
+      required:
+        - type
+        - tool_calls
+      type: object
+
+    XRunStepDeltaObjectDeltaToolCallsObjectCode:
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        index:
+          type: integer
+        type:
+          enum:
+            - code
+          type: string
+        code_interpreter:
+          type: object
+          $ref: '#/components/schemas/XRunStepDetailsToolCallsCodeObject'
+      required:
+        - id
+        - index
+        - type
+        - code_interpreter
+      type: object
+
+    XRunStepDetailsToolCallsCodeObject:
+      additionalProperties: false
+      properties:
+        input:
+          type: string
+          description: The input to the Code Interpreter tool call.
+        outputs:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/XRunStepDetailsToolCallsCodeObjectLogOutput'
+              - $ref: '#/components/schemas/XRunStepDetailsToolCallsCodeObjectImageOutput'
+      type: object
+
+    XRunStepDetailsToolCallsCodeObjectLogOutput:
+      additionalProperties: false
+      properties:
+        index:
+          type: integer
+        type:
+          enum:
+            - log
+          type: string
+        log:
+          type: string
+      required:
+        - index
+        - type
+        - log
+      type: object
+
+    XRunStepDetailsToolCallsCodeObjectImageOutput:
+      additionalProperties: false
+      properties:
+        index:
+          type: integer
+        type:
+          enum:
+            - image
+          type: string
+        image:
+          type: object
+          $ref: '#/components/schemas/XRunStepDetailsToolCallsCodeObjectImageOutputObject'
+      required:
+        - index
+        - type
+        - image
+      type: object
+
+    XRunStepDetailsToolCallsCodeObjectImageOutputObject:
+      additionalProperties: false
+      properties:
+        file_id:
+          type: string
+      required:
+        - file_id
+      type: object
+
+    XRunStepDeltaObjectDeltaToolCallsObjectRetrieval:
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        index:
+          type: integer
+        type:
+          enum:
+            - retrieval
+          type: string
+        retrieval:
+          type: object
+          x-oaiTypeLabel: map
+          description: For now, this is always going to be an empty object.
+      required:
+        - id
+        - index
+        - type
+      type: object
+
+    XRunStepDeltaObjectDeltaToolCallsObjectFunction:
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        index:
+          type: integer
+        type:
+          enum:
+            - function
+          type: string
+        function:
+          type: object
+          $ref: '#/components/schemas/XRunStepDeltaDetailsToolCallsFunctionObject'
+      required:
+        - id
+        - index
+        - type
+      type: object
+
+    XRunStepDeltaDetailsToolCallsFunctionObject:
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        arguments:
+          type: string
+        output:
+          type: string
+      required:
+        - name
+      type: object

@@ -20,6 +20,7 @@ import (
 	"github.com/oapi-codegen/runtime"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (s *Server) ExtendedListAssistants(w http.ResponseWriter, r *http.Request, params openai.ExtendedListAssistantsParams) {
@@ -380,7 +381,7 @@ func (s *Server) ExtendedCreateChatCompletion(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
-	waitForAndStreamResponse[*db.ChatCompletionResponseChunk](r.Context(), w, gormDB, ccr.ID)
+	waitForAndStreamResponse[*db.ChatCompletionResponseChunk](r.Context(), w, gormDB, ccr.ID, 0)
 }
 
 func (s *Server) ExtendedCreateCompletion(w http.ResponseWriter, _ *http.Request) {
@@ -658,7 +659,7 @@ func (s *Server) ListThreads(w http.ResponseWriter, r *http.Request, params open
 }
 
 func (s *Server) ExtendedCreateThread(w http.ResponseWriter, r *http.Request) {
-	createThreadRequest := new(openai.CreateThreadRequest)
+	createThreadRequest := new(openai.ExtendedCreateThreadRequest)
 	if err := readObjectFromRequest(r, createThreadRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -697,15 +698,19 @@ func (s *Server) ExtendedCreateThread(w http.ResponseWriter, r *http.Request) {
 			}
 
 			//nolint:govet
-			publicMessage := &openai.MessageObject{
+			publicMessage := &openai.ExtendedMessageObject{
 				nil,
-				[]openai.MessageObject_Content_Item{*content},
+				nil,
+				[]openai.ExtendedMessageObject_Content_Item{*content},
 				0,
 				z.Dereference(message.FileIds),
 				"",
+				nil,
+				nil,
 				message.Metadata,
-				openai.MessageObjectObjectThreadMessage,
-				openai.MessageObjectRole(message.Role),
+				openai.ExtendedMessageObjectObjectThreadMessage,
+				openai.ExtendedMessageObjectRole(message.Role),
+				nil,
 				nil,
 				thread.ID,
 			}
@@ -722,6 +727,11 @@ func (s *Server) ExtendedCreateThread(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, _ *http.Request) {
+	// TODO: When this does eventually get implemented, we need to emit three events:
+	// 1. The first event is a thread.created event that says that the thread is created.
+	// 2. The second event is a thread.run.created event that says that the run is created.
+	// 3. The third event is a thread.run.queued event that says that the run is queued.
+	// Note that this requires that the EventIndex field on the resulting Run object is set to 2.
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
@@ -783,7 +793,7 @@ func (s *Server) ExtendedCreateMessage(w http.ResponseWriter, r *http.Request, t
 		return
 	}
 
-	createMessageRequest := new(openai.CreateMessageRequest)
+	createMessageRequest := new(openai.ExtendedCreateMessageRequest)
 	if err := readObjectFromRequest(r, createMessageRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -798,15 +808,19 @@ func (s *Server) ExtendedCreateMessage(w http.ResponseWriter, r *http.Request, t
 	}
 
 	//nolint:govet
-	publicMessage := &openai.MessageObject{
+	publicMessage := &openai.ExtendedMessageObject{
 		nil,
-		[]openai.MessageObject_Content_Item{*content},
+		nil,
+		[]openai.ExtendedMessageObject_Content_Item{*content},
 		0,
 		z.Dereference(createMessageRequest.FileIds),
 		"",
+		nil,
+		nil,
 		createMessageRequest.Metadata,
-		openai.MessageObjectObjectThreadMessage,
-		openai.MessageObjectRole(createMessageRequest.Role),
+		openai.ExtendedMessageObjectObjectThreadMessage,
+		openai.ExtendedMessageObjectRole(createMessageRequest.Role),
+		nil,
 		nil,
 		threadID,
 	}
@@ -915,7 +929,7 @@ func (s *Server) ExtendedCreateRun(w http.ResponseWriter, r *http.Request, threa
 		return
 	}
 
-	createRunRequest := new(openai.CreateRunRequest)
+	createRunRequest := new(openai.ExtendedCreateRunRequest)
 	if err := readObjectFromRequest(r, createRunRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -998,8 +1012,29 @@ func (s *Server) ExtendedCreateRun(w http.ResponseWriter, r *http.Request, threa
 		return
 	}
 
+	runCreatedEvent := &db.RunEvent{
+		EventName: db.ThreadRunCreatedEvent,
+		Run:       datatypes.NewJSONType(run),
+	}
+	runQueuedEvent := &db.RunEvent{
+		EventName:   db.ThreadRunQueuedEvent,
+		Run:         datatypes.NewJSONType(run),
+		ResponseIdx: 1,
+	}
+
 	if err := gormDB.Transaction(func(tx *gorm.DB) error {
+		run.EventIndex = 1
 		if err := db.Create(tx, run); err != nil {
+			return err
+		}
+
+		runCreatedEvent.RequestID = run.ID
+		if err := db.Create(tx, runCreatedEvent); err != nil {
+			return err
+		}
+
+		runQueuedEvent.RequestID = run.ID
+		if err := db.Create(tx, runQueuedEvent); err != nil {
 			return err
 		}
 
@@ -1016,7 +1051,15 @@ func (s *Server) ExtendedCreateRun(w http.ResponseWriter, r *http.Request, threa
 		return
 	}
 
-	writeObjectToResponse(w, run.ToPublic())
+	if !z.Dereference(createRunRequest.Stream) {
+		writeObjectToResponse(w, run.ToPublic())
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	waitForAndStreamResponse[*db.RunEvent](r.Context(), w, gormDB, run.ID, 0)
 }
 
 func (s *Server) ExtendedGetRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
@@ -1134,7 +1177,7 @@ func (s *Server) ExtendedSubmitToolOuputsToRun(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	outputs := new(openai.SubmitToolOutputsRunRequest)
+	outputs := new(openai.ExtendedSubmitToolOutputsRunRequest)
 	if err := readObjectFromRequest(r, outputs); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -1143,7 +1186,7 @@ func (s *Server) ExtendedSubmitToolOuputsToRun(w http.ResponseWriter, r *http.Re
 
 	// Get the latest run step.
 	var runSteps []*db.RunStep
-	if err := db.List(s.db.WithContext(r.Context()).Where("run_id = ?", runID).Where("status = ?", string(openai.RunStepObjectStatusInProgress)).Order("created_at desc").Limit(1), &runSteps); err != nil {
+	if err := db.List(s.db.WithContext(r.Context()).Where("run_id = ?", runID).Where("status = ?", string(openai.InProgress)).Order("created_at desc").Limit(1), &runSteps); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(NewAPIError("Failed to get run step.", InternalErrorType).Error()))
 		return
@@ -1162,7 +1205,7 @@ func (s *Server) ExtendedSubmitToolOuputsToRun(w http.ResponseWriter, r *http.Re
 		_, _ = w.Write([]byte(NewAPIError("Failed to get run step function calls.", InternalErrorType).Error()))
 		return
 	}
-	if runStep.Status != string(openai.RunStepObjectStatusInProgress) || len(runStepFunctionCalls) == 0 {
+	if runStep.Status != string(openai.InProgress) || len(runStepFunctionCalls) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewAPIError("Run step not in progress.", InvalidRequestErrorType).Error()))
 		return
@@ -1189,23 +1232,49 @@ func (s *Server) ExtendedSubmitToolOuputsToRun(w http.ResponseWriter, r *http.Re
 		*runStepFunctionCalls[idx].Function.Output = *output.Output
 	}
 
+	var eventIndexStart int
 	stepDetailsHack := map[string]any{
 		"tool_calls": runStepFunctionCalls,
 		"type":       openai.RunStepObjectTypeToolCalls,
 	}
-	if err := s.db.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(runStep).Where("id = ?", runStep.ID).Updates(map[string]interface{}{"status": string(openai.RunObjectStatusCompleted), "step_details": datatypes.NewJSONType(stepDetailsHack)}).Error; err != nil {
+	if err = s.db.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
+		run := new(db.Run)
+		if err := tx.Model(run).Clauses(clause.Returning{}).Where("id = ?", runID).Updates(map[string]any{"status": string(openai.RunObjectStatusQueued), "required_action": nil}).Error; err != nil {
 			return err
 		}
 
-		return tx.Model(new(db.Run)).Where("id = ?", runID).Updates(map[string]interface{}{"status": string(openai.RunObjectStatusQueued), "required_action": nil}).Error
+		if err := tx.Model(runStep).Clauses(clause.Returning{}).Where("id = ?", runStep.ID).Updates(map[string]any{"status": string(openai.RunObjectStatusCompleted), "step_details": datatypes.NewJSONType(stepDetailsHack)}).Error; err != nil {
+			return err
+		}
+
+		run.EventIndex++
+		runEvent := &db.RunEvent{
+			EventName: db.ThreadRunStepCompletedEvent,
+			JobResponse: db.JobResponse{
+				RequestID: run.ID,
+			},
+			RunStep:     datatypes.NewJSONType(runStep),
+			ResponseIdx: run.EventIndex,
+		}
+
+		if err := db.Create(tx, runEvent); err != nil {
+			return err
+		}
+
+		eventIndexStart = run.EventIndex
+		return tx.Model(run).Clauses(clause.Returning{}).Where("id = ?", runID).Updates(map[string]any{"event_index": run.EventIndex}).Error
 	}); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to submit tool outputs: %v", err), InternalErrorType).Error()))
 		return
 	}
 
-	writeObjectToResponse(w, runStep.ToPublic())
+	if !z.Dereference(outputs.Stream) {
+		writeObjectToResponse(w, runStep.ToPublic())
+		return
+	}
+
+	waitForAndStreamResponse[*db.RunEvent](r.Context(), w, s.db.WithContext(r.Context()), runID, eventIndexStart)
 }
 
 func readObjectFromRequest(r *http.Request, obj any) error {
@@ -1517,8 +1586,8 @@ func waitForAndWriteResponse(ctx context.Context, w http.ResponseWriter, gormDB 
 	}
 }
 
-func waitForAndStreamResponse[T JobRespondStreamer](ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string) {
-	index := -1
+func waitForAndStreamResponse[T JobRespondStreamer](ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string, index int) {
+	var printDoneEvent bool
 	for {
 		select {
 		case <-ctx.Done():
@@ -1527,19 +1596,21 @@ func waitForAndStreamResponse[T JobRespondStreamer](ctx context.Context, w http.
 		}
 
 		respObj := *new(T)
-		if err := gormDB.Model(respObj).Where("request_id = ?", id).Where("response_idx > ?", index).Order("response_idx asc").First(&respObj).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := gormDB.Model(respObj).Where("request_id = ?", id).Where("response_idx >= ?", index).Order("response_idx asc").First(&respObj).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 			time.Sleep(time.Second)
 			continue
 		} else if err != nil {
+			slog.Error("Failed to get response chunk", "err", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed streaming responses: %v", err), InternalErrorType).Error()))
 			break
 		} else if errStr := respObj.GetErrorString(); errStr != "" {
+			slog.Error("Failed to get response chunk", "err", err)
 			_, _ = w.Write([]byte(fmt.Sprintf(`data: %v`, NewAPIError(errStr, InternalErrorType).Error())))
 			break
 		}
 
-		index = respObj.GetIndex()
+		index = respObj.GetIndex() + 1
 		if respObj.IsDone() {
 			break
 		}
@@ -1547,19 +1618,30 @@ func waitForAndStreamResponse[T JobRespondStreamer](ctx context.Context, w http.
 		respObj.SetID(id)
 		body, err := json.Marshal(respObj.ToPublic())
 		if err != nil {
+			slog.Error("Failed to marshal response", "err", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(fmt.Sprintf(`data: %v`, NewAPIError(fmt.Sprintf("Failed to process streamed response: %v", err), InternalErrorType).Error())))
 			break
 		}
 
-		d := make([]byte, 0, len(body)+8)
-		_, _ = w.Write(append(append(append(d, []byte("data: ")...), body...), byte('\n')))
+		event := respObj.GetEvent()
+		if event != "" {
+			printDoneEvent = true
+			event = fmt.Sprintf("event: %s\n", event)
+		}
+
+		d := make([]byte, 0, len(body)+len(event)+9)
+		_, _ = w.Write(append(append(append(append(d, []byte(event)...), []byte("data: ")...), body...), []byte("\n\n")...))
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
 		}
 	}
 
-	_, _ = w.Write([]byte("data: [DONE]\n"))
+	doneMessage := "data: [DONE]\n\n"
+	if printDoneEvent {
+		doneMessage = "event: done\ndata: [DONE]\n\n"
+	}
+	_, _ = w.Write([]byte(doneMessage))
 }
 
 // transposeObject will marshal the first object and unmarshal it into the second object.
