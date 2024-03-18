@@ -178,13 +178,11 @@ func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request,
 	var err error
 	var model openai.ExtendedModifyAssistantRequestModel0
 	if modifyAssistantRequest.Model != nil {
-		if modifyAssistantRequest.Model == nil {
-			model, err = modifyAssistantRequest.Model.AsExtendedModifyAssistantRequestModel0()
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				_, _ = w.Write([]byte(NewAPIError("Failed to process model.", InvalidRequestErrorType).Error()))
-				return
-			}
+		model, err = modifyAssistantRequest.Model.AsExtendedModifyAssistantRequestModel0()
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Failed to process model.", InvalidRequestErrorType).Error()))
+			return
 		}
 	}
 
