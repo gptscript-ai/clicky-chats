@@ -20,6 +20,10 @@ func toolToProgram(ctx context.Context, tool *db.Tool) ([]byte, error) {
 	)
 
 	if url := z.Dereference(tool.URL); url != "" {
+		if !strings.HasSuffix(url, ".gpt") {
+			url = strings.TrimPrefix(strings.TrimPrefix(url, "https://"), "http://")
+			tool.URL = &url
+		}
 		prg, err = loader.Program(ctx, url, z.Dereference(tool.Subtool))
 		if err != nil {
 			err = NewAPIError(fmt.Sprintf("failed parsing request object: %v", err), InvalidRequestErrorType)
