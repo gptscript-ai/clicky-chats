@@ -37,6 +37,18 @@ type Config struct {
 	APIURL, APIKey, AgentID string
 }
 
+var inputModifiers = map[string]func(*agent, *db.Run, []string, string) ([]string, string, error){
+	"retrieval": func(agent *agent, run *db.Run, env []string, args string) ([]string, string, error) {
+		// extra environment variables for knowledge retrieval
+		env = append(env,
+			// leading http:// removed, since GPTScript needs to have it in the #!http:// instruction to determine that it's an HTTP call
+			"knowledge_retrieval_api_url="+strings.TrimSuffix(strings.TrimPrefix(agent.kbm.KnowledgeRetrievalAPIURL, "http://"), "/"),
+			"knowledge_retrieval_dataset="+strings.ToLower(run.AssistantID),
+		)
+		return env, args, nil
+	},
+}
+
 func Start(ctx context.Context, gdb *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) error {
 	a, err := newAgent(gdb, kbm, cfg)
 	if err != nil {
@@ -194,13 +206,13 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 
 		envs := os.Environ()
 
-		// extra environment variables for knowledge retrieval
-		if a.kbm != nil {
-			envs = append(envs,
-				// leading http:// removed, since GPTScript needs to have it in the #!http:// instruction to determine that it's an HTTP call
-				"knowledge_retrieval_api_url="+strings.TrimSuffix(strings.TrimPrefix(a.kbm.KnowledgeRetrievalAPIURL, "http://"), "/"),
-				"knowledge_retrieval_dataset="+strings.ToLower(run.AssistantID),
-			)
+		// Modify the input (env and args) if necessary
+		if inputModifier, ok := inputModifiers[functionName]; ok {
+			var err error
+			envs, arguments, err = inputModifier(a, run, envs, arguments)
+			if err != nil {
+				return fmt.Errorf("[tool: %s] failed to modify input: %w", functionName, err)
+			}
 		}
 
 		prg, ok := a.builtInToolDefinitions[functionName]
