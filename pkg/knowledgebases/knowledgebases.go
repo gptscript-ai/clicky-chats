@@ -73,7 +73,7 @@ func (m *KnowledgeBaseManager) CreateKnowledgeBase(ctx context.Context, id strin
 		return "", err
 	}
 
-	if res.StatusCode > 400 {
+	if res.StatusCode >= 400 {
 		return "", fmt.Errorf("failed to create knowledge base: %s", res.Status)
 	}
 
@@ -107,7 +107,7 @@ func (m *KnowledgeBaseManager) DeleteKnowledgeBase(ctx context.Context, id strin
 		return err
 	}
 
-	if res.StatusCode > 400 {
+	if res.StatusCode >= 400 {
 		return fmt.Errorf("failed to delete knowledge base: %s", res.Status)
 	}
 
@@ -160,7 +160,7 @@ func (m *KnowledgeBaseManager) AddFile(ctx context.Context, id string, fileID st
 
 	// try to read the response body to get the error message
 	b, rerr := io.ReadAll(res.Body)
-	if res.StatusCode > 400 {
+	if res.StatusCode >= 400 {
 		if rerr != nil && len(b) > 0 {
 			return fmt.Errorf("failed to ingest file: %s", string(b))
 		}
@@ -186,7 +186,7 @@ func (m *KnowledgeBaseManager) RemoveFile(ctx context.Context, id string, fileID
 		return err
 	}
 
-	if res.StatusCode > 400 {
+	if res.StatusCode >= 400 {
 		return fmt.Errorf("failed to remove file: %s", res.Status)
 	}
 
@@ -209,7 +209,7 @@ func (m *KnowledgeBaseManager) ListFiles(ctx context.Context, id string) ([]stri
 		return nil, err
 	}
 
-	if res.StatusCode > 400 {
+	if res.StatusCode >= 400 {
 		return nil, fmt.Errorf("failed to list files: %s", res.Status)
 	}
 
