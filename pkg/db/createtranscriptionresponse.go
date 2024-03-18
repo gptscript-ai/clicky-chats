@@ -4,7 +4,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 )
 
-type CreateTranslationResponse struct {
+type CreateTranscriptionResponse struct {
 	// The following fields are not exposed in the public API
 	JobResponse `json:",inline"`
 
@@ -13,23 +13,23 @@ type CreateTranslationResponse struct {
 	Text string
 }
 
-func (*CreateTranslationResponse) IDPrefix() string {
-	return "translation-"
+func (*CreateTranscriptionResponse) IDPrefix() string {
+	return "transcription-"
 }
 
-func (c *CreateTranslationResponse) ToPublic() any {
+func (c *CreateTranscriptionResponse) ToPublic() any {
 	if c == nil {
 		return nil
 	}
 
 	//nolint:govet
-	return &openai.CreateTranslationResponse{
+	return &openai.CreateTranscriptionResponse{
 		c.Text,
 	}
 }
 
-func (c *CreateTranslationResponse) FromPublic(obj any) error {
-	o, ok := obj.(*openai.CreateTranslationResponse)
+func (c *CreateTranscriptionResponse) FromPublic(obj any) error {
+	o, ok := obj.(*openai.CreateTranscriptionResponse)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
 	}
@@ -39,7 +39,7 @@ func (c *CreateTranslationResponse) FromPublic(obj any) error {
 	}
 
 	//nolint:govet
-	*c = CreateTranslationResponse{
+	*c = CreateTranscriptionResponse{
 		JobResponse{},
 		Base{},
 		o.Text,

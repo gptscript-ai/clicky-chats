@@ -88,6 +88,8 @@ func (db *DB) AutoMigrate() error {
 		CreateEmbeddingResponse{},
 		CreateTranslationRequest{},
 		CreateTranslationResponse{},
+		CreateTranscriptionRequest{},
+		CreateTranscriptionResponse{},
 
 		Tool{},
 		RunEvent{},
