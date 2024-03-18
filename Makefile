@@ -42,5 +42,7 @@ integration:
 generate:
 	go generate ./pkg/generated/generate.go
 
+RUNNER_CACHE ?= false
+
 run-dev:
-	go run -tags "${GO_TAGS}" -ldflags "-s -w" ./main.go server --with-agents=true
+	go run -tags "${GO_TAGS}" -ldflags "-s -w" ./main.go server --cache=$(RUNNER_CACHE) --with-agents=true
