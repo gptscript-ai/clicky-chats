@@ -37,15 +37,15 @@ type Config struct {
 	APIURL, APIKey, AgentID string
 }
 
-var inputModifiers = map[string]func(*agent, *db.Run, []string, string) ([]string, string, error){
-	"retrieval": func(agent *agent, run *db.Run, env []string, args string) ([]string, string, error) {
+var inputModifiers = map[string]func(*agent, *db.RunStep, []string, string) ([]string, string, error){
+	"retrieval": func(agent *agent, runStep *db.RunStep, env []string, args string) ([]string, string, error) {
 		// extra environment variables for knowledge retrieval
 		env = append(env,
 			// leading http:// removed, since GPTScript needs to have it in the #!http:// instruction to determine that it's an HTTP call
 			"knowledge_retrieval_api_url="+strings.TrimSuffix(strings.TrimPrefix(agent.kbm.KnowledgeRetrievalAPIURL, "http://"), "/"),
-			"knowledge_retrieval_dataset="+strings.ToLower(run.AssistantID),
+			"knowledge_retrieval_dataset="+strings.ToLower(runStep.AssistantID),
 		)
-		return env, args, nil
+		return env, runStep.RetrievalArguments, nil
 	},
 }
 
@@ -199,17 +199,12 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			return fmt.Errorf("failed to determine function and arguments: %w", err)
 		}
 
-		// If this is a retrieval call, then use the arguments from the run step because OpenAI doesn't have a field for them.
-		if functionName == string(openai.Retrieval) {
-			arguments = runStep.RetrievalArguments
-		}
-
 		envs := os.Environ()
 
 		// Modify the input (env and args) if necessary
 		if inputModifier, ok := inputModifiers[functionName]; ok {
 			var err error
-			envs, arguments, err = inputModifier(a, run, envs, arguments)
+			envs, arguments, err = inputModifier(a, runStep, envs, arguments)
 			if err != nil {
 				return fmt.Errorf("[tool: %s] failed to modify input: %w", functionName, err)
 			}
