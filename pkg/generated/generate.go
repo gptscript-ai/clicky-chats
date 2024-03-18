@@ -25,6 +25,7 @@ func main() {
 	s.Components.Schemas["CreateRunRequest"].Value.Required = []string{"assistant_id"}
 	// Tools is nullable in the CreateChatCompletionRequest
 	s.Components.Schemas["CreateChatCompletionRequest"].Value.Properties["tools"].Value.Nullable = true
+	s.Components.Schemas["FunctionObject"].Value.Properties["parameters"].Value.Nullable = true
 
 	extendedAPIs := extendedapi.GetExtendedAPIs()
 

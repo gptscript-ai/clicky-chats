@@ -185,6 +185,17 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			return fmt.Errorf("failed to determine function and arguments: %w", err)
 		}
 
+		envs := os.Environ()
+
+		// extra environment variables for knowledge retrieval
+		if a.kbm != nil {
+			envs = append(envs,
+				// leading http:// removed, since GPTScript needs to have it in the #!http:// instruction to determine that it's an HTTP call
+				"knowledge_retrieval_api_url="+strings.TrimSuffix(strings.TrimPrefix(a.kbm.KnowledgeRetrievalAPIURL, "http://"), "/"),
+				"knowledge_retrieval_dataset="+strings.ToLower(run.AssistantID),
+			)
+		}
+
 		prg, ok := a.builtInToolDefinitions[functionName]
 		if !ok {
 			tool := new(db.Tool)
@@ -196,17 +207,8 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			if err != nil {
 				return fmt.Errorf("failed to load program for tool %s: %w", functionName, err)
 			}
-		}
 
-		envs := os.Environ()
-
-		// extra environment variables for knowledge retrieval
-		if a.kbm != nil {
-			envs = append(envs,
-				// leading http:// removed, since GPTScript needs to have it in the #!http:// instruction to determine that it's an HTTP call
-				"knowledge_retrieval_api_url="+strings.TrimSuffix(strings.TrimPrefix(a.kbm.KnowledgeRetrievalAPIURL, "http://"), "/"),
-				"knowledge_retrieval_dataset="+strings.ToLower(run.AssistantID),
-			)
+			envs = append(envs, tool.EnvVars...)
 		}
 
 		output, err := runner.Run(server.ContextWithNewID(ctx), prg, envs, arguments)

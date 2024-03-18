@@ -29,6 +29,12 @@ func (s *Server) CreateTool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err = validateToolEnvVars(z.Dereference(createToolRequest.EnvVars)); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
 	//nolint:govet
 	tool := &db.Tool{
 		db.Base{},
@@ -37,6 +43,7 @@ func (s *Server) CreateTool(w http.ResponseWriter, r *http.Request) {
 		createToolRequest.Contents,
 		createToolRequest.Url,
 		createToolRequest.Subtool,
+		z.Dereference(createToolRequest.EnvVars),
 		nil,
 	}
 
@@ -81,6 +88,12 @@ func (s *Server) ModifyTool(w http.ResponseWriter, r *http.Request, toolID strin
 		return
 	}
 
+	if err = validateToolEnvVars(z.Dereference(modifyToolRequest.EnvVars)); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
 	if z.Dereference(modifyToolRequest.Contents) == "" && z.Dereference(modifyToolRequest.Url) == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("s content or url").Error()))
@@ -97,6 +110,9 @@ func (s *Server) ModifyTool(w http.ResponseWriter, r *http.Request, toolID strin
 		if modifyToolRequest.Description != nil && *modifyToolRequest.Description != z.Dereference(existingTool.Description) {
 			existingTool.Description = modifyToolRequest.Description
 		}
+
+		existingTool.Subtool = modifyToolRequest.Subtool
+		existingTool.EnvVars = z.Dereference(modifyToolRequest.EnvVars)
 
 		retool := z.Dereference(modifyToolRequest.Retool)
 		if newURL := modifyToolRequest.Url; z.Dereference(newURL) != z.Dereference(existingTool.URL) {

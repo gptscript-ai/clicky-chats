@@ -199,6 +199,11 @@ components:
           type: string
           description: Contents of the tool
           nullable: true
+        env_vars:
+          type: array
+          description: Environment variables
+          items:
+            type: string
         subtool:
           type: string
           description: The name of the sub tool to use rather than the first tool
@@ -223,6 +228,15 @@ components:
           type: string
           description: Contents of the tool
           nullable: true
+        subtool:
+          type: string
+          description: The name of the sub tool to use rather than the first tool
+          nullable: true
+        env_vars:
+          type: array
+          description: Environment variables
+          items:
+            type: string
         retool:
           default: false
           type: boolean
@@ -257,6 +271,11 @@ components:
           type: string
           description: The name of the sub tool to use rather than the first tool
           nullable: true
+        env_vars:
+          type: array
+          description: Environment variables
+          items:
+            type: string
         object:
           description: The object type, which is always `tool`.
           type: string
