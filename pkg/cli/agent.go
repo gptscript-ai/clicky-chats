@@ -39,6 +39,8 @@ type Agent struct {
 	APIURL      string `usage:"URL for API calls" default:"http://localhost:8080/v1/chat/completions" env:"CLICKY_CHATS_SERVER_URL"`
 	ModelAPIKey string `usage:"API key for API calls" env:"CLICKY_CHATS_MODEL_API_KEY"`
 	AgentID     string `usage:"Agent ID to identify this agent" default:"my-agent" env:"CLICKY_CHATS_AGENT_ID"`
+
+	Cache bool `usage:"Enable the cache for Function calling" default:"true" env:"CLICKY_CHATS_CACHE"`
 }
 
 func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
@@ -105,6 +107,7 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 		APIURL:          s.ToolRunnerBaseURL,
 		APIKey:          apiKey,
 		AgentID:         s.AgentID,
+		Cache:           s.Cache,
 	}
 	if err = steprunner.Start(ctx, gormDB, kbm, stepRunnerCfg); err != nil {
 		return err
