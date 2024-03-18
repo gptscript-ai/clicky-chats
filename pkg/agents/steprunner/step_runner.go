@@ -18,6 +18,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/gptscript-ai/clicky-chats/pkg/tools"
+	"github.com/gptscript-ai/gptscript/pkg/cache"
 	"github.com/gptscript-ai/gptscript/pkg/loader"
 	gptopenai "github.com/gptscript-ai/gptscript/pkg/openai"
 	"github.com/gptscript-ai/gptscript/pkg/repos/runtimes"
@@ -35,6 +36,7 @@ const minPollingInterval = time.Second
 type Config struct {
 	PollingInterval         time.Duration
 	APIURL, APIKey, AgentID string
+	Cache                   bool
 }
 
 var inputModifiers = map[string]func(*agent, *db.RunStep, []string, string) ([]string, string, error){
@@ -66,6 +68,7 @@ func Start(ctx context.Context, gdb *db.DB, kbm *kb.KnowledgeBaseManager, cfg Co
 type agent struct {
 	pollingInterval time.Duration
 	id, apiKey, url string
+	cache           bool
 	client          *http.Client
 	db              *db.DB
 	kbm             *kb.KnowledgeBaseManager
@@ -80,6 +83,7 @@ func newAgent(db *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) (*agent, erro
 
 	return &agent{
 		pollingInterval: cfg.PollingInterval,
+		cache:           cfg.Cache,
 		client:          http.DefaultClient,
 		apiKey:          cfg.APIKey,
 		db:              db,
@@ -90,15 +94,24 @@ func newAgent(db *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) (*agent, erro
 }
 
 func (a *agent) Start(ctx context.Context) error {
-	caster := broadcaster.New[server.Event]()
+	oaCache, err := cache.New(cache.Options{
+		Cache: z.Pointer(!a.cache),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initialize step runner client cache: %w", err)
+	}
+
 	oaClient, err := gptopenai.NewClient(gptopenai.Options{
 		APIKey:  a.apiKey,
 		BaseURL: a.url,
+		Cache:   oaCache,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialize step runner client: %w", err)
 	}
-	noCacheRunner, err := runner.New(oaClient, runner.Options{
+
+	caster := broadcaster.New[server.Event]()
+	gsRunner, err := runner.New(oaClient, runner.Options{
 		MonitorFactory: server.NewSessionFactory(caster),
 		RuntimeManager: runtimes.Default(filepath.Join(xdg.CacheHome, version.ProgramName)),
 	})
@@ -125,7 +138,7 @@ func (a *agent) Start(ctx context.Context) error {
 	// Start the "job runner"
 	go func() {
 		for {
-			if err := a.run(ctx, noCacheRunner); err != nil {
+			if err := a.run(ctx, gsRunner); err != nil {
 				if !errors.Is(err, gorm.ErrRecordNotFound) {
 					slog.Error("failed step runner iteration", "err", err)
 				}
