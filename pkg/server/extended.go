@@ -175,22 +175,70 @@ func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	model, err := modifyAssistantRequest.Model.AsExtendedModifyAssistantRequestModel0()
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(NewAPIError("Failed to process model.", InvalidRequestErrorType).Error()))
-		return
-	}
-
-	tools := make([]openai.ExtendedAssistantObject_Tools_Item, 0, len(*modifyAssistantRequest.Tools))
-	for _, tool := range *modifyAssistantRequest.Tools {
-		t := new(openai.ExtendedAssistantObject_Tools_Item)
-		if err := transposeObject(tool, t); err != nil {
+	var err error
+	var model openai.ExtendedModifyAssistantRequestModel0
+	if modifyAssistantRequest.Model != nil {
+		model, err = modifyAssistantRequest.Model.AsExtendedModifyAssistantRequestModel0()
+		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(NewAPIError("Failed to process tool.", InvalidRequestErrorType).Error()))
+			_, _ = w.Write([]byte(NewAPIError("Failed to process model.", InvalidRequestErrorType).Error()))
 			return
 		}
-		tools = append(tools, *t)
+	}
+
+	var tools []openai.ExtendedAssistantObject_Tools_Item
+	if modifyAssistantRequest.Tools != nil {
+		tools = make([]openai.ExtendedAssistantObject_Tools_Item, 0, len(*modifyAssistantRequest.Tools))
+		for _, tool := range *modifyAssistantRequest.Tools {
+			t := new(openai.ExtendedAssistantObject_Tools_Item)
+			if err := transposeObject(tool, t); err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = w.Write([]byte(NewAPIError("Failed to process tool.", InvalidRequestErrorType).Error()))
+				return
+			}
+			tools = append(tools, *t)
+		}
+	}
+
+	var targetFileIDs []string
+	if modifyAssistantRequest.FileIds != nil {
+		targetFileIDs = z.Dereference(modifyAssistantRequest.FileIds)
+
+		existingFileIDs, err := s.kbm.ListFiles(r.Context(), assistantID)
+		if err != nil {
+			slog.Error("Failed to list assistant files", "id", assistantID, "err", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(NewAPIError("Failed to list assistant files.", InternalErrorType).Error()))
+			return
+		}
+
+		slog.Debug("Potential file changes", "existing", existingFileIDs, "target", targetFileIDs)
+
+		// Add any new files to the assistant knowledge base
+		for _, fileID := range targetFileIDs {
+			if !slices.Contains(existingFileIDs, fileID) {
+				slog.Debug("Adding file to assistant knowledge base", "id", assistantID, "file", fileID)
+				if err := s.kbm.AddFile(r.Context(), assistantID, fileID); err != nil {
+					slog.Error("Failed to add file to assistant knowledge base", "id", assistantID, "file", fileID, "err", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					_, _ = w.Write([]byte(NewAPIError("Failed to add file to assistant knowledge base.", InternalErrorType).Error()))
+					return
+				}
+			}
+		}
+
+		// Remove any files that are no longer in the assistant knowledge base
+		for _, fileID := range existingFileIDs {
+			if !slices.Contains(targetFileIDs, fileID) {
+				slog.Debug("Removing file from assistant knowledge base", "id", assistantID, "file", fileID)
+				if err := s.kbm.RemoveFile(r.Context(), assistantID, fileID); err != nil {
+					slog.Error("Failed to remove file from assistant knowledge base", "id", assistantID, "file", fileID, "err", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					_, _ = w.Write([]byte(NewAPIError("Failed to remove file from assistant knowledge base.", InternalErrorType).Error()))
+					return
+				}
+			}
+		}
 	}
 
 	assistant := &db.Assistant{
@@ -199,7 +247,7 @@ func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request,
 			Metadata: z.Dereference(modifyAssistantRequest.Metadata),
 		},
 		Description:    modifyAssistantRequest.Description,
-		FileIDs:        z.Dereference(modifyAssistantRequest.FileIds),
+		FileIDs:        targetFileIDs,
 		GPTScriptTools: z.Dereference(modifyAssistantRequest.GptscriptTools),
 		Instructions:   modifyAssistantRequest.Instructions,
 		Model:          model,

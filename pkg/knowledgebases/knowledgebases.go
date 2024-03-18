@@ -47,7 +47,7 @@ type CreateKnowledgeBaseResponse struct {
 	CreateKnowledgeBaseRequest `json:",inline"`
 }
 
-func (m *KnowledgeBaseManager) CreateKnowledgeBase(_ context.Context, id string) (string, error) {
+func (m *KnowledgeBaseManager) CreateKnowledgeBase(ctx context.Context, id string) (string, error) {
 	id = strings.ToLower(id)
 
 	url := m.KnowledgeRetrievalAPIURL + "/datasets/create"
@@ -61,7 +61,7 @@ func (m *KnowledgeBaseManager) CreateKnowledgeBase(_ context.Context, id string)
 		return "", err
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(data))
 	if err != nil {
 		return "", err
 	}
@@ -73,7 +73,7 @@ func (m *KnowledgeBaseManager) CreateKnowledgeBase(_ context.Context, id string)
 		return "", err
 	}
 
-	if res.StatusCode > 400 {
+	if res.StatusCode >= 400 {
 		return "", fmt.Errorf("failed to create knowledge base: %s", res.Status)
 	}
 
@@ -92,12 +92,12 @@ func (m *KnowledgeBaseManager) CreateKnowledgeBase(_ context.Context, id string)
 	return response.Name, nil
 }
 
-func (m *KnowledgeBaseManager) DeleteKnowledgeBase(_ context.Context, id string) error {
+func (m *KnowledgeBaseManager) DeleteKnowledgeBase(ctx context.Context, id string) error {
 	id = strings.ToLower(id)
 
 	url := m.KnowledgeRetrievalAPIURL + "/datasets/" + id
 
-	req, err := http.NewRequest("DELETE", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func (m *KnowledgeBaseManager) DeleteKnowledgeBase(_ context.Context, id string)
 		return err
 	}
 
-	if res.StatusCode > 400 {
+	if res.StatusCode >= 400 {
 		return fmt.Errorf("failed to delete knowledge base: %s", res.Status)
 	}
 
@@ -146,7 +146,7 @@ func (m *KnowledgeBaseManager) AddFile(ctx context.Context, id string, fileID st
 		return err
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(data))
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (m *KnowledgeBaseManager) AddFile(ctx context.Context, id string, fileID st
 
 	// try to read the response body to get the error message
 	b, rerr := io.ReadAll(res.Body)
-	if res.StatusCode > 400 {
+	if res.StatusCode >= 400 {
 		if rerr != nil && len(b) > 0 {
 			return fmt.Errorf("failed to ingest file: %s", string(b))
 		}
@@ -169,4 +169,71 @@ func (m *KnowledgeBaseManager) AddFile(ctx context.Context, id string, fileID st
 
 	defer res.Body.Close()
 	return nil
+}
+
+func (m *KnowledgeBaseManager) RemoveFile(ctx context.Context, id string, fileID string) error {
+	id = strings.ToLower(id)
+
+	url := m.KnowledgeRetrievalAPIURL + "/datasets/" + id + "/files/" + fileID
+
+	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode >= 400 {
+		return fmt.Errorf("failed to remove file: %s", res.Status)
+	}
+
+	defer res.Body.Close()
+	return nil
+}
+
+func (m *KnowledgeBaseManager) ListFiles(ctx context.Context, id string) ([]string, error) {
+	id = strings.ToLower(id)
+
+	url := m.KnowledgeRetrievalAPIURL + "/datasets/" + id
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode >= 400 {
+		return nil, fmt.Errorf("failed to list files: %s", res.Status)
+	}
+
+	defer res.Body.Close()
+	resp, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	f := struct {
+		Files []struct {
+			FileID string `json:"file_id"`
+		} `json:"files"`
+	}{}
+
+	err = json.Unmarshal(resp, &f)
+	if err != nil {
+		return nil, err
+	}
+
+	var fileIDs []string
+	for _, file := range f.Files {
+		fileIDs = append(fileIDs, file.FileID)
+	}
+
+	return fileIDs, nil
 }
