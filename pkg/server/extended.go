@@ -335,7 +335,7 @@ func (s *Server) ExtendedCreateTranscription(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		publicReq.Prompt = &(languages[0])
+		publicReq.Prompt = &languages[0]
 	}
 
 	models := value["model"]
@@ -360,7 +360,7 @@ func (s *Server) ExtendedCreateTranscription(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		publicReq.Prompt = &(prompts[0])
+		publicReq.Prompt = &prompts[0]
 	}
 
 	if formats, ok := value["response_format"]; ok {
@@ -370,7 +370,7 @@ func (s *Server) ExtendedCreateTranscription(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		publicReq.Prompt = &(formats[0])
+		publicReq.ResponseFormat = z.Pointer(openai.CreateTranscriptionRequestResponseFormat(formats[0]))
 	}
 
 	if temperatures, ok := value["temperature"]; ok {
@@ -474,7 +474,7 @@ func (s *Server) ExtendedCreateTranslation(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		publicReq.Prompt = &(prompts[0])
+		publicReq.Prompt = &prompts[0]
 	}
 
 	if formats, ok := value["response_format"]; ok {
@@ -484,7 +484,7 @@ func (s *Server) ExtendedCreateTranslation(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		publicReq.Prompt = &(formats[0])
+		publicReq.Prompt = &formats[0]
 	}
 
 	if temperatures, ok := value["temperature"]; ok {

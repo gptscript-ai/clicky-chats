@@ -24,7 +24,7 @@ func (c *CreateTranscriptionResponse) ToPublic() any {
 
 	//nolint:govet
 	return &openai.CreateTranscriptionResponse{
-		Text: c.Text,
+		c.Text,
 	}
 }
 

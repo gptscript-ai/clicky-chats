@@ -24,7 +24,7 @@ func (c *CreateTranslationResponse) ToPublic() any {
 
 	//nolint:govet
 	return &openai.CreateTranslationResponse{
-		Text: c.Text,
+		c.Text,
 	}
 }
 
