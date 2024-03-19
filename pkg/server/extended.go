@@ -1918,7 +1918,7 @@ func waitForAndStreamResponse[T JobRespondStreamer](ctx context.Context, w http.
 			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed streaming responses: %v", err), InternalErrorType).Error()))
 			break
 		} else if errStr := respObj.GetErrorString(); errStr != "" {
-			slog.Error("Failed to get response chunk", "err", err)
+			slog.Error("Failed to get response chunk", "err", errStr)
 			_, _ = w.Write([]byte(fmt.Sprintf(`data: %v`, NewAPIError(errStr, InternalErrorType).Error())))
 			break
 		}
