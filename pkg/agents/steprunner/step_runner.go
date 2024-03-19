@@ -174,7 +174,13 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			return fmt.Errorf("thread %s found to be locked by %s while processing run %s", run.ThreadID, thread.LockedByRunID, run.ID)
 		}
 
-		if err := tx.Model(runStep).Where("run_id = ?", run.ID).Where("type = ?", openai.RunStepObjectTypeToolCalls).Where("runner_type = ?", tools.GPTScriptRunnerType).Order("created_at asc").First(runStep).Error; err != nil {
+		if err := tx.Model(runStep).
+			Where("run_id = ?", run.ID).
+			Where("status = ?", openai.InProgress).
+			Where("type = ?", openai.RunStepObjectTypeToolCalls).
+			Where("runner_type = ?", tools.GPTScriptRunnerType).
+			Order("created_at asc").
+			First(runStep).Error; err != nil {
 			return err
 		}
 
