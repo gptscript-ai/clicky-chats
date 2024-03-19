@@ -1691,6 +1691,18 @@ func processAssistantsAPIListParams[O ~string](gormDB *gorm.DB, obj Transformer,
 
 	gormDBInstance := gormDB.Limit(*limit)
 
+	ordering := string(z.Dereference(order))
+	if ordering == "" {
+		ordering = "desc"
+	} else if *order != "asc" && *order != "desc" {
+		return nil, 0, NewAPIError("Order must be 'asc' or 'desc'.", InvalidRequestErrorType)
+	}
+
+	alligator := "<"
+	if ordering == "desc" {
+		alligator = ">"
+	}
+
 	// TODO(thedadams): what happens if before/after are not valid object IDs?
 	// TODO(thedadams): what happens if before and after are set?
 	// TODO(thedadams): what happens if before/after are in the wrong order?
@@ -1701,7 +1713,7 @@ func processAssistantsAPIListParams[O ~string](gormDB *gorm.DB, obj Transformer,
 			return nil, 0, NewNotFoundError(obj)
 		}
 
-		gormDBInstance = gormDBInstance.Where("created_at < ?", obj.GetCreatedAt())
+		gormDBInstance = gormDBInstance.Where(fmt.Sprintf("created_at %s ?", alligator), obj.GetCreatedAt()).Or(fmt.Sprintf("created_at %s= ? AND id %[1]s ?", alligator), obj.GetCreatedAt(), obj.GetID())
 	}
 	if a := z.Dereference(after); a != "" {
 		obj.SetID(a)
@@ -1709,17 +1721,10 @@ func processAssistantsAPIListParams[O ~string](gormDB *gorm.DB, obj Transformer,
 			return nil, 0, NewNotFoundError(obj)
 		}
 
-		gormDBInstance = gormDBInstance.Where("created_at > ?", obj.GetCreatedAt())
+		gormDBInstance = gormDBInstance.Where(fmt.Sprintf("? %s created_at", alligator), obj.GetCreatedAt()).Or(fmt.Sprintf("? %s= created_at AND ? %[1]s id", alligator), obj.GetCreatedAt(), obj.GetID())
 	}
 
-	ordering := string(z.Dereference(order))
-	if ordering == "" {
-		ordering = "desc"
-	} else if *order != "asc" && *order != "desc" {
-		return nil, 0, NewAPIError("Order must be 'asc' or 'desc'.", InvalidRequestErrorType)
-	}
-
-	gormDBInstance = gormDBInstance.Order(fmt.Sprintf("created_at %s", ordering))
+	gormDBInstance = gormDBInstance.Order("created_at " + ordering).Order("id " + ordering)
 
 	return gormDBInstance, *limit, nil
 }
@@ -1736,18 +1741,25 @@ func listAndRespond[T Transformer](gormDB *gorm.DB, w http.ResponseWriter, limit
 		return
 	}
 
+	var (
+		firstID, lastID string
+		hasMore         bool
+	)
+	if len(objs) > 0 {
+		hasMore = len(objs) >= limit
+		if hasMore {
+			objs = objs[:len(objs)-1]
+		}
+		firstID = objs[0].GetID()
+		lastID = objs[len(objs)-1].GetID()
+	}
+
 	publicObjs := make([]any, 0, len(objs))
 	for _, o := range objs {
 		publicObjs = append(publicObjs, o.ToPublic())
 	}
 
-	var firstID, lastID string
-	if len(objs) > 0 {
-		firstID = objs[0].GetID()
-		lastID = objs[len(objs)-1].GetID()
-	}
-
-	respondWithList(w, publicObjs, limit, firstID, lastID)
+	respondWithList(w, publicObjs, hasMore, limit, firstID, lastID)
 }
 
 func listAndRespondOpenAI[T ExtendedTransformer](gormDB *gorm.DB, w http.ResponseWriter, limit int) {
@@ -1758,28 +1770,31 @@ func listAndRespondOpenAI[T ExtendedTransformer](gormDB *gorm.DB, w http.Respons
 		return
 	}
 
+	var (
+		firstID, lastID string
+		hasMore         bool
+	)
+	if len(objs) > 0 {
+		hasMore = len(objs) >= limit
+		if hasMore {
+			objs = objs[:len(objs)-1]
+		}
+		firstID = objs[0].GetID()
+		lastID = objs[len(objs)-1].GetID()
+	}
+
 	publicObjs := make([]any, 0, len(objs))
 	for _, o := range objs {
 		publicObjs = append(publicObjs, o.ToPublicOpenAI())
 	}
 
-	var firstID, lastID string
-	if len(objs) > 0 {
-		firstID = objs[0].GetID()
-		lastID = objs[len(objs)-1].GetID()
-	}
-
-	respondWithList(w, publicObjs, limit, firstID, lastID)
+	respondWithList(w, publicObjs, hasMore, limit, firstID, lastID)
 }
 
-func respondWithList(w http.ResponseWriter, publicObjs []any, limit int, firstID, lastID string) {
+func respondWithList(w http.ResponseWriter, publicObjs []any, hasMore bool, limit int, firstID, lastID string) {
 	result := map[string]any{"object": "list", "data": publicObjs}
 
 	if limit != -1 {
-		hasMore := len(publicObjs) >= limit
-		if hasMore {
-			result["data"] = publicObjs[:limit-1]
-		}
 		result["has_more"] = hasMore
 		result["first_id"] = firstID
 		result["last_id"] = lastID
