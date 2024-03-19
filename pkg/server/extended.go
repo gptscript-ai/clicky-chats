@@ -66,6 +66,14 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 		if t, err := t.AsAssistantToolsRetrieval(); err == nil && t.Type == openai.AssistantToolsRetrievalTypeRetrieval {
 			retrievalEnabled = true
 		}
+
+		if t, err := t.AsAssistantToolsFunction(); err == nil && t.Type == openai.AssistantToolsFunctionTypeFunction {
+			if err := validateToolFunctionName(t.Function.Name); err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Invalid function name: %s.", err.Error()), InvalidRequestErrorType).Error()))
+				return
+			}
+		}
 		tools = append(tools, *t)
 	}
 
