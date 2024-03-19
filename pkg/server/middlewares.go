@@ -3,6 +3,7 @@ package server
 import (
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"strings"
 
 	"github.com/gptscript-ai/clicky-chats/pkg/extendedapi"
@@ -16,7 +17,7 @@ func LogRequest(logger *slog.Logger) openai.MiddlewareFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-					logger.Error("Panic", "error", err)
+					logger.Error("Panic", "error", err, "stack", string(debug.Stack()))
 					w.WriteHeader(http.StatusInternalServerError)
 					_, _ = w.Write([]byte(`{"error": "encountered an unexpected error"}`))
 				}
