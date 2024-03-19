@@ -1,6 +1,20 @@
 package server
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/gptscript-ai/clicky-chats/pkg/tools"
+)
+
+// validateToolFunctionName returns an error if the given function isn't valid.
+func validateToolFunctionName(name string) error {
+	if strings.HasPrefix(name, tools.GPTScriptToolNamePrefix) {
+		return fmt.Errorf("name cannot have reserved reserved prefix %q", tools.GPTScriptToolNamePrefix)
+	}
+
+	return nil
+}
 
 // validateMetadata checks if the metadata is valid, according to the OpenAI API specification.
 // From the OpenAI documentation:
