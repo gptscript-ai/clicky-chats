@@ -27,6 +27,29 @@ func main() {
 	s.Components.Schemas["CreateChatCompletionRequest"].Value.Properties["tools"].Value.Nullable = true
 	s.Components.Schemas["FunctionObject"].Value.Properties["parameters"].Value.Nullable = true
 
+	// Embeddings can be requested as an array of floats or a base64-encoded string, but the OpenAI API Spec doesn't support string as return type
+
+	s.Components.Schemas["Embedding"].Value.Properties["embedding"].Value = &openapi3.Schema{
+		Description: "The embedding vector, which is a list of floats or a base64 encoded string, depending on the requested return type. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).",
+		OneOf: []*openapi3.SchemaRef{
+			{
+				Value: &openapi3.Schema{
+					Type: "array",
+					Items: &openapi3.SchemaRef{
+						Value: &openapi3.Schema{
+							Type:   "number",
+							Format: "float",
+						},
+					},
+				},
+			},
+			{
+				Value: &openapi3.Schema{
+					Type: "string",
+				},
+			},
+		},
+	}
 	extendedAPIs := extendedapi.GetExtendedAPIs()
 
 	newComponents := make(map[string]*openapi3.SchemaRef, len(s.Components.Schemas)*2)

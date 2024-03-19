@@ -58,21 +58,21 @@ func (e publicEmbeddings) toDB() (embeddings []Embedding) {
 	for _, obj := range e {
 		embeddings = append(embeddings, Embedding{
 			Index:     obj.Index,
-			Embedding: obj.Embedding,
+			Embedding: datatypes.NewJSONType(obj.Embedding),
 		})
 	}
 	return
 }
 
 type Embedding struct {
-	Index     int                          `json:"index"`
-	Embedding datatypes.JSONSlice[float32] `json:"embedding"`
+	Index     int                                            `json:"index"`
+	Embedding datatypes.JSONType[openai.Embedding_Embedding] `json:"embedding"`
 }
 
 func (e *Embedding) toPublic() openai.Embedding {
 	//nolint:govet
 	return openai.Embedding{
-		e.Embedding,
+		e.Embedding.Data(),
 		e.Index,
 		openai.EmbeddingObjectEmbedding,
 	}

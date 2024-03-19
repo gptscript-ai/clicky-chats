@@ -2448,11 +2448,13 @@ components:
                 Represents an embedding vector returned by embedding endpoint.
             properties:
                 embedding:
-                    description: |
-                        The embedding vector, which is a list of floats. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).
-                    items:
-                        type: number
-                    type: array
+                    description: The embedding vector, which is a list of floats or a base64 encoded string, depending on the requested return type. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).
+                    oneOf:
+                        - items:
+                            format: float
+                            type: number
+                          type: array
+                        - type: string
                 index:
                     description: The index of the embedding in the list of embeddings.
                     type: integer
@@ -4971,11 +4973,13 @@ components:
                 Represents an embedding vector returned by embedding endpoint.
             properties:
                 embedding:
-                    description: |
-                        The embedding vector, which is a list of floats. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).
-                    items:
-                        type: number
-                    type: array
+                    description: The embedding vector, which is a list of floats or a base64 encoded string, depending on the requested return type. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).
+                    oneOf:
+                        - items:
+                            format: float
+                            type: number
+                          type: array
+                        - type: string
                 index:
                     description: The index of the embedding in the list of embeddings.
                     type: integer
