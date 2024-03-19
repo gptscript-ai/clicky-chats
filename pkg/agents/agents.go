@@ -5,8 +5,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/acorn-io/z"
 	cclient "github.com/gptscript-ai/clicky-chats/pkg/client"
@@ -16,6 +20,14 @@ import (
 	// Blank import to register the github loader
 	_ "github.com/gptscript-ai/gptscript/pkg/loader/github"
 )
+
+var emptyMessagesLimit = 500
+
+func init() {
+	if limit, err := strconv.Atoi(os.Getenv("CLICKY_CHATS_EMPTY_MESSAGES_LIMIT")); err == nil {
+		emptyMessagesLimit = limit
+	}
+}
 
 func StreamChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http.Client, url, apiKey string, cc *db.CreateChatCompletionRequest) (<-chan db.ChatCompletionResponseChunk, error) {
 	// Ensure that streaming is enabled.
@@ -99,10 +111,13 @@ func MakeChatCompletionRequest(ctx context.Context, l *slog.Logger, client *http
 func streamResponses(ctx context.Context, response *http.Response) <-chan db.ChatCompletionResponseChunk {
 	var (
 		emptyMessagesCount int
+		hasError           bool
 
 		reader = bufio.NewReader(response.Body)
-		stream = make(chan db.ChatCompletionResponseChunk, 1000)
+		errBuf = bytes.Buffer{}
+		stream = make(chan db.ChatCompletionResponseChunk, 500)
 	)
+
 	go func() {
 		defer close(stream)
 		defer response.Body.Close()
@@ -119,14 +134,37 @@ func streamResponses(ctx context.Context, response *http.Response) <-chan db.Cha
 				return
 			}
 
-			noPrefixLine := bytes.TrimPrefix(bytes.TrimSpace(rawLine), []byte(`data: `))
-			if len(bytes.TrimSpace(noPrefixLine)) == 0 {
+			noPrefixLine := bytes.TrimSpace(bytes.TrimPrefix(bytes.TrimSpace(rawLine), []byte(`data: `)))
+
+			hasError = hasError || strings.HasPrefix(string(noPrefixLine), `{"error":`)
+
+			if len(noPrefixLine) == 0 || hasError {
+				if hasError {
+					_, err := errBuf.Write(noPrefixLine)
+					if err != nil {
+						sendChunk(ctx, stream, db.ChatCompletionResponseChunk{
+							JobResponse: db.JobResponse{
+								StatusCode: http.StatusInternalServerError,
+								Error:      z.Pointer(fmt.Sprintf("failed to write error buffer: %v", err)),
+							},
+						})
+						return
+					}
+
+					var ccr db.ChatCompletionResponseChunk
+					if err = json.Unmarshal(errBuf.Bytes(), &ccr); err == nil {
+						sendChunk(ctx, stream, ccr)
+						return
+					}
+					// If we can't unmarshal the error yet, then we haven't received it all. Continue until we get the whole error.
+				}
+
 				emptyMessagesCount++
-				if emptyMessagesCount > 300 {
+				if emptyMessagesCount > emptyMessagesLimit {
 					sendChunk(ctx, stream, db.ChatCompletionResponseChunk{
 						JobResponse: db.JobResponse{
 							StatusCode: http.StatusInternalServerError,
-							Error:      z.Pointer("stream has sent too many empty messages"),
+							Error:      z.Pointer("stream has sent too many empty messages, limit is " + strconv.Itoa(emptyMessagesLimit)),
 						},
 					})
 					return
@@ -145,7 +183,7 @@ func streamResponses(ctx context.Context, response *http.Response) <-chan db.Cha
 				sendChunk(ctx, stream, db.ChatCompletionResponseChunk{
 					JobResponse: db.JobResponse{
 						StatusCode: http.StatusInternalServerError,
-						Error:      z.Pointer(unmarshalErr.Error()),
+						Error:      z.Pointer(fmt.Sprintf("failed to unmarshal stream message: %v", noPrefixLine)),
 					},
 				})
 				return
