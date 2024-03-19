@@ -211,7 +211,7 @@ func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request,
 		tools = make([]openai.ExtendedAssistantObject_Tools_Item, 0, len(*modifyAssistantRequest.Tools))
 		for _, tool := range *modifyAssistantRequest.Tools {
 			t := new(openai.ExtendedAssistantObject_Tools_Item)
-			if err := transposeObject(tool, t); err != nil {
+			if err = transposeObject(tool, t); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				_, _ = w.Write([]byte(NewAPIError("Failed to process tool.", InvalidRequestErrorType).Error()))
 				return
@@ -1745,7 +1745,7 @@ func listAndRespond[T Transformer](gormDB *gorm.DB, w http.ResponseWriter, limit
 		firstID, lastID string
 		hasMore         bool
 	)
-	if len(objs) > 0 {
+	if len(objs) > 0 && limit > 0 {
 		hasMore = len(objs) >= limit
 		if hasMore {
 			objs = objs[:len(objs)-1]
@@ -1774,7 +1774,7 @@ func listAndRespondOpenAI[T ExtendedTransformer](gormDB *gorm.DB, w http.Respons
 		firstID, lastID string
 		hasMore         bool
 	)
-	if len(objs) > 0 {
+	if len(objs) > 0 && limit > 0 {
 		hasMore = len(objs) >= limit
 		if hasMore {
 			objs = objs[:len(objs)-1]
