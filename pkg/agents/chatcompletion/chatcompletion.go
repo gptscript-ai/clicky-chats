@@ -282,7 +282,7 @@ func (a *agent) run(ctx context.Context) error {
 		return err
 	}
 
-	l.Debug("Made chat completion request", "status_code", ccr.StatusCode)
+	l.Debug("Made chat completion request", "status_code", ccr.StatusCode, "err", ccr.Error)
 
 	if err = a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err = db.Create(tx, ccr); err != nil {
