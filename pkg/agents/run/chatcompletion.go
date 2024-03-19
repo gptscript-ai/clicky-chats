@@ -429,14 +429,14 @@ func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.Run
 	// If the chat completion request failed, then we should put the run in a failed state.
 	// If both of these IDs ar blank, then they were never created, which means we took no action on this run.
 	if statusCode >= 400 {
-		errStr := fmt.Errorf("unexpected status code: %d", statusCode)
+		errStr := fmt.Errorf("unexpected status code: %d, error: %w", statusCode, err)
 		errType := openai.RunObjectLastErrorCodeServerError
 
 		if statusCode == http.StatusTooManyRequests {
 			err = fmt.Errorf("too many requests: %d", statusCode)
 			errType = openai.RunObjectLastErrorCodeRateLimitExceeded
 		}
-		l.Error("Chat completion request failed, failing run", "status_code", statusCode)
+		l.Error("Chat completion request failed, failing run", "status_code", statusCode, "err", err)
 		return gdb.Transaction(func(tx *gorm.DB) error {
 			return failRun(tx, run, errStr, errType)
 		})
