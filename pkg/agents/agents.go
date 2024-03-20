@@ -134,11 +134,13 @@ func streamResponses(ctx context.Context, response *http.Response) <-chan db.Cha
 				return
 			}
 
-			noPrefixLine := bytes.TrimSpace(bytes.TrimPrefix(bytes.TrimSpace(rawLine), []byte(`data: `)))
+			rawLine = bytes.TrimSpace(rawLine)
+			hasDataPrefix := bytes.HasPrefix(rawLine, []byte("data: "))
+			noPrefixLine := bytes.TrimSpace(bytes.TrimPrefix(rawLine, []byte("data: ")))
 
 			hasError = hasError || strings.HasPrefix(string(noPrefixLine), `{"error":`)
 
-			if len(noPrefixLine) == 0 || hasError {
+			if !hasDataPrefix || hasError || len(noPrefixLine) == 0 {
 				if hasError {
 					_, err := errBuf.Write(noPrefixLine)
 					if err != nil {
