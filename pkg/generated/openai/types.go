@@ -3052,14 +3052,25 @@ type DeleteThreadResponseObject string
 
 // Embedding Represents an embedding vector returned by embedding endpoint.
 type Embedding struct {
-	// Embedding The embedding vector, which is a list of floats. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).
-	Embedding []float32 `json:"embedding"`
+	// Embedding The embedding vector, which is a list of floats or a base64 encoded string, depending on the requested return type. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).
+	Embedding Embedding_Embedding `json:"embedding"`
 
 	// Index The index of the embedding in the list of embeddings.
 	Index int `json:"index"`
 
 	// Object The object type, which is always "embedding".
 	Object EmbeddingObject `json:"object"`
+}
+
+// EmbeddingEmbedding0 defines model for .
+type EmbeddingEmbedding0 = []float32
+
+// EmbeddingEmbedding1 defines model for .
+type EmbeddingEmbedding1 = string
+
+// Embedding_Embedding The embedding vector, which is a list of floats or a base64 encoded string, depending on the requested return type. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).
+type Embedding_Embedding struct {
+	union json.RawMessage
 }
 
 // EmbeddingObject The object type, which is always "embedding".
@@ -4699,14 +4710,25 @@ type ExtendedDeleteThreadResponseObject string
 
 // ExtendedEmbedding Represents an embedding vector returned by embedding endpoint.
 type ExtendedEmbedding struct {
-	// Embedding The embedding vector, which is a list of floats. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).
-	Embedding []float32 `json:"embedding"`
+	// Embedding The embedding vector, which is a list of floats or a base64 encoded string, depending on the requested return type. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).
+	Embedding ExtendedEmbedding_Embedding `json:"embedding"`
 
 	// Index The index of the embedding in the list of embeddings.
 	Index int `json:"index"`
 
 	// Object The object type, which is always "embedding".
 	Object ExtendedEmbeddingObject `json:"object"`
+}
+
+// ExtendedEmbeddingEmbedding0 defines model for .
+type ExtendedEmbeddingEmbedding0 = []float32
+
+// ExtendedEmbeddingEmbedding1 defines model for .
+type ExtendedEmbeddingEmbedding1 = string
+
+// ExtendedEmbedding_Embedding The embedding vector, which is a list of floats or a base64 encoded string, depending on the requested return type. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).
+type ExtendedEmbedding_Embedding struct {
+	union json.RawMessage
 }
 
 // ExtendedEmbeddingObject The object type, which is always "embedding".
@@ -9266,6 +9288,68 @@ func (t *CreateTranslationRequest_Model) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsEmbeddingEmbedding0 returns the union data inside the Embedding_Embedding as a EmbeddingEmbedding0
+func (t Embedding_Embedding) AsEmbeddingEmbedding0() (EmbeddingEmbedding0, error) {
+	var body EmbeddingEmbedding0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEmbeddingEmbedding0 overwrites any union data inside the Embedding_Embedding as the provided EmbeddingEmbedding0
+func (t *Embedding_Embedding) FromEmbeddingEmbedding0(v EmbeddingEmbedding0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEmbeddingEmbedding0 performs a merge with any union data inside the Embedding_Embedding, using the provided EmbeddingEmbedding0
+func (t *Embedding_Embedding) MergeEmbeddingEmbedding0(v EmbeddingEmbedding0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEmbeddingEmbedding1 returns the union data inside the Embedding_Embedding as a EmbeddingEmbedding1
+func (t Embedding_Embedding) AsEmbeddingEmbedding1() (EmbeddingEmbedding1, error) {
+	var body EmbeddingEmbedding1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEmbeddingEmbedding1 overwrites any union data inside the Embedding_Embedding as the provided EmbeddingEmbedding1
+func (t *Embedding_Embedding) FromEmbeddingEmbedding1(v EmbeddingEmbedding1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEmbeddingEmbedding1 performs a merge with any union data inside the Embedding_Embedding, using the provided EmbeddingEmbedding1
+func (t *Embedding_Embedding) MergeEmbeddingEmbedding1(v EmbeddingEmbedding1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t Embedding_Embedding) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *Embedding_Embedding) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsAssistantToolsCode returns the union data inside the ExtendedAssistantObject_Tools_Item as a AssistantToolsCode
 func (t ExtendedAssistantObject_Tools_Item) AsAssistantToolsCode() (AssistantToolsCode, error) {
 	var body AssistantToolsCode
@@ -11320,6 +11404,68 @@ func (t ExtendedCreateTranslationRequest_Model) MarshalJSON() ([]byte, error) {
 }
 
 func (t *ExtendedCreateTranslationRequest_Model) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsExtendedEmbeddingEmbedding0 returns the union data inside the ExtendedEmbedding_Embedding as a ExtendedEmbeddingEmbedding0
+func (t ExtendedEmbedding_Embedding) AsExtendedEmbeddingEmbedding0() (ExtendedEmbeddingEmbedding0, error) {
+	var body ExtendedEmbeddingEmbedding0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedEmbeddingEmbedding0 overwrites any union data inside the ExtendedEmbedding_Embedding as the provided ExtendedEmbeddingEmbedding0
+func (t *ExtendedEmbedding_Embedding) FromExtendedEmbeddingEmbedding0(v ExtendedEmbeddingEmbedding0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedEmbeddingEmbedding0 performs a merge with any union data inside the ExtendedEmbedding_Embedding, using the provided ExtendedEmbeddingEmbedding0
+func (t *ExtendedEmbedding_Embedding) MergeExtendedEmbeddingEmbedding0(v ExtendedEmbeddingEmbedding0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedEmbeddingEmbedding1 returns the union data inside the ExtendedEmbedding_Embedding as a ExtendedEmbeddingEmbedding1
+func (t ExtendedEmbedding_Embedding) AsExtendedEmbeddingEmbedding1() (ExtendedEmbeddingEmbedding1, error) {
+	var body ExtendedEmbeddingEmbedding1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedEmbeddingEmbedding1 overwrites any union data inside the ExtendedEmbedding_Embedding as the provided ExtendedEmbeddingEmbedding1
+func (t *ExtendedEmbedding_Embedding) FromExtendedEmbeddingEmbedding1(v ExtendedEmbeddingEmbedding1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedEmbeddingEmbedding1 performs a merge with any union data inside the ExtendedEmbedding_Embedding, using the provided ExtendedEmbeddingEmbedding1
+func (t *ExtendedEmbedding_Embedding) MergeExtendedEmbeddingEmbedding1(v ExtendedEmbeddingEmbedding1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ExtendedEmbedding_Embedding) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ExtendedEmbedding_Embedding) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
