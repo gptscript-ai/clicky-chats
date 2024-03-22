@@ -988,19 +988,24 @@ func (s *Server) ExtendedCreateThread(w http.ResponseWriter, r *http.Request) {
 	}
 
 	thread := new(db.Thread)
-	if err := create(s.db.WithContext(r.Context()), thread, publicThread); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(err.Error()))
-		return
-	}
+	if err := s.db.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
+		if err := create(tx, thread, publicThread); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(err.Error()))
+			return err
+		}
 
-	if createThreadRequest.Messages != nil {
+		if createThreadRequest.Messages == nil {
+			// No messages to create
+			return nil
+		}
+
 		for _, message := range *createThreadRequest.Messages {
 			content, err := db.MessageContentFromString(message.Content)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				_, _ = w.Write([]byte(NewAPIError("Failed to process message content.", InvalidRequestErrorType).Error()))
-				return
+				return err
 			}
 
 			//nolint:govet
@@ -1021,25 +1026,178 @@ func (s *Server) ExtendedCreateThread(w http.ResponseWriter, r *http.Request) {
 				thread.ID,
 			}
 
-			if err = create(s.db.WithContext(r.Context()), new(db.Message), publicMessage); err != nil {
+			if err := create(tx, new(db.Message), publicMessage); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				_, _ = w.Write([]byte(err.Error()))
-				return
+				return err
 			}
 		}
+
+		return nil
+	}); err != nil {
+		slog.Error("failed to create thread")
+		return
 	}
 
 	writeObjectToResponse(w, thread.ToPublic())
 }
 
-func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, _ *http.Request) {
-	// TODO: When this does eventually get implemented, we need to emit three events:
-	// 1. The first event is a thread.created event that says that the thread is created.
-	// 2. The second event is a thread.run.created event that says that the run is created.
-	// 3. The third event is a thread.run.queued event that says that the run is queued.
-	// Note that this requires that the EventIndex field on the resulting Run object is set to 2.
-	//TODO implement me
-	w.WriteHeader(http.StatusNotImplemented)
+func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, r *http.Request) {
+	createThreadAndRunRequest := new(openai.ExtendedCreateThreadAndRunRequest)
+	if err := readObjectFromRequest(r, createThreadAndRunRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	if err := validateMetadata(createThreadAndRunRequest.Metadata); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	//nolint:govet
+	publicThread := &openai.ThreadObject{
+		// The first two fields will be set on create.
+		0,
+		"",
+		createThreadAndRunRequest.Metadata,
+		openai.ThreadObjectObjectThread,
+	}
+
+	var (
+		gormDB = s.db.WithContext(r.Context())
+		thread = new(db.Thread)
+	)
+	if err := gormDB.Transaction(func(tx *gorm.DB) error {
+		if err := create(tx, thread, publicThread); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(err.Error()))
+			return err
+		}
+
+		if publicThread := createThreadAndRunRequest.Thread; publicThread != nil && publicThread.Messages != nil {
+			for _, message := range *publicThread.Messages {
+				content, err := db.MessageContentFromString(message.Content)
+				if err != nil {
+					w.WriteHeader(http.StatusBadRequest)
+					_, _ = w.Write([]byte(NewAPIError("Failed to process message content.", InvalidRequestErrorType).Error()))
+					return err
+				}
+
+				//nolint:govet
+				publicMessage := &openai.ExtendedMessageObject{
+					nil,
+					nil,
+					[]openai.ExtendedMessageObject_Content_Item{*content},
+					0,
+					z.Dereference(message.FileIds),
+					"",
+					nil,
+					nil,
+					message.Metadata,
+					openai.ExtendedMessageObjectObjectThreadMessage,
+					openai.ExtendedMessageObjectRole(message.Role),
+					nil,
+					nil,
+					thread.ID,
+				}
+
+				if err = create(tx, new(db.Message), publicMessage); err != nil {
+					w.WriteHeader(http.StatusBadRequest)
+					_, _ = w.Write([]byte(err.Error()))
+					return err
+				}
+			}
+		}
+
+		return nil
+	}); err != nil {
+		slog.Error("failed to create thread", "err", err)
+		return
+	}
+
+	var tools []openai.RunObject_Tools_Item
+	for _, tool := range z.Dereference(createThreadAndRunRequest.Tools) {
+		t := new(openai.RunObject_Tools_Item)
+		if err := transposeObject(tool, t); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError("Failed to process tool.", InvalidRequestErrorType).Error()))
+			return
+		}
+		tools = append(tools, *t)
+	}
+
+	//nolint:govet
+	publicRun := &openai.RunObject{
+		createThreadAndRunRequest.AssistantId,
+		nil,
+		nil,
+		0,
+		0,
+		nil,
+		nil,
+		"",
+		z.Dereference(createThreadAndRunRequest.Instructions),
+		nil,
+		createThreadAndRunRequest.Metadata,
+		z.Dereference(createThreadAndRunRequest.Model),
+		openai.RunObjectObjectThreadRun,
+		nil,
+		nil,
+		openai.RunObjectStatusQueued,
+		thread.ID,
+		tools,
+		nil,
+	}
+
+	run := new(db.Run)
+	if err := run.FromPublic(publicRun); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError("Failed to process request.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	runCreatedEvent := &db.RunEvent{
+		EventName: db.ThreadRunCreatedEvent,
+		Run:       datatypes.NewJSONType(run),
+	}
+	runQueuedEvent := &db.RunEvent{
+		EventName:   db.ThreadRunQueuedEvent,
+		Run:         datatypes.NewJSONType(run),
+		ResponseIdx: 1,
+	}
+
+	if err := gormDB.Transaction(func(tx *gorm.DB) error {
+		run.EventIndex = 1
+		if err := db.Create(tx, run); err != nil {
+			return err
+		}
+
+		runCreatedEvent.RequestID = run.ID
+		if err := db.Create(tx, runCreatedEvent); err != nil {
+			return err
+		}
+
+		runQueuedEvent.RequestID = run.ID
+		if err := db.Create(tx, runQueuedEvent); err != nil {
+			return err
+		}
+
+		return tx.Model(thread).Update("locked_by_run_id", run.ID).Error
+	}); err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Run %s already exists.", run.ID), InvalidRequestErrorType).Error()))
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError("Failed to create run.", InternalErrorType).Error()))
+		return
+	}
+
+	writeObjectToResponse(w, run.ToPublic())
 }
 
 func (s *Server) ExtendedDeleteThread(w http.ResponseWriter, r *http.Request, threadID string) {

@@ -2227,7 +2227,6 @@ components:
                     nullable: true
                     type: array
             required:
-                - thread_id
                 - assistant_id
             type: object
         CreateThreadRequest:
@@ -4752,7 +4751,6 @@ components:
                     nullable: true
                     type: array
             required:
-                - thread_id
                 - assistant_id
             type: object
         ExtendedCreateThreadRequest:
