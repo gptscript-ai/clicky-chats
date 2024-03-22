@@ -121,7 +121,6 @@ func (r *RunStep) Merge(toolCalls *[]GenericToolCallInfo, chunk ChatCompletionRe
 	if delta.ToolCalls != nil {
 		for _, chunkTC := range *delta.ToolCalls {
 			*toolCalls = expandSlice(*toolCalls, chunkTC.Index)
-			//nolint:govet
 			tc := (*toolCalls)[chunkTC.Index]
 
 			if id := z.Dereference(chunkTC.Id); id != "" {

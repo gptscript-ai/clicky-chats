@@ -22,3 +22,5 @@ jobs:
         run: make validate-code
       - name: Build
         run: make build
+      - name: Test
+        run: make unit
