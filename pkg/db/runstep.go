@@ -311,7 +311,7 @@ func SetOutputForRunStepToolCall(item *openai.RunStepDetailsToolCallsObject_Tool
 	return fmt.Errorf("failed to extract tool call item")
 }
 
-func GetOutputForRunStepToolCall(item openai.RunStepDetailsToolCallsObject_ToolCalls_Item) (GenericToolCallInfo, error) {
+func GetOutputForRunStepToolCall(item *openai.RunStepDetailsToolCallsObject_ToolCalls_Item) (GenericToolCallInfo, error) {
 	info := GenericToolCallInfo{}
 	if tc, err := item.AsRunStepDetailsToolCallsFunctionObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsFunctionObjectTypeFunction {
 		info.ID = tc.Id

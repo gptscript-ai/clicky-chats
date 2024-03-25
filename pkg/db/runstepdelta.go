@@ -38,7 +38,7 @@ func (r *RunStepDelta) FromPublic(obj any) error {
 	return nil
 }
 
-func EmitRunStepDeltaOutputEvent(gbd *gorm.DB, run *Run, toolCall openai.RunStepDetailsToolCallsObject_ToolCalls_Item, index int) error {
+func EmitRunStepDeltaOutputEvent(gbd *gorm.DB, run *Run, toolCall *openai.RunStepDetailsToolCallsObject_ToolCalls_Item, index int) error {
 	deltaToolCalls, err := extractToolCallOutputToDeltaToolCall(toolCall, index)
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func EmitRunStepDeltaOutputEvent(gbd *gorm.DB, run *Run, toolCall openai.RunStep
 	return nil
 }
 
-func extractToolCallOutputToDeltaToolCall(toolCall openai.RunStepDetailsToolCallsObject_ToolCalls_Item, index int) (*openai.XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item, error) {
+func extractToolCallOutputToDeltaToolCall(toolCall *openai.RunStepDetailsToolCallsObject_ToolCalls_Item, index int) (*openai.XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item, error) {
 	deltaToolCalls := new(openai.XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item)
 	info, err := GetOutputForRunStepToolCall(toolCall)
 	if err != nil {

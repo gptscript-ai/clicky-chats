@@ -31,7 +31,10 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-const minPollingInterval = time.Second
+const (
+	minPollingInterval = time.Second
+	toolCallTimeout    = time.Minute
+)
 
 type Config struct {
 	PollingInterval         time.Duration
@@ -212,7 +215,8 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 		return fmt.Errorf("failed to get run step function calls: %w", err)
 	}
 
-	for i, tc := range toolCalls {
+	for i := range toolCalls {
+		tc := &toolCalls[i]
 		functionName, arguments, err := determineFunctionAndArguments(tc)
 		if err != nil {
 			return fmt.Errorf("failed to determine function and arguments: %w", err)
@@ -244,20 +248,20 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			envs = append(envs, tool.EnvVars...)
 		}
 
-		output, err := runner.Run(server.ContextWithNewID(ctx), prg, envs, arguments)
+		output, err := runToolCallAndEmitEvent(ctx, runner, prg, envs, arguments)
 		if err != nil {
-			return fmt.Errorf("failed to run: %w", err)
+			return fmt.Errorf("failed to run tool call at index %d: %w", i, err)
 		}
 
-		if err = db.SetOutputForRunStepToolCall(&tc, output); err != nil {
-			return err
+		if err = db.SetOutputForRunStepToolCall(tc, output); err != nil {
+			return fmt.Errorf("failed to set output for tool call at index %d: %w", i, err)
 		}
-
-		toolCalls[i] = tc
 
 		if err = db.EmitRunStepDeltaOutputEvent(a.db.WithContext(ctx), run, tc, i); err != nil {
-			return err
+			return fmt.Errorf("failed to emit event for tool call at index %d: %w", i, err)
 		}
+
+		toolCalls[i] = *tc
 	}
 
 	if err = stepDetails.FromRunStepDetailsToolCallsObject(openai.RunStepDetailsToolCallsObject{
@@ -301,6 +305,20 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 	}
 
 	return nil
+}
+
+func runToolCallAndEmitEvent(ctx context.Context, runner *runner.Runner, prg types.Program, envs []string, arguments string) (string, error) {
+	timeoutCtx, cancel := context.WithTimeout(server.ContextWithNewID(ctx), toolCallTimeout)
+	defer cancel()
+	output, err := runner.Run(timeoutCtx, prg, envs, arguments)
+	if errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Sprintf("The tool call took more than %s to complete, aborting", toolCallTimeout), nil
+	}
+	if err != nil {
+		return "", err
+	}
+
+	return output, nil
 }
 
 // populateTools loads the gptscript program from the provided link and subtool.
@@ -395,7 +413,7 @@ func extractToolCalls(runStepDetails *openai.RunStepObject_StepDetails) ([]opena
 	return toolCallDetails.ToolCalls, nil
 }
 
-func determineFunctionAndArguments(toolCall openai.RunStepDetailsToolCallsObject_ToolCalls_Item) (string, string, error) {
+func determineFunctionAndArguments(toolCall *openai.RunStepDetailsToolCallsObject_ToolCalls_Item) (string, string, error) {
 	info, err := db.GetOutputForRunStepToolCall(toolCall)
 	if err != nil {
 		return "", "", err

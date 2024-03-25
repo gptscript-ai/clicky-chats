@@ -129,7 +129,7 @@ func createChatMessageFromToolOutput(toolOutput openai.RunStepObject_StepDetails
 	messages := make([]openai.ChatCompletionRequestMessage, 1, len(toolCall.ToolCalls)+1)
 	am := new(openai.ChatCompletionRequestMessage)
 	for _, output := range toolCall.ToolCalls {
-		toolInfo, err := db.GetOutputForRunStepToolCall(output)
+		toolInfo, err := db.GetOutputForRunStepToolCall(&output)
 		if err != nil {
 			return nil, err
 		}
