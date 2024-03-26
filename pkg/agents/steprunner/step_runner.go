@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -248,7 +249,7 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			envs = append(envs, tool.EnvVars...)
 		}
 
-		output, err := runToolCallAndEmitEvent(ctx, runner, prg, envs, arguments)
+		output, err := runToolCall(ctx, runner, prg, envs, arguments)
 		if err != nil {
 			return fmt.Errorf("failed to run tool call at index %d: %w", i, err)
 		}
@@ -307,12 +308,15 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 	return nil
 }
 
-func runToolCallAndEmitEvent(ctx context.Context, runner *runner.Runner, prg types.Program, envs []string, arguments string) (string, error) {
+func runToolCall(ctx context.Context, runner *runner.Runner, prg types.Program, envs []string, arguments string) (string, error) {
 	timeoutCtx, cancel := context.WithTimeout(server.ContextWithNewID(ctx), toolCallTimeout)
 	defer cancel()
 	output, err := runner.Run(timeoutCtx, prg, envs, arguments)
 	if errors.Is(err, context.DeadlineExceeded) {
 		return fmt.Sprintf("The tool call took more than %s to complete, aborting", toolCallTimeout), nil
+	}
+	if execErr := new(exec.ExitError); errors.As(err, &execErr) {
+		return fmt.Sprintf("The tool call returned an exit code of %d with message %q, aborting", execErr.ExitCode(), execErr.String()), nil
 	}
 	if err != nil {
 		return "", err
