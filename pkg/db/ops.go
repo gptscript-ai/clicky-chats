@@ -118,7 +118,7 @@ func CancelRun(db *gdb.DB, id string) (*Run, error) {
 		}
 
 		for _, runStep := range runSteps {
-			if err := tx.Model(runStep).Clauses(clause.Returning{}).Where("id = ?", runStep.ID).Updates(update).Error; err != nil {
+			if err := tx.Model(&runStep).Clauses(clause.Returning{}).Where("id = ?", runStep.ID).Updates(update).Error; err != nil {
 				return err
 			}
 
