@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	_ "net/http/pprof"
 	"os"
 
 	"github.com/acorn-io/cmd"
