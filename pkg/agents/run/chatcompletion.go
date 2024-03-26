@@ -527,7 +527,10 @@ func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.Run
 		}
 
 		if message.ID != "" {
-			if err := tx.Model(message).Where("id = ?", message.ID).Update("status", string(openai.ExtendedMessageObjectStatusCompleted)).Error; err != nil {
+			if err := tx.Model(message).Where("id = ?", message.ID).Updates(map[string]any{
+				"status":       string(openai.ExtendedMessageObjectStatusCompleted),
+				"completed_at": completedAt,
+			}).Error; err != nil {
 				return err
 			}
 
@@ -542,7 +545,10 @@ func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.Run
 				ResponseIdx: run.EventIndex,
 			})
 
-			if err := tx.Model(runStep).Where("id = ?", runStep.ID).Update("status", string(openai.RunObjectStatusCompleted)).Error; err != nil {
+			if err := tx.Model(runStep).Where("id = ?", runStep.ID).Updates(map[string]any{
+				"status":       string(openai.RunObjectStatusCompleted),
+				"completed_at": completedAt,
+			}).Error; err != nil {
 				return err
 			}
 
