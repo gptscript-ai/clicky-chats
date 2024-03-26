@@ -6,6 +6,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/gptscript-ai/clicky-chats/pkg/server"
+	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
 	"github.com/spf13/cobra"
 )
 
@@ -34,16 +35,28 @@ func (s *Server) Run(cmd *cobra.Command, _ []string) error {
 		slog.Warn("No knowledge retrieval API URL provided, knowledge base manager will not be started - assistants cannot be created with the `retrieval` tool")
 	}
 
+	triggers := new(server.Triggers)
+	if s.WithAgents {
+		triggers.ChatCompletion = trigger.New()
+		triggers.Run = trigger.New()
+		triggers.RunStep = trigger.New()
+		triggers.Image = trigger.New()
+		triggers.Embeddings = trigger.New()
+		triggers.Audio = trigger.New()
+	}
+	triggers.Complete()
+
 	if err = server.NewServer(gormDB, kbManager).Start(cmd.Context(), server.Config{
 		ServerURL: s.ServerURL,
 		Port:      s.ServerPort,
 		APIBase:   s.ServerAPIBase,
+		Triggers:  triggers,
 	}); err != nil {
 		return err
 	}
 
 	if s.WithAgents {
-		if err = runAgents(cmd.Context(), gormDB, kbManager, &s.Agent); err != nil {
+		if err = runAgents(cmd.Context(), gormDB, kbManager, &s.Agent, triggers); err != nil {
 			return err
 		}
 	}

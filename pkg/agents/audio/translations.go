@@ -110,5 +110,7 @@ func (a *agent) runTranslations(ctx context.Context) error {
 		l.Error("failed to store translation response", "err", err)
 	}
 
+	a.trigger.Ready(translationRequest.ID)
+
 	return nil
 }

@@ -119,5 +119,7 @@ func (a *agent) runVariations(ctx context.Context) error {
 		l.Error("failed to store image variation response", "err", err)
 	}
 
+	a.trigger.Ready(variationRequest.ID)
+
 	return nil
 }

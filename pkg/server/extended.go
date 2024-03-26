@@ -431,8 +431,11 @@ func (s *Server) ExtendedCreateSpeech(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Kick the audio runner to check for new requests.
+	ready := s.triggers.Audio.Kick(speech.ID)
+
 	speechResponse := new(db.CreateSpeechResponse)
-	if err := waitForResponse(ctx, gormDB, speech.ID, speechResponse); err != nil {
+	if err := waitForResponse(ctx, ready, gormDB, speech.ID, speechResponse); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to get response: %v", err), InternalErrorType).Error()))
 		return
@@ -578,7 +581,10 @@ func (s *Server) ExtendedCreateTranscription(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	waitForAndWriteResponse(ctx, w, gormDB, agentReq.ID, new(db.CreateTranscriptionResponse))
+	// Kick the audio runner to check for new requests.
+	ready := s.triggers.Audio.Kick(agentReq.ID)
+
+	waitForAndWriteResponse(ctx, ready, w, gormDB, agentReq.ID, new(db.CreateTranscriptionResponse))
 }
 
 func (s *Server) ExtendedCreateTranslation(w http.ResponseWriter, r *http.Request) {
@@ -675,7 +681,10 @@ func (s *Server) ExtendedCreateTranslation(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	waitForAndWriteResponse(ctx, w, gormDB, agentReq.ID, new(db.CreateTranslationResponse))
+	// Kick the audio runner to check for new requests.
+	ready := s.triggers.Audio.Kick(agentReq.ID)
+
+	waitForAndWriteResponse(ctx, ready, w, gormDB, agentReq.ID, new(db.CreateTranslationResponse))
 }
 
 func (s *Server) ExtendedCreateChatCompletion(w http.ResponseWriter, r *http.Request) {
@@ -700,8 +709,11 @@ func (s *Server) ExtendedCreateChatCompletion(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Kick the chat completion runner to check for new requests, and get the ready signal.
+	ready := s.triggers.ChatCompletion.Kick(ccr.ID)
+
 	if !z.Dereference(ccr.Stream) {
-		waitForAndWriteResponse(r.Context(), w, gormDB, ccr.ID, new(db.CreateChatCompletionResponse))
+		waitForAndWriteResponse(r.Context(), ready, w, gormDB, ccr.ID, new(db.CreateChatCompletionResponse))
 		return
 	}
 
@@ -738,7 +750,10 @@ func (s *Server) ExtendedCreateEmbedding(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	waitForAndWriteResponse(r.Context(), w, gormDB, cer.ID, new(db.CreateEmbeddingResponse))
+	// Kick the embeddings runner to check for new requests.
+	ready := s.triggers.Embeddings.Kick(cer.ID)
+
+	waitForAndWriteResponse(r.Context(), ready, w, gormDB, cer.ID, new(db.CreateEmbeddingResponse))
 }
 
 func (s *Server) ExtendedListFiles(w http.ResponseWriter, r *http.Request, params openai.ExtendedListFilesParams) {
@@ -887,7 +902,10 @@ func (s *Server) ExtendedCreateImageEdit(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	waitForAndWriteResponse(ctx, w, gormDB, agentReq.ID, new(db.ImagesResponse))
+	// Kick the image runner to check for new requests.
+	ready := s.triggers.Image.Kick(agentReq.ID)
+
+	waitForAndWriteResponse(ctx, ready, w, gormDB, agentReq.ID, new(db.ImagesResponse))
 }
 
 func (s *Server) ExtendedCreateImage(w http.ResponseWriter, r *http.Request) {
@@ -915,7 +933,10 @@ func (s *Server) ExtendedCreateImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	waitForAndWriteResponse(ctx, w, gormDB, agentReq.ID, new(db.ImagesResponse))
+	// Kick the image runner to check for new requests.
+	ready := s.triggers.Image.Kick(agentReq.ID)
+
+	waitForAndWriteResponse(ctx, ready, w, gormDB, agentReq.ID, new(db.ImagesResponse))
 }
 
 func (s *Server) ExtendedCreateImageVariation(w http.ResponseWriter, r *http.Request) {
@@ -950,7 +971,10 @@ func (s *Server) ExtendedCreateImageVariation(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	waitForAndWriteResponse(ctx, w, gormDB, agentReq.ID, new(db.ImagesResponse))
+	// Kick the image runner to check for new requests.
+	ready := s.triggers.Image.Kick(agentReq.ID)
+
+	waitForAndWriteResponse(ctx, ready, w, gormDB, agentReq.ID, new(db.ImagesResponse))
 }
 
 func (s *Server) ExtendedListModels(w http.ResponseWriter, r *http.Request) {
@@ -1536,6 +1560,10 @@ func (s *Server) ExtendedCreateRun(w http.ResponseWriter, r *http.Request, threa
 		return
 	}
 
+	// Kick the run runner to check for new requests.
+	// Don't need the ready channel here because the response is getting written immediately.
+	s.triggers.Run.Kick(run.ID)
+
 	if !z.Dereference(createRunRequest.Stream) {
 		writeObjectToResponse(w, run.ToPublic())
 		return
@@ -2050,24 +2078,51 @@ func deleteAndRespond[T Transformer](gormDB *gorm.DB, w http.ResponseWriter, id 
 	writeObjectToResponse(w, resp)
 }
 
-func waitForResponse(ctx context.Context, gormDB *gorm.DB, id string, obj JobRunner) error {
+func waitForResponse(ctx context.Context, readyIndicator <-chan struct{}, gormDB *gorm.DB, id string, obj JobRunner) error {
+	timer := time.NewTimer(time.Second)
+	defer func() {
+		if !timer.Stop() {
+			// Ensure the timer channel has been drained.
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			err := gormDB.Model(obj).Where("request_id = ?", id).First(obj).Error
-			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				return err
+			// Ensure the timer channel is drained
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
 			}
-
-			time.Sleep(time.Second)
+			return ctx.Err()
+		case <-timer.C:
+		case <-readyIndicator:
 		}
+
+		err := gormDB.Model(obj).Where("request_id = ?", id).First(obj).Error
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		if !timer.Stop() {
+			// Ensure the timer channel has been drained.
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+		timer.Reset(time.Second)
 	}
 }
 
-func waitForAndWriteResponse(ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string, respObj JobResponder) {
-	if err := waitForResponse(ctx, gormDB, id, respObj); err != nil {
+func waitForAndWriteResponse(ctx context.Context, readyIndicator <-chan struct{}, w http.ResponseWriter, gormDB *gorm.DB, id string, respObj JobResponder) {
+	if err := waitForResponse(ctx, readyIndicator, gormDB, id, respObj); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to get response: %v", err), InternalErrorType).Error()))
 		return

@@ -128,5 +128,7 @@ func (a *agent) runTranscriptions(ctx context.Context) error {
 		l.Error("failed to store transcription response", "err", err)
 	}
 
+	a.trigger.Ready(transcriptionRequest.ID)
+
 	return nil
 }
