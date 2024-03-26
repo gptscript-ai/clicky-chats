@@ -51,7 +51,7 @@ func (s *Server) Start(ctx context.Context, config Config) error {
 
 	swagger.Servers = openapi3.Servers{&openapi3.Server{URL: fmt.Sprintf("%s:%s%s", config.ServerURL, config.Port, config.APIBase)}}
 
-	mux := http.NewServeMux()
+	mux := http.DefaultServeMux
 	mux.HandleFunc("GET /healthz", s.db.Check)
 
 	h := openai.HandlerWithOptions(s, openai.StdHTTPServerOptions{
