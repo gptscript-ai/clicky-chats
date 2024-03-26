@@ -157,24 +157,19 @@ func (a *agent) Start(ctx context.Context) error {
 	go func() {
 		timer := time.NewTimer(a.pollingInterval)
 		for {
-			if err := a.run(ctx, gsRunner); err != nil {
-				if !errors.Is(err, gorm.ErrRecordNotFound) {
-					slog.Error("failed step runner iteration", "err", err)
-				}
-
-				select {
-				case <-ctx.Done():
-					// Ensure the timer channel is drained
-					if !timer.Stop() {
-						select {
-						case <-timer.C:
-						default:
-						}
+			a.run(ctx, gsRunner)
+			select {
+			case <-ctx.Done():
+				// Ensure the timer channel is drained
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
 					}
-					return
-				case <-timer.C:
-				case <-a.trigger.Triggered():
 				}
+				return
+			case <-timer.C:
+			case <-a.trigger.Triggered():
 			}
 
 			if !timer.Stop() {
@@ -192,11 +187,11 @@ func (a *agent) Start(ctx context.Context) error {
 	return nil
 }
 
-func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
+func (a *agent) run(ctx context.Context, runner *runner.Runner) {
 	slog.Debug("Checking for a run")
 	// Look for a new run and claim it. Also, query for the other objects we need.
 	run, runStep := new(db.Run), new(db.RunStep)
-	err = a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(run).Where("system_status = ?", "requires_action").Where("system_claimed_by IS NULL OR system_claimed_by = ?", a.id).Order("created_at desc").First(run).Error; err != nil {
 			return err
 		}
@@ -227,14 +222,21 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			"event_index":       run.EventIndex,
 		}
 		return tx.Model(run).Clauses(clause.Returning{}).Where("id = ?", run.ID).Updates(updates).Error
-	})
-	if err != nil {
+	}); err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("failed to get run: %w", err)
+			slog.Error("failed to get run", "error", err)
 		}
-		return err
+		return
 	}
 
+	go func() {
+		if err := a.processRunStep(ctx, runner, run, runStep); err != nil {
+			slog.Error("failed to process run step", "err", err)
+		}
+	}()
+}
+
+func (a *agent) processRunStep(ctx context.Context, runner *runner.Runner, run *db.Run, runStep *db.RunStep) (err error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, toolCallTimeout)
 	defer cancel()
 
