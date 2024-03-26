@@ -33,7 +33,7 @@ import (
 
 const (
 	minPollingInterval = time.Second
-	toolCallTimeout    = time.Minute
+	toolCallTimeout    = 15 * time.Minute
 )
 
 type Config struct {
