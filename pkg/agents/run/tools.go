@@ -7,15 +7,17 @@ import (
 	"log/slog"
 
 	"github.com/acorn-io/z"
+	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"github.com/gptscript-ai/clicky-chats/pkg/tools"
-	"github.com/gptscript-ai/gptscript/pkg/loader"
 	"github.com/gptscript-ai/gptscript/pkg/types"
+	"gorm.io/gorm"
 )
 
-// populateTools returns the function definition used for chat completion from the provided link and subtool.
-// The run agent will use these when making chat completion requests for runs.
-func populateTools(ctx context.Context) (map[string]*openai.FunctionObject, error) {
+// populateTools returns the function definition used for chat completion for the built-in tools. The database is
+// checked first to see if the tool has already been loaded, it will be loaded from the URL again if necessary. The run
+// agent will use these when making chat completion requests for runs.
+func populateTools(ctx context.Context, gdb *gorm.DB) (map[string]*openai.FunctionObject, error) {
 	builtInToolDefinitions := make(map[string]*openai.FunctionObject, len(tools.GPTScriptDefinitions()))
 	for toolName, toolDef := range tools.GPTScriptDefinitions() {
 		if toolDef.Link == "" || toolDef.Link == tools.SkipLoadingTool {
@@ -23,9 +25,9 @@ func populateTools(ctx context.Context) (map[string]*openai.FunctionObject, erro
 			continue
 		}
 
-		prg, err := loader.Program(ctx, toolDef.Link, toolDef.Subtool)
+		prg, err := db.LoadBuiltInTool(ctx, gdb, toolName, toolDef)
 		if err != nil {
-			return nil, fmt.Errorf("failed to initialize program %q: %w", toolName, err)
+			return nil, err
 		}
 
 		builtInToolDefinitions[toolName], err = programToFunction(&prg, toolName)
