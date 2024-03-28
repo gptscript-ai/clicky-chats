@@ -326,7 +326,7 @@ func GetOutputForRunStepToolCall(item *openai.RunStepDetailsToolCallsObject_Tool
 			logs, err = tc.CodeInterpreter.Outputs[0].AsRunStepDetailsToolCallsCodeOutputLogsObject()
 		}
 		info.ID = tc.Id
-		info.Name = string(openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter)
+		info.Name = tools.GPTScriptToolNamePrefix + string(openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter)
 		info.Arguments = tc.CodeInterpreter.Input
 		info.Output = logs.Logs
 		return info, err
@@ -334,7 +334,7 @@ func GetOutputForRunStepToolCall(item *openai.RunStepDetailsToolCallsObject_Tool
 	if tc, err := item.AsRunStepDetailsToolCallsRetrievalObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval {
 		b, err := json.Marshal(tc.Retrieval)
 		info.ID = tc.Id
-		info.Name = string(openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval)
+		info.Name = tools.GPTScriptToolNamePrefix + string(openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval)
 		info.Arguments = string(b)
 		info.Output = ""
 		return info, err
@@ -375,7 +375,7 @@ func runStepFromGenericToolCallInfo(info GenericToolCallInfo) (*openai.RunStepDe
 			Output    *string `json:"output"`
 		}{
 			Arguments: info.Arguments,
-			Name:      name,
+			Name:      info.Name,
 			Output:    nil,
 		},
 		info.ID,
