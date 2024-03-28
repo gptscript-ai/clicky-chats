@@ -21,7 +21,7 @@ import (
 	_ "github.com/gptscript-ai/gptscript/pkg/loader/github"
 )
 
-var emptyMessagesLimit = 500
+var emptyMessagesLimit = 5000
 
 func init() {
 	if limit, err := strconv.Atoi(os.Getenv("CLICKY_CHATS_EMPTY_MESSAGES_LIMIT")); err == nil {
