@@ -93,6 +93,7 @@ func (db *DB) AutoMigrate() error {
 		CreateTranscriptionResponse{},
 
 		Tool{},
+		BuiltInTool{},
 		RunEvent{},
 	)
 }

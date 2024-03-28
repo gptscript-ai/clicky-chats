@@ -33,7 +33,7 @@ func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 		return err
 	}
 
-	a.builtInToolDefinitions, err = populateTools(ctx)
+	a.builtInToolDefinitions, err = populateTools(ctx, gdb.WithContext(ctx))
 	if err != nil {
 		return err
 	}

@@ -61,7 +61,7 @@ func Start(ctx context.Context, gdb *db.DB, kbm *kb.KnowledgeBaseManager, cfg Co
 		return err
 	}
 
-	a.builtInToolDefinitions, err = populateTools(ctx)
+	a.builtInToolDefinitions, err = populateTools(ctx, gdb.WithContext(ctx))
 	if err != nil {
 		return err
 	}
@@ -325,9 +325,11 @@ func runToolCall(ctx context.Context, runner *runner.Runner, prg types.Program, 
 	return output, nil
 }
 
-// populateTools loads the gptscript program from the provided link and subtool.
-// The run_step agent will use this program definition to run the tool with the gptscript engine.
-func populateTools(ctx context.Context) (map[string]types.Program, error) {
+// populateTools loads the gptscript program from the provided link and subtool. The database is checked first to see if
+// the tool has already been loaded, it will be loaded from the URL again if necessary. The run_step agent will use this
+// program definition to run the tool with the gptscript engine.
+func populateTools(ctx context.Context, gdb *gorm.DB) (map[string]types.Program, error) {
+	var err error
 	builtInToolDefinitions := make(map[string]types.Program, len(tools.GPTScriptDefinitions()))
 	for toolName, toolDef := range tools.GPTScriptDefinitions() {
 		if toolDef.Link == "" || toolDef.Link == tools.SkipLoadingTool {
@@ -335,12 +337,10 @@ func populateTools(ctx context.Context) (map[string]types.Program, error) {
 			continue
 		}
 
-		prg, err := loader.Program(ctx, toolDef.Link, toolDef.Subtool)
+		builtInToolDefinitions[toolName], err = db.LoadBuiltInTool(ctx, gdb, toolName, toolDef)
 		if err != nil {
-			return nil, fmt.Errorf("failed to initialize program %q: %w", toolName, err)
+			return nil, err
 		}
-
-		builtInToolDefinitions[toolName] = prg
 	}
 	return builtInToolDefinitions, nil
 }

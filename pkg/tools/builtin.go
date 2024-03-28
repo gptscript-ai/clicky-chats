@@ -7,15 +7,14 @@ const (
 )
 
 var builtInFunctionNameToDefinition = map[string]ToolDefinition{
-	"internet_search":  {Link: "github.com/gptscript-ai/question-answerer/duckduckgo"},
-	"site_browsing":    {Link: "github.com/gptscript-ai/browse-web-page"},
-	"code_interpreter": {Link: "github.com/gptscript-ai/code-interpreter"},
-	"retrieval":        {Link: "github.com/gptscript-ai/knowledge-retrieval-api"},
+	"internet_search":  {Link: "github.com/gptscript-ai/question-answerer/duckduckgo", Commit: "091e15cf90c34062ec189abefd84b92150c6725f"},
+	"site_browsing":    {Link: "github.com/gptscript-ai/browse-web-page", Commit: "9656ac56b96c94fef24e30dc39482a24e0af0cb7"},
+	"code_interpreter": {Link: "github.com/gptscript-ai/code-interpreter", Commit: "b784f26c82e1ea55fe8ead4f2d38b5ff2651bca7"},
+	"retrieval":        {Link: "github.com/gptscript-ai/knowledge-retrieval-api", Commit: "53d62bd4d4acf4b3e6304cc770d0b9e38fc97f66"},
 }
 
 type ToolDefinition struct {
-	Link    string
-	Subtool string
+	Link, Commit, SubTool string
 }
 
 func GPTScriptDefinitions() map[string]ToolDefinition {
