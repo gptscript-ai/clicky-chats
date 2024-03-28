@@ -11,6 +11,7 @@ import (
 	"time"
 
 	cclient "github.com/gptscript-ai/clicky-chats/pkg/client"
+	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
 
 	"github.com/acorn-io/z"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
@@ -26,6 +27,7 @@ const (
 type Config struct {
 	PollingInterval, RetentionPeriod time.Duration
 	EmbeddingsURL, APIKey, AgentID   string
+	Trigger                          trigger.Trigger
 }
 
 func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
@@ -45,6 +47,7 @@ type agent struct {
 	id, apiKey, url                   string
 	client                            *http.Client
 	db                                *db.DB
+	trigger                           trigger.Trigger
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
@@ -55,6 +58,11 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 		return nil, fmt.Errorf("[embeddings] request retention must be at least %s", minRequestRetention)
 	}
 
+	if cfg.Trigger == nil {
+		slog.Warn("[embeddings] No trigger provided, using noop")
+		cfg.Trigger = trigger.NewNoop()
+	}
+
 	return &agent{
 		pollingInterval:  cfg.PollingInterval,
 		requestRetention: cfg.RetentionPeriod,
@@ -63,6 +71,7 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 		db:               db,
 		id:               cfg.AgentID,
 		url:              cfg.EmbeddingsURL,
+		trigger:          cfg.Trigger,
 	}, nil
 }
 
@@ -72,6 +81,7 @@ func (a *agent) Start(ctx context.Context) {
 	 */
 
 	go func() {
+		timer := time.NewTimer(a.pollingInterval)
 		for {
 			if err := a.run(ctx); err != nil {
 				if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -79,10 +89,28 @@ func (a *agent) Start(ctx context.Context) {
 				}
 				select {
 				case <-ctx.Done():
+					// Ensure the timer channel is drained
+					if !timer.Stop() {
+						select {
+						case <-timer.C:
+						default:
+						}
+					}
 					return
-				case <-time.After(a.pollingInterval):
+				case <-timer.C:
+				case <-a.trigger.Triggered():
 				}
 			}
+
+			if !timer.Stop() {
+				// Ensure the timer channel is drained
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+
+			timer.Reset(a.pollingInterval)
 		}
 	}()
 
@@ -96,7 +124,8 @@ func (a *agent) Start(ctx context.Context) {
 				new(db.CreateEmbeddingRequest),
 				new(db.CreateEmbeddingResponse),
 			}
-			cdb = a.db.WithContext(ctx)
+			cdb   = a.db.WithContext(ctx)
+			timer = time.NewTimer(cleanupInterval)
 		)
 		for {
 			slog.Debug("Looking for expired create embeddings requests and responses that we can cleanup")
@@ -107,9 +136,18 @@ func (a *agent) Start(ctx context.Context) {
 
 			select {
 			case <-ctx.Done():
+				// Ensure the timer channel is drained
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
 				return
-			case <-time.After(cleanupInterval):
+			case <-timer.C:
 			}
+
+			timer.Reset(cleanupInterval)
 		}
 	}()
 }
@@ -164,6 +202,8 @@ func (a *agent) run(ctx context.Context) error {
 	}); err != nil {
 		l.Error("Failed to create embeddings response", "err", err)
 	}
+
+	a.trigger.Ready(embeddingsID)
 
 	return nil
 }

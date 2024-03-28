@@ -70,5 +70,7 @@ func (a *agent) runGenerations(ctx context.Context) error {
 		l.Error("failed to store image create response", "err", err)
 	}
 
+	a.trigger.Ready(createRequest.ID)
+
 	return nil
 }

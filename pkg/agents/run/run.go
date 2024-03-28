@@ -12,6 +12,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/agents"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
+	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -25,6 +26,7 @@ const (
 type Config struct {
 	PollingInterval, RetentionPeriod time.Duration
 	APIURL, APIKey, AgentID          string
+	Trigger, RunStepTrigger          trigger.Trigger
 }
 
 func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
@@ -49,6 +51,7 @@ type agent struct {
 	client                           *http.Client
 	db                               *db.DB
 	builtInToolDefinitions           map[string]*openai.FunctionObject
+	trigger, runStepTrigger          trigger.Trigger
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
@@ -59,6 +62,15 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 		return nil, fmt.Errorf("[run] request retention must be at least %s", minRequestRetention)
 	}
 
+	if cfg.Trigger == nil {
+		slog.Warn("[run] No trigger provided, using noop")
+		cfg.Trigger = trigger.NewNoop()
+	}
+	if cfg.RunStepTrigger == nil {
+		slog.Warn("[run] No run step trigger provided, using noop")
+		cfg.RunStepTrigger = trigger.NewNoop()
+	}
+
 	return &agent{
 		pollingInterval: cfg.PollingInterval,
 		retentionPeriod: cfg.RetentionPeriod,
@@ -67,12 +79,15 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 		db:              db,
 		id:              cfg.AgentID,
 		url:             cfg.APIURL,
+		trigger:         cfg.Trigger,
+		runStepTrigger:  cfg.RunStepTrigger,
 	}, nil
 }
 
 func (a *agent) Start(ctx context.Context) {
 	// Start the "job runner"
 	go func() {
+		timer := time.NewTimer(a.pollingInterval)
 		for {
 			if err := a.run(ctx); err != nil {
 				if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -80,10 +95,28 @@ func (a *agent) Start(ctx context.Context) {
 				}
 				select {
 				case <-ctx.Done():
+					// Ensure the timer channel is drained
+					if !timer.Stop() {
+						select {
+						case <-timer.C:
+						default:
+						}
+					}
 					return
-				case <-time.After(a.pollingInterval):
+				case <-timer.C:
+				case <-a.trigger.Triggered():
 				}
 			}
+
+			if !timer.Stop() {
+				// Ensure the timer channel has been drained.
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+
+			timer.Reset(a.pollingInterval)
 		}
 	}()
 
@@ -95,6 +128,8 @@ func (a *agent) Start(ctx context.Context) {
 				new(db.RunEvent),
 			}
 			cdb = a.db.WithContext(ctx)
+
+			timer = time.NewTimer(cleanupInterval)
 		)
 		for {
 			slog.Debug("Looking for completed runs")
@@ -130,9 +165,18 @@ func (a *agent) Start(ctx context.Context) {
 
 			select {
 			case <-ctx.Done():
+				// Ensure the timer channel is drained
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
 				return
-			case <-time.After(cleanupInterval):
+			case <-timer.C:
 			}
+
+			timer.Reset(cleanupInterval)
 		}
 	}()
 }
@@ -140,7 +184,13 @@ func (a *agent) Start(ctx context.Context) {
 func (a *agent) run(ctx context.Context) error {
 	slog.Debug("Checking for a run")
 	// Look for a new run and claim it. Also, query for the other objects we need.
-	run, assistant, messages, runSteps, tools := new(db.Run), new(db.Assistant), make([]db.Message, 0), make([]db.RunStep, 0), make([]db.Tool, 0)
+	var (
+		run       = new(db.Run)
+		assistant = new(db.Assistant)
+		runSteps  = make([]db.RunStep, 0)
+		messages  = make([]db.Message, 0)
+		tools     = make([]db.Tool, 0)
+	)
 	err := a.db.WithContext(ctx).Model(run).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("claimed_by IS NULL AND status = ?", openai.RunObjectStatusQueued).Or("claimed_by = ? AND status = ? AND system_status = ?", a.id, openai.RunObjectStatusInProgress, openai.RunObjectStatusQueued).Order("created_at desc").First(run).Error; err != nil {
 			return err
@@ -243,6 +293,9 @@ func (a *agent) run(ctx context.Context) error {
 		// If we get an error here, then we have already failed the run. Log the error and return so that we don't try to fail the run again.
 		l.Error("failed to compile chat completion chunks", "error", err)
 	}
+
+	a.runStepTrigger.Kick(runID)
+	a.trigger.Ready(runID)
 
 	return nil
 }

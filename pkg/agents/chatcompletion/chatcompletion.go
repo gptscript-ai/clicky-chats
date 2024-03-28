@@ -13,6 +13,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/agents"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
+	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
 	"gorm.io/gorm"
 )
 
@@ -21,16 +22,19 @@ const (
 	minRequestRetention = 5 * time.Minute
 )
 
-var supportedModels = map[string]struct{}{
-	"gpt-3.5":             {},
-	"gpt-3.5-turbo":       {},
-	"gpt-4":               {},
-	"gpt-4-turbo-preview": {},
-}
+var (
+	supportedModels = map[string]struct{}{
+		"gpt-3.5":             {},
+		"gpt-3.5-turbo":       {},
+		"gpt-4":               {},
+		"gpt-4-turbo-preview": {},
+	}
+)
 
 type Config struct {
 	PollingInterval, RetentionPeriod              time.Duration
 	ModelsURL, ChatCompletionURL, APIKey, AgentID string
+	Trigger                                       trigger.Trigger
 }
 
 func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
@@ -53,6 +57,7 @@ type agent struct {
 	id, apiKey, url                  string
 	client                           *http.Client
 	db                               *db.DB
+	trigger                          trigger.Trigger
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
@@ -63,6 +68,11 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 		return nil, fmt.Errorf("[chatcompletion] request retention must be at least %s", minRequestRetention)
 	}
 
+	if cfg.Trigger == nil {
+		slog.Warn("[chat completion] No trigger provided, using noop")
+		cfg.Trigger = trigger.NewNoop()
+	}
+
 	return &agent{
 		pollingInterval: cfg.PollingInterval,
 		retentionPeriod: cfg.RetentionPeriod,
@@ -71,6 +81,7 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 		db:              db,
 		id:              cfg.AgentID,
 		url:             cfg.ChatCompletionURL,
+		trigger:         cfg.Trigger,
 	}, nil
 }
 
@@ -151,6 +162,7 @@ func (a *agent) listAndStoreModels(ctx context.Context, modelsURL string) error 
 func (a *agent) Start(ctx context.Context) {
 	// Start the "job runner"
 	go func() {
+		timer := time.NewTimer(a.pollingInterval)
 		for {
 			if err := a.run(ctx); err != nil {
 				if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -159,16 +171,35 @@ func (a *agent) Start(ctx context.Context) {
 
 				select {
 				case <-ctx.Done():
+					// Ensure the timer channel is drained
+					if !timer.Stop() {
+						select {
+						case <-timer.C:
+						default:
+						}
+					}
 					return
-				case <-time.After(a.pollingInterval):
+				case <-timer.C:
+				case <-a.trigger.Triggered():
 				}
 			}
+
+			if !timer.Stop() {
+				// Ensure the timer channel is drained
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+
+			timer.Reset(a.pollingInterval)
 		}
 	}()
 
 	// Start cleanup
 	go func() {
 		cleanupInterval := a.retentionPeriod / 2
+		timer := time.NewTimer(cleanupInterval)
 
 		for {
 			slog.Debug("Looking for completed chat completions")
@@ -223,9 +254,18 @@ func (a *agent) Start(ctx context.Context) {
 
 			select {
 			case <-ctx.Done():
+				// Ensure the timer channel is drained
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
 				return
-			case <-time.After(cleanupInterval):
+			case <-timer.C:
 			}
+
+			timer.Reset(cleanupInterval)
 		}
 	}()
 }
@@ -294,6 +334,7 @@ func (a *agent) run(ctx context.Context) error {
 		return err
 	}
 
+	a.trigger.Ready(chatCompletionID)
 	return nil
 }
 

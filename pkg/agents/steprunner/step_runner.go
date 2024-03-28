@@ -19,6 +19,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/gptscript-ai/clicky-chats/pkg/tools"
+	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
 	"github.com/gptscript-ai/gptscript/pkg/cache"
 	"github.com/gptscript-ai/gptscript/pkg/loader"
 	gptopenai "github.com/gptscript-ai/gptscript/pkg/openai"
@@ -41,6 +42,7 @@ type Config struct {
 	PollingInterval         time.Duration
 	APIURL, APIKey, AgentID string
 	Cache                   bool
+	Trigger, RunTrigger     trigger.Trigger
 }
 
 var inputModifiers = map[string]func(*agent, *db.RunStep, []string, string) ([]string, string, error){
@@ -70,12 +72,13 @@ func Start(ctx context.Context, gdb *db.DB, kbm *kb.KnowledgeBaseManager, cfg Co
 }
 
 type agent struct {
-	pollingInterval time.Duration
-	id, apiKey, url string
-	cache           bool
-	client          *http.Client
-	db              *db.DB
-	kbm             *kb.KnowledgeBaseManager
+	pollingInterval     time.Duration
+	id, apiKey, url     string
+	cache               bool
+	client              *http.Client
+	db                  *db.DB
+	kbm                 *kb.KnowledgeBaseManager
+	trigger, runTrigger trigger.Trigger
 
 	builtInToolDefinitions map[string]types.Program
 }
@@ -83,6 +86,15 @@ type agent struct {
 func newAgent(db *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) (*agent, error) {
 	if cfg.PollingInterval < minPollingInterval {
 		return nil, fmt.Errorf("polling interval must be at least %s", minPollingInterval)
+	}
+
+	if cfg.Trigger == nil {
+		slog.Warn("[step runner] No trigger provided, using noop")
+		cfg.Trigger = trigger.NewNoop()
+	}
+	if cfg.RunTrigger == nil {
+		slog.Warn("[step runner] No run trigger provided, using noop")
+		cfg.RunTrigger = trigger.NewNoop()
 	}
 
 	return &agent{
@@ -94,6 +106,8 @@ func newAgent(db *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) (*agent, erro
 		kbm:             kbm,
 		id:              cfg.AgentID,
 		url:             cfg.APIURL,
+		trigger:         cfg.Trigger,
+		runTrigger:      cfg.RunTrigger,
 	}, nil
 }
 
@@ -141,6 +155,7 @@ func (a *agent) Start(ctx context.Context) error {
 
 	// Start the "job runner"
 	go func() {
+		timer := time.NewTimer(a.pollingInterval)
 		for {
 			if err := a.run(ctx, gsRunner); err != nil {
 				if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -149,10 +164,28 @@ func (a *agent) Start(ctx context.Context) error {
 
 				select {
 				case <-ctx.Done():
+					// Ensure the timer channel is drained
+					if !timer.Stop() {
+						select {
+						case <-timer.C:
+						default:
+						}
+					}
 					return
-				case <-time.After(a.pollingInterval):
+				case <-timer.C:
+				case <-a.trigger.Triggered():
 				}
 			}
+
+			if !timer.Stop() {
+				// Ensure the timer channel has been drained.
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+
+			timer.Reset(a.pollingInterval)
 		}
 	}()
 
@@ -304,6 +337,9 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 		l.Error("Failed to update run step", "err", err)
 		return err
 	}
+
+	a.trigger.Ready(run.ID)
+	a.runTrigger.Kick(run.ID)
 
 	return nil
 }

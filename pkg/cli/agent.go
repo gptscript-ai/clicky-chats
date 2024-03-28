@@ -15,6 +15,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/steprunner"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
+	"github.com/gptscript-ai/clicky-chats/pkg/server"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +57,7 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 		slog.Warn("No knowledge retrieval API URL provided, knowledge base manager will not be started - assistants using the `retrieval` tool won't work")
 	}
 
-	if err = runAgents(cmd.Context(), gormDB, kbm, s); err != nil {
+	if err = runAgents(cmd.Context(), gormDB, kbm, s, new(server.Triggers)); err != nil {
 		return err
 	}
 
@@ -64,7 +65,7 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager, s *Agent) error {
+func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager, s *Agent, triggers *server.Triggers) error {
 	retentionPeriod, err := time.ParseDuration(s.RetentionPeriod)
 	if err != nil {
 		return fmt.Errorf("failed to parse chat completion retention period: %w", err)
@@ -79,6 +80,8 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 		apiKey = os.Getenv("OPENAI_API_KEY")
 	}
 
+	triggers.Complete()
+
 	ccCfg := chatcompletion.Config{
 		APIKey:            apiKey,
 		ModelsURL:         s.ModelsURL,
@@ -86,6 +89,7 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 		PollingInterval:   pollingInterval,
 		RetentionPeriod:   retentionPeriod,
 		AgentID:           s.AgentID,
+		Trigger:           triggers.ChatCompletion,
 	}
 	if err := chatcompletion.Start(ctx, gormDB, ccCfg); err != nil {
 		return err
@@ -97,6 +101,8 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 		APIURL:          s.APIURL,
 		APIKey:          apiKey,
 		AgentID:         s.AgentID,
+		Trigger:         triggers.Run,
+		RunStepTrigger:  triggers.RunStep,
 	}
 	if err = run.Start(ctx, gormDB, runCfg); err != nil {
 		return err
@@ -108,6 +114,8 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 		APIKey:          apiKey,
 		AgentID:         s.AgentID,
 		Cache:           s.Cache,
+		Trigger:         triggers.RunStep,
+		RunTrigger:      triggers.Run,
 	}
 	if err = steprunner.Start(ctx, gormDB, kbm, stepRunnerCfg); err != nil {
 		return err
@@ -119,6 +127,7 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 		ImagesBaseURL:   s.DefaultImagesURL,
 		APIKey:          apiKey,
 		AgentID:         s.AgentID,
+		Trigger:         triggers.Image,
 	}
 	if err = image.Start(ctx, gormDB, imageCfg); err != nil {
 		return err
@@ -130,6 +139,7 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 		PollingInterval: pollingInterval,
 		RetentionPeriod: retentionPeriod,
 		AgentID:         s.AgentID,
+		Trigger:         triggers.Embeddings,
 	}
 	if err = embeddings.Start(ctx, gormDB, embedCfg); err != nil {
 		return err
@@ -141,6 +151,7 @@ func runAgents(ctx context.Context, gormDB *db.DB, kbm *kb.KnowledgeBaseManager,
 		AudioBaseURL:    s.DefaultAudioURL,
 		APIKey:          apiKey,
 		AgentID:         s.AgentID,
+		Trigger:         triggers.Audio,
 	}
 	if err = audio.Start(ctx, gormDB, audioCfg); err != nil {
 		return err

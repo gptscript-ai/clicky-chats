@@ -14,16 +14,44 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
+	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
 	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
 )
 
+type Triggers struct {
+	ChatCompletion, Run, RunStep, Image, Embeddings, Audio trigger.Trigger
+}
+
+func (t *Triggers) Complete() {
+	if t.ChatCompletion == nil {
+		t.ChatCompletion = trigger.NewNoop()
+	}
+	if t.Run == nil {
+		t.Run = trigger.NewNoop()
+	}
+	if t.RunStep == nil {
+		t.RunStep = trigger.NewNoop()
+	}
+	if t.Image == nil {
+		t.Image = trigger.NewNoop()
+	}
+	if t.Embeddings == nil {
+		t.Embeddings = trigger.NewNoop()
+	}
+	if t.Audio == nil {
+		t.Audio = trigger.NewNoop()
+	}
+}
+
 type Config struct {
 	ServerURL, Port, APIBase string
+	Triggers                 *Triggers
 }
 
 type Server struct {
-	db  *db.DB
-	kbm *kb.KnowledgeBaseManager
+	db       *db.DB
+	kbm      *kb.KnowledgeBaseManager
+	triggers *Triggers
 }
 
 func NewServer(db *db.DB, kbm *kb.KnowledgeBaseManager) *Server {
@@ -34,6 +62,10 @@ func NewServer(db *db.DB, kbm *kb.KnowledgeBaseManager) *Server {
 }
 
 func (s *Server) Start(ctx context.Context, config Config) error {
+	// Setup triggers
+	config.Triggers.Complete()
+	s.triggers = config.Triggers
+
 	// Treat image/png as files during decoding.
 	// This is required to pass body validation for image and mask fields for the following endpoints:
 	// - /v1/images/edits

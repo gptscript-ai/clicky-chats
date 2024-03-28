@@ -135,5 +135,7 @@ func (a *agent) runEdits(ctx context.Context) error {
 		l.Error("failed to store image edit response", "err", err)
 	}
 
+	a.trigger.Ready(editRequest.ID)
+
 	return nil
 }

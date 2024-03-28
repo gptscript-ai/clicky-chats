@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
+	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
 	"gorm.io/gorm"
 )
 
@@ -31,6 +32,7 @@ func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 type Config struct {
 	PollingInterval, RetentionPeriod time.Duration
 	AudioBaseURL, APIKey, AgentID    string
+	Trigger                          trigger.Trigger
 }
 
 type agent struct {
@@ -39,6 +41,7 @@ type agent struct {
 	speechURL, translationsURL, transcriptionsURL string
 	client                                        *http.Client
 	db                                            *db.DB
+	trigger                                       trigger.Trigger
 }
 
 func newAgent(db *db.DB, cfg Config) (*agent, error) {
@@ -47,6 +50,11 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}
 	if cfg.RetentionPeriod < minRequestRetention {
 		return nil, fmt.Errorf("[audio] request retention must be at least %s", minRequestRetention)
+	}
+
+	if cfg.Trigger == nil {
+		slog.Warn("[audio] No trigger provided, using noop")
+		cfg.Trigger = trigger.NewNoop()
 	}
 
 	return &agent{
@@ -59,6 +67,7 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 		apiKey:            cfg.APIKey,
 		db:                db,
 		id:                cfg.AgentID,
+		trigger:           cfg.Trigger,
 	}, nil
 }
 
@@ -69,8 +78,8 @@ func (a *agent) Start(ctx context.Context) {
 		a.runTranslations,
 		a.runTranscriptions,
 	} {
-		r := run
-		go func() {
+		go func(r func(context.Context) error) {
+			timer := time.NewTimer(a.pollingInterval)
 			for {
 				if err := r(ctx); err != nil {
 					if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -79,12 +88,30 @@ func (a *agent) Start(ctx context.Context) {
 
 					select {
 					case <-ctx.Done():
+						// Ensure the timer channel is drained
+						if !timer.Stop() {
+							select {
+							case <-timer.C:
+							default:
+							}
+						}
 						return
-					case <-time.After(a.pollingInterval):
+					case <-timer.C:
+					case <-a.trigger.Triggered():
 					}
 				}
+
+				if !timer.Stop() {
+					// Ensure the timer channel is drained
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
+
+				timer.Reset(a.pollingInterval)
 			}
-		}()
+		}(run)
 	}
 
 	// Start cleanup
@@ -99,7 +126,8 @@ func (a *agent) Start(ctx context.Context) {
 				new(db.CreateTranscriptionRequest),
 				new(db.CreateTranscriptionResponse),
 			}
-			cdb = a.db.WithContext(ctx)
+			cdb   = a.db.WithContext(ctx)
+			timer = time.NewTimer(cleanupInterval)
 		)
 		for {
 			slog.Debug("looking for expired audio requests and responses")
@@ -110,9 +138,18 @@ func (a *agent) Start(ctx context.Context) {
 
 			select {
 			case <-ctx.Done():
+				// Ensure the timer channel is drained
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
 				return
-			case <-time.After(cleanupInterval):
+			case <-timer.C:
 			}
+
+			timer.Reset(cleanupInterval)
 		}
 	}()
 }
