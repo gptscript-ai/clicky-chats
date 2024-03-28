@@ -157,24 +157,19 @@ func (a *agent) Start(ctx context.Context) error {
 	go func() {
 		timer := time.NewTimer(a.pollingInterval)
 		for {
-			if err := a.run(ctx, gsRunner); err != nil {
-				if !errors.Is(err, gorm.ErrRecordNotFound) {
-					slog.Error("failed step runner iteration", "err", err)
-				}
-
-				select {
-				case <-ctx.Done():
-					// Ensure the timer channel is drained
-					if !timer.Stop() {
-						select {
-						case <-timer.C:
-						default:
-						}
+			a.run(ctx, gsRunner)
+			select {
+			case <-ctx.Done():
+				// Ensure the timer channel is drained
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
 					}
-					return
-				case <-timer.C:
-				case <-a.trigger.Triggered():
 				}
+				return
+			case <-timer.C:
+			case <-a.trigger.Triggered():
 			}
 
 			if !timer.Stop() {
@@ -192,11 +187,11 @@ func (a *agent) Start(ctx context.Context) error {
 	return nil
 }
 
-func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
+func (a *agent) run(ctx context.Context, runner *runner.Runner) {
 	slog.Debug("Checking for a run")
 	// Look for a new run and claim it. Also, query for the other objects we need.
 	run, runStep := new(db.Run), new(db.RunStep)
-	err = a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(run).Where("system_status = ?", "requires_action").Where("system_claimed_by IS NULL OR system_claimed_by = ?", a.id).Order("created_at desc").First(run).Error; err != nil {
 			return err
 		}
@@ -227,18 +222,30 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			"event_index":       run.EventIndex,
 		}
 		return tx.Model(run).Clauses(clause.Returning{}).Where("id = ?", run.ID).Updates(updates).Error
-	})
-	if err != nil {
+	}); err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("failed to get run: %w", err)
+			slog.Error("failed to get run", "error", err)
 		}
-		return err
+		return
 	}
+
+	go func() {
+		if err := a.processRunStep(ctx, runner, run, runStep); err != nil {
+			slog.Error("failed to process run step", "err", err)
+		}
+	}()
+}
+
+func (a *agent) processRunStep(ctx context.Context, runner *runner.Runner, run *db.Run, runStep *db.RunStep) (err error) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, toolCallTimeout)
+	defer cancel()
+
+	go pollForCancellation(timeoutCtx, cancel, a.db.WithContext(timeoutCtx), runStep.ID, a.pollingInterval)
 
 	l := slog.With("run_id", run.ID, "run_step_id", runStep.ID, "type", "system_run_step")
 
 	defer func() {
-		if err != nil {
+		if err != nil && !errors.Is(err, context.Canceled) {
 			failRunStep(l, a.db.WithContext(ctx), run, runStep, err, openai.RunObjectLastErrorCodeServerError)
 		}
 	}()
@@ -270,11 +277,11 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 		prg, ok := a.builtInToolDefinitions[functionName]
 		if !ok {
 			tool := new(db.Tool)
-			if err = a.db.WithContext(ctx).Model(tool).Where("id = ?", functionName).First(tool).Error; err != nil {
+			if err = a.db.WithContext(timeoutCtx).Model(tool).Where("id = ?", functionName).First(tool).Error; err != nil {
 				return fmt.Errorf("failed to get tool %s: %w", functionName, err)
 			}
 
-			prg, err = loader.ProgramFromSource(ctx, string(tool.Program), "")
+			prg, err = loader.ProgramFromSource(timeoutCtx, string(tool.Program), "")
 			if err != nil {
 				return fmt.Errorf("failed to load program for tool %s: %w", functionName, err)
 			}
@@ -282,7 +289,7 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 			envs = append(envs, tool.EnvVars...)
 		}
 
-		output, err := runToolCall(ctx, runner, prg, envs, arguments)
+		output, err := runToolCall(timeoutCtx, runner, prg, envs, arguments)
 		if err != nil {
 			return fmt.Errorf("failed to run tool call at index %d: %w", i, err)
 		}
@@ -345,9 +352,7 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) (err error) {
 }
 
 func runToolCall(ctx context.Context, runner *runner.Runner, prg types.Program, envs []string, arguments string) (string, error) {
-	timeoutCtx, cancel := context.WithTimeout(server.ContextWithNewID(ctx), toolCallTimeout)
-	defer cancel()
-	output, err := runner.Run(timeoutCtx, prg, envs, arguments)
+	output, err := runner.Run(server.ContextWithNewID(ctx), prg, envs, arguments)
 	if errors.Is(err, context.DeadlineExceeded) {
 		return fmt.Sprintf("The tool call took more than %s to complete, aborting", toolCallTimeout), nil
 	}
@@ -359,6 +364,34 @@ func runToolCall(ctx context.Context, runner *runner.Runner, prg types.Program, 
 	}
 
 	return output, nil
+}
+
+// pollForCancellation will poll for the run step with the given id. If the run step
+// has been canceled, then the corresponding context will be canceled.
+func pollForCancellation(ctx context.Context, cancel func(), gdb *gorm.DB, id string, pollingInterval time.Duration) {
+	timer := time.NewTimer(pollingInterval)
+	rs := new(db.RunStep)
+	for {
+		select {
+		case <-ctx.Done():
+			// Ensure that the timer channel is drained.
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			return
+		case <-timer.C:
+		}
+
+		if err := gdb.Model(rs).Where("id = ?", id).First(rs).Error; err == nil && rs.Status != string(openai.InProgress) {
+			cancel()
+			return
+		}
+
+		timer.Reset(pollingInterval)
+	}
 }
 
 // populateTools loads the gptscript program from the provided link and subtool. The database is checked first to see if
