@@ -29,7 +29,7 @@ type Agent struct {
 	DefaultChatCompletionURL string `usage:"The default URL for the chat completion agent to use" default:"https://api.openai.com/v1/chat/completions" env:"CLICKY_CHATS_CHAT_COMPLETION_SERVER_URL"`
 	ModelsURL                string `usage:"The url for the to get the available models" default:"https://api.openai.com/v1/models" env:"CLICKY_CHATS_CHAT_COMPLETION_SERVER_URL"`
 
-	ToolRunnerBaseURL string `usage:"Tool runner base URL" default:"https://api.openai.com/v1" env:"CLICKY_CHATS_TOOL_RUNNER_BASE_URL"`
+	ToolRunnerBaseURL string `usage:"Tool runner base URL" default:"http://localhost:8080/v1" env:"CLICKY_CHATS_TOOL_RUNNER_BASE_URL"`
 
 	DefaultImagesURL string `usage:"The default base URL for the image agent to use" default:"https://api.openai.com/v1/images" env:"CLICKY_CHATS_IMAGES_SERVER_URL"`
 
@@ -37,7 +37,7 @@ type Agent struct {
 
 	DefaultAudioURL string `usage:"The default URL for the translation agent to use" default:"https://api.openai.com/v1/audio" env:"CLICKY_CHATS_AUDIO_SERVER_URL"`
 
-	APIURL      string `usage:"URL for API calls" default:"https://api.openai.com/v1/chat/completions" env:"CLICKY_CHATS_SERVER_URL"`
+	APIURL      string `usage:"URL for API calls" default:"http://localhost:8080/v1/chat/completions" env:"CLICKY_CHATS_SERVER_URL"`
 	ModelAPIKey string `usage:"API key for API calls" env:"CLICKY_CHATS_MODEL_API_KEY"`
 	AgentID     string `usage:"Agent ID to identify this agent" default:"my-agent" env:"CLICKY_CHATS_AGENT_ID"`
 
