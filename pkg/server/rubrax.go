@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/acorn-io/z"
@@ -137,4 +138,48 @@ func (s *Server) ModifyTool(w http.ResponseWriter, r *http.Request, toolID strin
 	}
 
 	writeObjectToResponse(w, existingTool.ToPublic())
+}
+
+func (s *Server) StreamRun(w http.ResponseWriter, r *http.Request, threadID string, runID string, params openai.StreamRunParams) {
+	if runID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("run_id").Error()))
+		return
+	}
+	if threadID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
+		return
+	}
+
+	gormDB := s.db.WithContext(r.Context())
+	run := &db.Run{
+		Metadata: db.Metadata{
+			Base: db.Base{
+				ID: runID,
+			},
+		},
+	}
+	if err := db.Get(gormDB.Where("thread_id = ?", threadID), run, runID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(NewNotFoundError(run).Error()))
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to get run: %v", err), InternalErrorType).Error()))
+		return
+	}
+
+	if db.IsTerminal(run.Status) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Run %s is in terminal state: %s", runID, run.Status), InvalidRequestErrorType).Error()))
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	waitForAndStreamResponse[*db.RunEvent](r.Context(), w, gormDB, runID, z.Dereference(params.Index))
 }

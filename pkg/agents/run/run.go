@@ -229,11 +229,11 @@ func (a *agent) run(ctx context.Context) error {
 
 		var runEvent *db.RunEvent
 		// If the run is changing to in progress, then create an event.
-		if run.Status != string(openai.InProgress) {
+		if run.Status != string(openai.RunObjectStatusInProgress) {
 			run.EventIndex++
 
 			runEvent = &db.RunEvent{
-				EventName: db.ThreadRunInProgressEvent,
+				EventName: string(openai.RunStreamEvent2EventThreadRunInProgress),
 				JobResponse: db.JobResponse{
 					RequestID: run.ID,
 				},
@@ -319,7 +319,7 @@ func failRun(gdb *gorm.DB, run *db.Run, err error, errorCode openai.RunObjectLas
 	}
 
 	failRunEvent := &db.RunEvent{
-		EventName: db.ThreadRunFailedEvent,
+		EventName: string(openai.RunStreamEvent5EventThreadRunFailed),
 		JobResponse: db.JobResponse{
 			RequestID: run.ID,
 			Done:      true,

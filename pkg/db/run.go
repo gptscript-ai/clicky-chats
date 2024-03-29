@@ -16,7 +16,7 @@ type Run struct {
 	Status         string                                           `json:"status"`
 	RequiredAction datatypes.JSONType[*RunRequiredAction]           `json:"required_action"`
 	LastError      datatypes.JSONType[*RunLastError]                `json:"last_error"`
-	ExpiresAt      int                                              `json:"expires_at,omitempty"`
+	ExpiresAt      *int                                             `json:"expires_at,omitempty"`
 	StartedAt      *int                                             `json:"started_at,omitempty"`
 	CancelledAt    *int                                             `json:"cancelled_at,omitempty"`
 	CompletedAt    *int                                             `json:"completed_at,omitempty"`
@@ -133,7 +133,7 @@ func (r *Run) BeforeUpdate(tx *gorm.DB) error {
 		return err
 	}
 
-	if isTerminal(existing.Status) {
+	if IsTerminal(existing.Status) {
 		return fmt.Errorf("cannot update run %s in terminal state %s", existing.ID, existing.Status)
 	}
 

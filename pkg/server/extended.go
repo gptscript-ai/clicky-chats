@@ -1067,7 +1067,7 @@ func (s *Server) ExtendedCreateThread(w http.ResponseWriter, r *http.Request) {
 				openai.ExtendedMessageObjectObjectThreadMessage,
 				openai.ExtendedMessageObjectRole(message.Role),
 				nil,
-				nil,
+				"",
 				thread.ID,
 			}
 
@@ -1144,7 +1144,7 @@ func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, r *http.Reque
 					openai.ExtendedMessageObjectObjectThreadMessage,
 					openai.ExtendedMessageObjectRole(message.Role),
 					nil,
-					nil,
+					"",
 					thread.ID,
 				}
 
@@ -1179,7 +1179,7 @@ func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, r *http.Reque
 		nil,
 		nil,
 		0,
-		0,
+		nil,
 		nil,
 		nil,
 		"",
@@ -1204,11 +1204,11 @@ func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, r *http.Reque
 	}
 
 	runCreatedEvent := &db.RunEvent{
-		EventName: db.ThreadRunCreatedEvent,
+		EventName: string(openai.RunStreamEvent0EventThreadRunCreated),
 		Run:       datatypes.NewJSONType(run),
 	}
 	runQueuedEvent := &db.RunEvent{
-		EventName:   db.ThreadRunQueuedEvent,
+		EventName:   string(openai.RunStreamEvent1EventThreadRunQueued),
 		Run:         datatypes.NewJSONType(run),
 		ResponseIdx: 1,
 	}
@@ -1330,7 +1330,7 @@ func (s *Server) ExtendedCreateMessage(w http.ResponseWriter, r *http.Request, t
 		openai.ExtendedMessageObjectObjectThreadMessage,
 		openai.ExtendedMessageObjectRole(createMessageRequest.Role),
 		nil,
-		nil,
+		"",
 		threadID,
 	}
 
@@ -1497,7 +1497,7 @@ func (s *Server) ExtendedCreateRun(w http.ResponseWriter, r *http.Request, threa
 		nil,
 		nil,
 		0,
-		0,
+		nil,
 		nil,
 		nil,
 		"",
@@ -1522,11 +1522,11 @@ func (s *Server) ExtendedCreateRun(w http.ResponseWriter, r *http.Request, threa
 	}
 
 	runCreatedEvent := &db.RunEvent{
-		EventName: db.ThreadRunCreatedEvent,
+		EventName: string(openai.RunStreamEvent0EventThreadRunCreated),
 		Run:       datatypes.NewJSONType(run),
 	}
 	runQueuedEvent := &db.RunEvent{
-		EventName:   db.ThreadRunQueuedEvent,
+		EventName:   string(openai.RunStreamEvent1EventThreadRunQueued),
 		Run:         datatypes.NewJSONType(run),
 		ResponseIdx: 1,
 	}
@@ -1699,7 +1699,7 @@ func (s *Server) ExtendedSubmitToolOuputsToRun(w http.ResponseWriter, r *http.Re
 
 	// Get the latest run step.
 	var runSteps []*db.RunStep
-	if err := db.List(s.db.WithContext(r.Context()).Where("run_id = ?", runID).Where("status = ?", string(openai.InProgress)).Order("created_at desc").Limit(1), &runSteps); err != nil {
+	if err := db.List(s.db.WithContext(r.Context()).Where("run_id = ?", runID).Where("status = ?", string(openai.RunObjectStatusInProgress)).Order("created_at desc").Limit(1), &runSteps); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(NewAPIError("Failed to get run step.", InternalErrorType).Error()))
 		return
@@ -1718,7 +1718,7 @@ func (s *Server) ExtendedSubmitToolOuputsToRun(w http.ResponseWriter, r *http.Re
 		_, _ = w.Write([]byte(NewAPIError("Failed to get run step function calls.", InternalErrorType).Error()))
 		return
 	}
-	if runStep.Status != string(openai.InProgress) || len(runStepFunctionCalls) == 0 {
+	if runStep.Status != string(openai.RunStepObjectStatusInProgress) || len(runStepFunctionCalls) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewAPIError("Run step not in progress.", InvalidRequestErrorType).Error()))
 		return
@@ -1762,7 +1762,7 @@ func (s *Server) ExtendedSubmitToolOuputsToRun(w http.ResponseWriter, r *http.Re
 
 		run.EventIndex++
 		runEvent := &db.RunEvent{
-			EventName: db.ThreadRunStepCompletedEvent,
+			EventName: string(openai.RunStepStreamEvent3EventThreadRunStepCompleted),
 			JobResponse: db.JobResponse{
 				RequestID: run.ID,
 			},

@@ -178,7 +178,7 @@ func compileChunksAndApplyStatuses(ctx context.Context, l *slog.Logger, gdb *gor
 			ThreadID:    run.ThreadID,
 		}
 		message = &db.Message{
-			Role:        string(openai.MessageObjectRoleAssistant),
+			Role:        string(openai.Assistant),
 			AssistantID: &run.AssistantID,
 			ThreadID:    run.ThreadID,
 			RunID:       &run.ID,
@@ -254,7 +254,7 @@ func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *d
 							JobResponse: db.JobResponse{
 								RequestID: run.ID,
 							},
-							EventName:    db.ThreadRunStepDeltaEvent,
+							EventName:    string(openai.RunStepDeltaObjectObjectThreadRunStepDelta),
 							ResponseIdx:  run.EventIndex,
 							RunStepDelta: datatypes.NewJSONType(runStepDelta),
 						}
@@ -290,8 +290,8 @@ func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *d
 						}); err != nil {
 							return err
 						}
-
 						runStep.StepDetails = datatypes.NewJSONType(*stepDetails)
+
 						// First create the run step.
 						if err := createRunStep(tx, run, runStep); err != nil {
 							return err
@@ -323,7 +323,7 @@ func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *d
 						JobResponse: db.JobResponse{
 							RequestID: run.ID,
 						},
-						EventName:    db.ThreadMessageDeltaEvent,
+						EventName:    string(openai.MessageStreamEvent2EventThreadMessageDelta),
 						ResponseIdx:  run.EventIndex,
 						MessageDelta: datatypes.NewJSONType(messageDelta),
 					}
@@ -354,7 +354,7 @@ func createRunStep(gdb *gorm.DB, run *db.Run, runStep *db.RunStep) error {
 		JobResponse: db.JobResponse{
 			RequestID: run.ID,
 		},
-		EventName:   db.ThreadRunStepCreatedEvent,
+		EventName:   string(openai.RunStepStreamEvent0EventThreadRunStepCreated),
 		ResponseIdx: run.EventIndex,
 		RunStep:     datatypes.NewJSONType(runStep),
 	}
@@ -362,7 +362,7 @@ func createRunStep(gdb *gorm.DB, run *db.Run, runStep *db.RunStep) error {
 		return err
 	}
 
-	if err := gdb.Model(runStep).Clauses(clause.Returning{}).Where("id = ?", runStep.ID).Update("status", string(openai.InProgress)).Error; err != nil {
+	if err := gdb.Model(runStep).Clauses(clause.Returning{}).Where("id = ?", runStep.ID).Update("status", string(openai.RunObjectStatusInProgress)).Error; err != nil {
 		return err
 	}
 	// Create an event that says that the run step is in progress.
@@ -371,7 +371,7 @@ func createRunStep(gdb *gorm.DB, run *db.Run, runStep *db.RunStep) error {
 		JobResponse: db.JobResponse{
 			RequestID: run.ID,
 		},
-		EventName:   db.ThreadRunStepInProgressEvent,
+		EventName:   string(openai.RunStepStreamEvent1EventThreadRunStepInProgress),
 		ResponseIdx: run.EventIndex,
 		RunStep:     datatypes.NewJSONType(runStep),
 	}
@@ -393,7 +393,7 @@ func createMessageObject(gdb *gorm.DB, run *db.Run, message *db.Message) error {
 		JobResponse: db.JobResponse{
 			RequestID: run.ID,
 		},
-		EventName:   db.ThreadMessageCreatedEvent,
+		EventName:   string(openai.MessageStreamEvent0EventThreadMessageCreated),
 		ResponseIdx: run.EventIndex,
 		Message:     datatypes.NewJSONType(message),
 	}
@@ -402,7 +402,7 @@ func createMessageObject(gdb *gorm.DB, run *db.Run, message *db.Message) error {
 	}
 
 	// Put the message into the in_progress status.
-	if err := gdb.Model(message).Clauses(clause.Returning{}).Where("id = ?", message.ID).Update("status", z.Pointer(string(openai.ExtendedMessageObjectStatusInProgress))).Error; err != nil {
+	if err := gdb.Model(message).Clauses(clause.Returning{}).Where("id = ?", message.ID).Update("status", z.Pointer(string(openai.MessageStreamEvent1EventThreadMessageInProgress))).Error; err != nil {
 		return err
 	}
 
@@ -411,7 +411,7 @@ func createMessageObject(gdb *gorm.DB, run *db.Run, message *db.Message) error {
 		JobResponse: db.JobResponse{
 			RequestID: run.ID,
 		},
-		EventName:   db.ThreadMessageInProgressEvent,
+		EventName:   string(openai.MessageStreamEvent1EventThreadMessageInProgress),
 		ResponseIdx: run.EventIndex,
 		Message:     datatypes.NewJSONType(message),
 	}
@@ -463,7 +463,7 @@ func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.Run
 					RequestID: run.ID,
 				},
 				RunStep:     datatypes.NewJSONType(runStep),
-				EventName:   db.ThreadRunStepFailedEvent,
+				EventName:   string(openai.ExtendedRunStepStreamEvent4EventThreadRunStepFailed),
 				ResponseIdx: run.EventIndex,
 			}
 			if err := db.Create(tx, runEvent); err != nil {
@@ -487,7 +487,7 @@ func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.Run
 						RequestID: run.ID,
 					},
 					Message:     datatypes.NewJSONType(message),
-					EventName:   db.ThreadMessageIncompleteEvent,
+					EventName:   string(openai.MessageStreamEvent4EventThreadMessageIncomplete),
 					ResponseIdx: run.EventIndex,
 				}
 				if err := db.Create(tx, runEvent); err != nil {
@@ -521,7 +521,7 @@ func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.Run
 				JobResponse: db.JobResponse{
 					RequestID: run.ID,
 				},
-				EventName: db.ThreadRunRequiresActionEvent,
+				EventName: string(openai.RunStreamEvent3EventThreadRunRequiresAction),
 				Run:       datatypes.NewJSONType(run),
 			})
 		}
@@ -541,7 +541,7 @@ func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.Run
 					RequestID: run.ID,
 				},
 				Message:     datatypes.NewJSONType(message),
-				EventName:   db.ThreadMessageCompletedEvent,
+				EventName:   string(openai.MessageStreamEvent3EventThreadMessageCompleted),
 				ResponseIdx: run.EventIndex,
 			})
 
@@ -559,7 +559,7 @@ func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.Run
 					RequestID: run.ID,
 				},
 				RunStep:     datatypes.NewJSONType(runStep),
-				EventName:   db.ThreadRunStepCompletedEvent,
+				EventName:   string(openai.RunStepStreamEvent3EventThreadRunStepCompleted),
 				ResponseIdx: run.EventIndex,
 			})
 		}
@@ -570,7 +570,7 @@ func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.Run
 				JobResponse: db.JobResponse{
 					RequestID: run.ID,
 				},
-				EventName: db.ThreadRunCompletedEvent,
+				EventName: string(openai.RunStreamEvent4EventThreadRunCompleted),
 				Run:       datatypes.NewJSONType(run),
 			})
 			runEvents = append(runEvents, &db.RunEvent{
@@ -622,7 +622,7 @@ func determineNewStatuses(gdb *gorm.DB, run *db.Run, runStep *db.RunStep, toolCa
 	)
 	for _, tc := range toolCalls {
 		if strings.HasPrefix(tc.Name, tools.GPTScriptToolNamePrefix) {
-			if funcName := strings.TrimPrefix(tc.Name, tools.GPTScriptToolNamePrefix); funcName == string(openai.Retrieval) {
+			if funcName := strings.TrimPrefix(tc.Name, tools.GPTScriptToolNamePrefix); funcName == string(openai.AssistantToolsRetrievalTypeRetrieval) {
 				retrievalArguments = tc.Arguments
 			}
 			newSystemStatus = z.Pointer(string(openai.RunObjectStatusRequiresAction))
@@ -639,7 +639,7 @@ func determineNewStatuses(gdb *gorm.DB, run *db.Run, runStep *db.RunStep, toolCa
 				Name:      tc.Name,
 			},
 			tc.ID,
-			openai.RunToolCallObjectTypeFunction,
+			openai.Function,
 		})
 		newPublicStatus = openai.RunObjectStatusRequiresAction
 	}

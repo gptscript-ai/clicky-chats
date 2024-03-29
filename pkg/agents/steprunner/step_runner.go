@@ -208,7 +208,7 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) {
 
 		if err := tx.Model(runStep).
 			Where("run_id = ?", run.ID).
-			Where("status = ?", openai.InProgress).
+			Where("status = ?", openai.RunObjectStatusInProgress).
 			Where("type = ?", openai.RunStepObjectTypeToolCalls).
 			Where("runner_type = ?", tools.GPTScriptRunnerType).
 			Order("created_at asc").
@@ -218,7 +218,7 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) {
 
 		updates := map[string]any{
 			"system_claimed_by": a.id,
-			"system_status":     string(openai.InProgress),
+			"system_status":     string(openai.RunObjectStatusInProgress),
 			"event_index":       run.EventIndex,
 		}
 		return tx.Model(run).Clauses(clause.Returning{}).Where("id = ?", run.ID).Updates(updates).Error
@@ -325,7 +325,7 @@ func (a *agent) processRunStep(ctx context.Context, runner *runner.Runner, run *
 
 		run.EventIndex++
 		runEvent := &db.RunEvent{
-			EventName: db.ThreadRunStepCompletedEvent,
+			EventName: string(openai.RunStepStreamEvent3EventThreadRunStepCompleted),
 			JobResponse: db.JobResponse{
 				RequestID: run.ID,
 			},
@@ -385,7 +385,7 @@ func pollForCancellation(ctx context.Context, cancel func(), gdb *gorm.DB, id st
 		case <-timer.C:
 		}
 
-		if err := gdb.Model(rs).Where("id = ?", id).First(rs).Error; err == nil && rs.Status != string(openai.InProgress) {
+		if err := gdb.Model(rs).Where("id = ?", id).First(rs).Error; err == nil && rs.Status != string(openai.RunStepObjectStatusInProgress) {
 			cancel()
 			return
 		}
@@ -434,7 +434,7 @@ func failRunStep(l *slog.Logger, gdb *gorm.DB, run *db.Run, runStep *db.RunStep,
 
 		run.EventIndex++
 		runEvent := &db.RunEvent{
-			EventName: db.ThreadRunStepFailedEvent,
+			EventName: string(openai.ExtendedRunStepStreamEvent4EventThreadRunStepFailed),
 			JobResponse: db.JobResponse{
 				RequestID: run.ID,
 			},
@@ -454,7 +454,7 @@ func failRunStep(l *slog.Logger, gdb *gorm.DB, run *db.Run, runStep *db.RunStep,
 		}
 
 		runEvent = &db.RunEvent{
-			EventName: db.ThreadRunFailedEvent,
+			EventName: string(openai.RunStreamEvent5EventThreadRunFailed),
 			JobResponse: db.JobResponse{
 				RequestID: run.ID,
 				Done:      true,

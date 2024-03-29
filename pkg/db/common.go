@@ -87,7 +87,7 @@ func (j JobResponse) GetRequestID() string {
 	return j.RequestID
 }
 
-func isTerminal(status string) bool {
+func IsTerminal(status string) bool {
 	switch status {
 	case string(openai.RunObjectStatusCompleted), string(openai.RunObjectStatusFailed), string(openai.RunObjectStatusCancelled), string(openai.RunObjectStatusExpired):
 		return true

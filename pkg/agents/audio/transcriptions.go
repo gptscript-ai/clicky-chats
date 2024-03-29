@@ -100,7 +100,7 @@ func (a *agent) runTranscriptions(ctx context.Context) error {
 		req.Header.Set("Authorization", "Bearer "+a.apiKey)
 	}
 
-	oir, ir := new(openai.CreateTranscriptionResponse), new(db.CreateTranscriptionResponse)
+	oir, ir := new(openai.CreateTranscriptionResponseJson), new(db.CreateTranscriptionResponse)
 	code, err := cclient.SendRequest(a.client, req, oir)
 
 	// err must be shadowed here.

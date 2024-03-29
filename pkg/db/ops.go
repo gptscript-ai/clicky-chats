@@ -108,7 +108,7 @@ func CancelRun(db *gdb.DB, id string) (*Run, error) {
 		}
 
 		update := map[string]any{
-			"status":       string(openai.Cancelled),
+			"status":       string(openai.RunObjectStatusCancelled),
 			"cancelled_at": int(time.Now().Unix()),
 		}
 
@@ -124,7 +124,7 @@ func CancelRun(db *gdb.DB, id string) (*Run, error) {
 
 			run.EventIndex++
 			runEvent := &RunEvent{
-				EventName: ThreadRunStepCancelledEvent,
+				EventName: string(openai.RunStepStreamEvent5EventThreadRunStepCancelled),
 				JobResponse: JobResponse{
 					RequestID: run.ID,
 				},
@@ -144,7 +144,7 @@ func CancelRun(db *gdb.DB, id string) (*Run, error) {
 
 		run.EventIndex++
 		runEvent := &RunEvent{
-			EventName: ThreadRunCancelledEvent,
+			EventName: string(openai.RunStreamEvent7EventThreadRunCancelled),
 			JobResponse: JobResponse{
 				RequestID: run.ID,
 				Done:      true,

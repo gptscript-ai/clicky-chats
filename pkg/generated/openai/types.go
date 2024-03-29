@@ -424,9 +424,24 @@ const (
 	DeleteThreadResponseObjectThreadDeleted DeleteThreadResponseObject = "thread.deleted"
 )
 
+// Defines values for DoneEventData.
+const (
+	DoneEventDataDONE DoneEventData = "[DONE]"
+)
+
+// Defines values for DoneEventEvent.
+const (
+	DoneEventEventDone DoneEventEvent = "done"
+)
+
 // Defines values for EmbeddingObject.
 const (
 	EmbeddingObjectEmbedding EmbeddingObject = "embedding"
+)
+
+// Defines values for ErrorEventEvent.
+const (
+	ErrorEventEventError ErrorEventEvent = "error"
 )
 
 // Defines values for ExtendedAssistantFileObjectObject.
@@ -839,9 +854,24 @@ const (
 	ExtendedDeleteThreadResponseObjectThreadDeleted ExtendedDeleteThreadResponseObject = "thread.deleted"
 )
 
+// Defines values for ExtendedDoneEventData.
+const (
+	ExtendedDoneEventDataDONE ExtendedDoneEventData = "[DONE]"
+)
+
+// Defines values for ExtendedDoneEventEvent.
+const (
+	ExtendedDoneEventEventDone ExtendedDoneEventEvent = "done"
+)
+
 // Defines values for ExtendedEmbeddingObject.
 const (
 	ExtendedEmbeddingObjectEmbedding ExtendedEmbeddingObject = "embedding"
+)
+
+// Defines values for ExtendedErrorEventEvent.
+const (
+	ExtendedErrorEventEventError ExtendedErrorEventEvent = "error"
 )
 
 // Defines values for ExtendedFineTuningJobHyperparametersNEpochs0.
@@ -916,6 +946,37 @@ const (
 	ExtendedMessageContentTextObjectTypeText ExtendedMessageContentTextObjectType = "text"
 )
 
+// Defines values for ExtendedMessageDeltaContentImageFileObjectType.
+const (
+	ExtendedMessageDeltaContentImageFileObjectTypeImageFile ExtendedMessageDeltaContentImageFileObjectType = "image_file"
+)
+
+// Defines values for ExtendedMessageDeltaContentTextAnnotationsFileCitationObjectType.
+const (
+	ExtendedMessageDeltaContentTextAnnotationsFileCitationObjectTypeFileCitation ExtendedMessageDeltaContentTextAnnotationsFileCitationObjectType = "file_citation"
+)
+
+// Defines values for ExtendedMessageDeltaContentTextAnnotationsFilePathObjectType.
+const (
+	ExtendedMessageDeltaContentTextAnnotationsFilePathObjectTypeFilePath ExtendedMessageDeltaContentTextAnnotationsFilePathObjectType = "file_path"
+)
+
+// Defines values for ExtendedMessageDeltaContentTextObjectType.
+const (
+	ExtendedMessageDeltaContentTextObjectTypeText ExtendedMessageDeltaContentTextObjectType = "text"
+)
+
+// Defines values for ExtendedMessageDeltaObjectDeltaRole.
+const (
+	ExtendedMessageDeltaObjectDeltaRoleAssistant ExtendedMessageDeltaObjectDeltaRole = "assistant"
+	ExtendedMessageDeltaObjectDeltaRoleUser      ExtendedMessageDeltaObjectDeltaRole = "user"
+)
+
+// Defines values for ExtendedMessageDeltaObjectObject.
+const (
+	ExtendedMessageDeltaObjectObjectThreadMessageDelta ExtendedMessageDeltaObjectObject = "thread.message.delta"
+)
+
 // Defines values for ExtendedMessageFileObjectObject.
 const (
 	ExtendedMessageFileObjectObjectThreadMessageFile ExtendedMessageFileObjectObject = "thread.message.file"
@@ -937,6 +998,31 @@ const (
 	ExtendedMessageObjectStatusCompleted  ExtendedMessageObjectStatus = "completed"
 	ExtendedMessageObjectStatusInProgress ExtendedMessageObjectStatus = "in_progress"
 	ExtendedMessageObjectStatusIncomplete ExtendedMessageObjectStatus = "incomplete"
+)
+
+// Defines values for ExtendedMessageStreamEvent0Event.
+const (
+	ExtendedMessageStreamEvent0EventThreadMessageCreated ExtendedMessageStreamEvent0Event = "thread.message.created"
+)
+
+// Defines values for ExtendedMessageStreamEvent1Event.
+const (
+	ExtendedMessageStreamEvent1EventThreadMessageInProgress ExtendedMessageStreamEvent1Event = "thread.message.in_progress"
+)
+
+// Defines values for ExtendedMessageStreamEvent2Event.
+const (
+	ExtendedMessageStreamEvent2EventThreadMessageDelta ExtendedMessageStreamEvent2Event = "thread.message.delta"
+)
+
+// Defines values for ExtendedMessageStreamEvent3Event.
+const (
+	ExtendedMessageStreamEvent3EventThreadMessageCompleted ExtendedMessageStreamEvent3Event = "thread.message.completed"
+)
+
+// Defines values for ExtendedMessageStreamEvent4Event.
+const (
+	ExtendedMessageStreamEvent4EventThreadMessageIncomplete ExtendedMessageStreamEvent4Event = "thread.message.incomplete"
 )
 
 // Defines values for ExtendedModelObject.
@@ -966,6 +1052,7 @@ const (
 
 // Defines values for ExtendedRunObjectLastErrorCode.
 const (
+	ExtendedRunObjectLastErrorCodeInvalidPrompt     ExtendedRunObjectLastErrorCode = "invalid_prompt"
 	ExtendedRunObjectLastErrorCodeRateLimitExceeded ExtendedRunObjectLastErrorCode = "rate_limit_exceeded"
 	ExtendedRunObjectLastErrorCodeServerError       ExtendedRunObjectLastErrorCode = "server_error"
 )
@@ -990,6 +1077,46 @@ const (
 	ExtendedRunObjectStatusInProgress     ExtendedRunObjectStatus = "in_progress"
 	ExtendedRunObjectStatusQueued         ExtendedRunObjectStatus = "queued"
 	ExtendedRunObjectStatusRequiresAction ExtendedRunObjectStatus = "requires_action"
+)
+
+// Defines values for ExtendedRunStepDeltaObjectObject.
+const (
+	ExtendedRunStepDeltaObjectObjectThreadRunStepDelta ExtendedRunStepDeltaObjectObject = "thread.run.step.delta"
+)
+
+// Defines values for ExtendedRunStepDeltaStepDetailsMessageCreationObjectType.
+const (
+	ExtendedRunStepDeltaStepDetailsMessageCreationObjectTypeMessageCreation ExtendedRunStepDeltaStepDetailsMessageCreationObjectType = "message_creation"
+)
+
+// Defines values for ExtendedRunStepDeltaStepDetailsToolCallsCodeObjectType.
+const (
+	ExtendedRunStepDeltaStepDetailsToolCallsCodeObjectTypeCodeInterpreter ExtendedRunStepDeltaStepDetailsToolCallsCodeObjectType = "code_interpreter"
+)
+
+// Defines values for ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputImageObjectType.
+const (
+	ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputImageObjectTypeImage ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputImageObjectType = "image"
+)
+
+// Defines values for ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectType.
+const (
+	ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectTypeLogs ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectType = "logs"
+)
+
+// Defines values for ExtendedRunStepDeltaStepDetailsToolCallsFunctionObjectType.
+const (
+	ExtendedRunStepDeltaStepDetailsToolCallsFunctionObjectTypeFunction ExtendedRunStepDeltaStepDetailsToolCallsFunctionObjectType = "function"
+)
+
+// Defines values for ExtendedRunStepDeltaStepDetailsToolCallsObjectType.
+const (
+	ExtendedRunStepDeltaStepDetailsToolCallsObjectTypeToolCalls ExtendedRunStepDeltaStepDetailsToolCallsObjectType = "tool_calls"
+)
+
+// Defines values for ExtendedRunStepDeltaStepDetailsToolCallsRetrievalObjectType.
+const (
+	ExtendedRunStepDeltaStepDetailsToolCallsRetrievalObjectTypeRetrieval ExtendedRunStepDeltaStepDetailsToolCallsRetrievalObjectType = "retrieval"
 )
 
 // Defines values for ExtendedRunStepDetailsMessageCreationObjectType.
@@ -1053,6 +1180,86 @@ const (
 	ExtendedRunStepObjectTypeToolCalls       ExtendedRunStepObjectType = "tool_calls"
 )
 
+// Defines values for ExtendedRunStepStreamEvent0Event.
+const (
+	ExtendedRunStepStreamEvent0EventThreadRunStepCreated ExtendedRunStepStreamEvent0Event = "thread.run.step.created"
+)
+
+// Defines values for ExtendedRunStepStreamEvent1Event.
+const (
+	ExtendedRunStepStreamEvent1EventThreadRunStepInProgress ExtendedRunStepStreamEvent1Event = "thread.run.step.in_progress"
+)
+
+// Defines values for ExtendedRunStepStreamEvent2Event.
+const (
+	ExtendedRunStepStreamEvent2EventThreadRunStepDelta ExtendedRunStepStreamEvent2Event = "thread.run.step.delta"
+)
+
+// Defines values for ExtendedRunStepStreamEvent3Event.
+const (
+	ExtendedRunStepStreamEvent3EventThreadRunStepCompleted ExtendedRunStepStreamEvent3Event = "thread.run.step.completed"
+)
+
+// Defines values for ExtendedRunStepStreamEvent4Event.
+const (
+	ExtendedRunStepStreamEvent4EventThreadRunStepFailed ExtendedRunStepStreamEvent4Event = "thread.run.step.failed"
+)
+
+// Defines values for ExtendedRunStepStreamEvent5Event.
+const (
+	ExtendedRunStepStreamEvent5EventThreadRunStepCancelled ExtendedRunStepStreamEvent5Event = "thread.run.step.cancelled"
+)
+
+// Defines values for ExtendedRunStepStreamEvent6Event.
+const (
+	ExtendedRunStepStreamEvent6EventThreadRunStepExpired ExtendedRunStepStreamEvent6Event = "thread.run.step.expired"
+)
+
+// Defines values for ExtendedRunStreamEvent0Event.
+const (
+	ExtendedRunStreamEvent0EventThreadRunCreated ExtendedRunStreamEvent0Event = "thread.run.created"
+)
+
+// Defines values for ExtendedRunStreamEvent1Event.
+const (
+	ExtendedRunStreamEvent1EventThreadRunQueued ExtendedRunStreamEvent1Event = "thread.run.queued"
+)
+
+// Defines values for ExtendedRunStreamEvent2Event.
+const (
+	ExtendedRunStreamEvent2EventThreadRunInProgress ExtendedRunStreamEvent2Event = "thread.run.in_progress"
+)
+
+// Defines values for ExtendedRunStreamEvent3Event.
+const (
+	ExtendedRunStreamEvent3EventThreadRunRequiresAction ExtendedRunStreamEvent3Event = "thread.run.requires_action"
+)
+
+// Defines values for ExtendedRunStreamEvent4Event.
+const (
+	ExtendedRunStreamEvent4EventThreadRunCompleted ExtendedRunStreamEvent4Event = "thread.run.completed"
+)
+
+// Defines values for ExtendedRunStreamEvent5Event.
+const (
+	ExtendedRunStreamEvent5EventThreadRunFailed ExtendedRunStreamEvent5Event = "thread.run.failed"
+)
+
+// Defines values for ExtendedRunStreamEvent6Event.
+const (
+	ExtendedRunStreamEvent6EventThreadRunCancelling ExtendedRunStreamEvent6Event = "thread.run.cancelling"
+)
+
+// Defines values for ExtendedRunStreamEvent7Event.
+const (
+	ExtendedRunStreamEvent7EventThreadRunCancelled ExtendedRunStreamEvent7Event = "thread.run.cancelled"
+)
+
+// Defines values for ExtendedRunStreamEvent8Event.
+const (
+	ExtendedRunStreamEvent8EventThreadRunExpired ExtendedRunStreamEvent8Event = "thread.run.expired"
+)
+
 // Defines values for ExtendedRunToolCallObjectType.
 const (
 	ExtendedRunToolCallObjectTypeFunction ExtendedRunToolCallObjectType = "function"
@@ -1061,6 +1268,11 @@ const (
 // Defines values for ExtendedThreadObjectObject.
 const (
 	ExtendedThreadObjectObjectThread ExtendedThreadObjectObject = "thread"
+)
+
+// Defines values for ExtendedThreadStreamEvent0Event.
+const (
+	ExtendedThreadStreamEvent0EventThreadCreated ExtendedThreadStreamEvent0Event = "thread.created"
 )
 
 // Defines values for FineTuningJobHyperparametersNEpochs0.
@@ -1135,9 +1347,49 @@ const (
 	MessageContentTextObjectTypeText MessageContentTextObjectType = "text"
 )
 
+// Defines values for MessageDeltaContentImageFileObjectType.
+const (
+	MessageDeltaContentImageFileObjectTypeImageFile MessageDeltaContentImageFileObjectType = "image_file"
+)
+
+// Defines values for MessageDeltaContentTextAnnotationsFileCitationObjectType.
+const (
+	MessageDeltaContentTextAnnotationsFileCitationObjectTypeFileCitation MessageDeltaContentTextAnnotationsFileCitationObjectType = "file_citation"
+)
+
+// Defines values for MessageDeltaContentTextAnnotationsFilePathObjectType.
+const (
+	MessageDeltaContentTextAnnotationsFilePathObjectTypeFilePath MessageDeltaContentTextAnnotationsFilePathObjectType = "file_path"
+)
+
+// Defines values for MessageDeltaContentTextObjectType.
+const (
+	MessageDeltaContentTextObjectTypeText MessageDeltaContentTextObjectType = "text"
+)
+
+// Defines values for MessageDeltaObjectDeltaRole.
+const (
+	MessageDeltaObjectDeltaRoleAssistant MessageDeltaObjectDeltaRole = "assistant"
+	MessageDeltaObjectDeltaRoleUser      MessageDeltaObjectDeltaRole = "user"
+)
+
+// Defines values for MessageDeltaObjectObject.
+const (
+	MessageDeltaObjectObjectThreadMessageDelta MessageDeltaObjectObject = "thread.message.delta"
+)
+
 // Defines values for MessageFileObjectObject.
 const (
 	MessageFileObjectObjectThreadMessageFile MessageFileObjectObject = "thread.message.file"
+)
+
+// Defines values for MessageObjectIncompleteDetailsReason.
+const (
+	ContentFilter MessageObjectIncompleteDetailsReason = "content_filter"
+	MaxTokens     MessageObjectIncompleteDetailsReason = "max_tokens"
+	RunCancelled  MessageObjectIncompleteDetailsReason = "run_cancelled"
+	RunExpired    MessageObjectIncompleteDetailsReason = "run_expired"
+	RunFailed     MessageObjectIncompleteDetailsReason = "run_failed"
 )
 
 // Defines values for MessageObjectObject.
@@ -1147,8 +1399,40 @@ const (
 
 // Defines values for MessageObjectRole.
 const (
-	MessageObjectRoleAssistant MessageObjectRole = "assistant"
-	MessageObjectRoleUser      MessageObjectRole = "user"
+	Assistant MessageObjectRole = "assistant"
+	User      MessageObjectRole = "user"
+)
+
+// Defines values for MessageObjectStatus.
+const (
+	MessageObjectStatusCompleted  MessageObjectStatus = "completed"
+	MessageObjectStatusInProgress MessageObjectStatus = "in_progress"
+	MessageObjectStatusIncomplete MessageObjectStatus = "incomplete"
+)
+
+// Defines values for MessageStreamEvent0Event.
+const (
+	MessageStreamEvent0EventThreadMessageCreated MessageStreamEvent0Event = "thread.message.created"
+)
+
+// Defines values for MessageStreamEvent1Event.
+const (
+	MessageStreamEvent1EventThreadMessageInProgress MessageStreamEvent1Event = "thread.message.in_progress"
+)
+
+// Defines values for MessageStreamEvent2Event.
+const (
+	MessageStreamEvent2EventThreadMessageDelta MessageStreamEvent2Event = "thread.message.delta"
+)
+
+// Defines values for MessageStreamEvent3Event.
+const (
+	MessageStreamEvent3EventThreadMessageCompleted MessageStreamEvent3Event = "thread.message.completed"
+)
+
+// Defines values for MessageStreamEvent4Event.
+const (
+	MessageStreamEvent4EventThreadMessageIncomplete MessageStreamEvent4Event = "thread.message.incomplete"
 )
 
 // Defines values for ModelObject.
@@ -1178,6 +1462,7 @@ const (
 
 // Defines values for RunObjectLastErrorCode.
 const (
+	RunObjectLastErrorCodeInvalidPrompt     RunObjectLastErrorCode = "invalid_prompt"
 	RunObjectLastErrorCodeRateLimitExceeded RunObjectLastErrorCode = "rate_limit_exceeded"
 	RunObjectLastErrorCodeServerError       RunObjectLastErrorCode = "server_error"
 )
@@ -1202,6 +1487,46 @@ const (
 	RunObjectStatusInProgress     RunObjectStatus = "in_progress"
 	RunObjectStatusQueued         RunObjectStatus = "queued"
 	RunObjectStatusRequiresAction RunObjectStatus = "requires_action"
+)
+
+// Defines values for RunStepDeltaObjectObject.
+const (
+	RunStepDeltaObjectObjectThreadRunStepDelta RunStepDeltaObjectObject = "thread.run.step.delta"
+)
+
+// Defines values for RunStepDeltaStepDetailsMessageCreationObjectType.
+const (
+	RunStepDeltaStepDetailsMessageCreationObjectTypeMessageCreation RunStepDeltaStepDetailsMessageCreationObjectType = "message_creation"
+)
+
+// Defines values for RunStepDeltaStepDetailsToolCallsCodeObjectType.
+const (
+	RunStepDeltaStepDetailsToolCallsCodeObjectTypeCodeInterpreter RunStepDeltaStepDetailsToolCallsCodeObjectType = "code_interpreter"
+)
+
+// Defines values for RunStepDeltaStepDetailsToolCallsCodeOutputImageObjectType.
+const (
+	RunStepDeltaStepDetailsToolCallsCodeOutputImageObjectTypeImage RunStepDeltaStepDetailsToolCallsCodeOutputImageObjectType = "image"
+)
+
+// Defines values for RunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectType.
+const (
+	RunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectTypeLogs RunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectType = "logs"
+)
+
+// Defines values for RunStepDeltaStepDetailsToolCallsFunctionObjectType.
+const (
+	RunStepDeltaStepDetailsToolCallsFunctionObjectTypeFunction RunStepDeltaStepDetailsToolCallsFunctionObjectType = "function"
+)
+
+// Defines values for RunStepDeltaStepDetailsToolCallsObjectType.
+const (
+	RunStepDeltaStepDetailsToolCallsObjectTypeToolCalls RunStepDeltaStepDetailsToolCallsObjectType = "tool_calls"
+)
+
+// Defines values for RunStepDeltaStepDetailsToolCallsRetrievalObjectType.
+const (
+	RunStepDeltaStepDetailsToolCallsRetrievalObjectTypeRetrieval RunStepDeltaStepDetailsToolCallsRetrievalObjectType = "retrieval"
 )
 
 // Defines values for RunStepDetailsMessageCreationObjectType.
@@ -1252,11 +1577,11 @@ const (
 
 // Defines values for RunStepObjectStatus.
 const (
-	Cancelled  RunStepObjectStatus = "cancelled"
-	Completed  RunStepObjectStatus = "completed"
-	Expired    RunStepObjectStatus = "expired"
-	Failed     RunStepObjectStatus = "failed"
-	InProgress RunStepObjectStatus = "in_progress"
+	RunStepObjectStatusCancelled  RunStepObjectStatus = "cancelled"
+	RunStepObjectStatusCompleted  RunStepObjectStatus = "completed"
+	RunStepObjectStatusExpired    RunStepObjectStatus = "expired"
+	RunStepObjectStatusFailed     RunStepObjectStatus = "failed"
+	RunStepObjectStatusInProgress RunStepObjectStatus = "in_progress"
 )
 
 // Defines values for RunStepObjectType.
@@ -1265,9 +1590,89 @@ const (
 	RunStepObjectTypeToolCalls       RunStepObjectType = "tool_calls"
 )
 
+// Defines values for RunStepStreamEvent0Event.
+const (
+	RunStepStreamEvent0EventThreadRunStepCreated RunStepStreamEvent0Event = "thread.run.step.created"
+)
+
+// Defines values for RunStepStreamEvent1Event.
+const (
+	RunStepStreamEvent1EventThreadRunStepInProgress RunStepStreamEvent1Event = "thread.run.step.in_progress"
+)
+
+// Defines values for RunStepStreamEvent2Event.
+const (
+	RunStepStreamEvent2EventThreadRunStepDelta RunStepStreamEvent2Event = "thread.run.step.delta"
+)
+
+// Defines values for RunStepStreamEvent3Event.
+const (
+	RunStepStreamEvent3EventThreadRunStepCompleted RunStepStreamEvent3Event = "thread.run.step.completed"
+)
+
+// Defines values for RunStepStreamEvent4Event.
+const (
+	RunStepStreamEvent4EventThreadRunStepFailed RunStepStreamEvent4Event = "thread.run.step.failed"
+)
+
+// Defines values for RunStepStreamEvent5Event.
+const (
+	RunStepStreamEvent5EventThreadRunStepCancelled RunStepStreamEvent5Event = "thread.run.step.cancelled"
+)
+
+// Defines values for RunStepStreamEvent6Event.
+const (
+	RunStepStreamEvent6EventThreadRunStepExpired RunStepStreamEvent6Event = "thread.run.step.expired"
+)
+
+// Defines values for RunStreamEvent0Event.
+const (
+	RunStreamEvent0EventThreadRunCreated RunStreamEvent0Event = "thread.run.created"
+)
+
+// Defines values for RunStreamEvent1Event.
+const (
+	RunStreamEvent1EventThreadRunQueued RunStreamEvent1Event = "thread.run.queued"
+)
+
+// Defines values for RunStreamEvent2Event.
+const (
+	RunStreamEvent2EventThreadRunInProgress RunStreamEvent2Event = "thread.run.in_progress"
+)
+
+// Defines values for RunStreamEvent3Event.
+const (
+	RunStreamEvent3EventThreadRunRequiresAction RunStreamEvent3Event = "thread.run.requires_action"
+)
+
+// Defines values for RunStreamEvent4Event.
+const (
+	RunStreamEvent4EventThreadRunCompleted RunStreamEvent4Event = "thread.run.completed"
+)
+
+// Defines values for RunStreamEvent5Event.
+const (
+	RunStreamEvent5EventThreadRunFailed RunStreamEvent5Event = "thread.run.failed"
+)
+
+// Defines values for RunStreamEvent6Event.
+const (
+	RunStreamEvent6EventThreadRunCancelling RunStreamEvent6Event = "thread.run.cancelling"
+)
+
+// Defines values for RunStreamEvent7Event.
+const (
+	RunStreamEvent7EventThreadRunCancelled RunStreamEvent7Event = "thread.run.cancelled"
+)
+
+// Defines values for RunStreamEvent8Event.
+const (
+	RunStreamEvent8EventThreadRunExpired RunStreamEvent8Event = "thread.run.expired"
+)
+
 // Defines values for RunToolCallObjectType.
 const (
-	RunToolCallObjectTypeFunction RunToolCallObjectType = "function"
+	Function RunToolCallObjectType = "function"
 )
 
 // Defines values for ThreadObjectObject.
@@ -1275,80 +1680,14 @@ const (
 	ThreadObjectObjectThread ThreadObjectObject = "thread"
 )
 
+// Defines values for ThreadStreamEvent0Event.
+const (
+	ThreadStreamEvent0EventThreadCreated ThreadStreamEvent0Event = "thread.created"
+)
+
 // Defines values for XDeleteToolResponseObject.
 const (
 	ToolDeleted XDeleteToolResponseObject = "tool.deleted"
-)
-
-// Defines values for XMessageDeltaContentImageFileObjectType.
-const (
-	ImageFile XMessageDeltaContentImageFileObjectType = "image_file"
-)
-
-// Defines values for XMessageDeltaContentTextObjectType.
-const (
-	Text XMessageDeltaContentTextObjectType = "text"
-)
-
-// Defines values for XMessageDeltaContentTextObjectTextAnnotationFileCitationType.
-const (
-	FileCitation XMessageDeltaContentTextObjectTextAnnotationFileCitationType = "file_citation"
-)
-
-// Defines values for XMessageDeltaContentTextObjectTextAnnotationFilePathType.
-const (
-	FilePath XMessageDeltaContentTextObjectTextAnnotationFilePathType = "file_path"
-)
-
-// Defines values for XMessageDeltaObjectObject.
-const (
-	ThreadMessageDelta XMessageDeltaObjectObject = "thread.message.delta"
-)
-
-// Defines values for XMessageDeltaObjectDeltaRole.
-const (
-	XMessageDeltaObjectDeltaRoleAssistant XMessageDeltaObjectDeltaRole = "assistant"
-	XMessageDeltaObjectDeltaRoleUser      XMessageDeltaObjectDeltaRole = "user"
-)
-
-// Defines values for XRunStepDeltaObjectObject.
-const (
-	ThreadRunStepDelta XRunStepDeltaObjectObject = "thread.run.step.delta"
-)
-
-// Defines values for XRunStepDeltaObjectDeltaMessageCreationType.
-const (
-	MessageCreation XRunStepDeltaObjectDeltaMessageCreationType = "message_creation"
-)
-
-// Defines values for XRunStepDeltaObjectDeltaToolCallsType.
-const (
-	ToolCalls XRunStepDeltaObjectDeltaToolCallsType = "tool_calls"
-)
-
-// Defines values for XRunStepDeltaObjectDeltaToolCallsObjectCodeType.
-const (
-	Code XRunStepDeltaObjectDeltaToolCallsObjectCodeType = "code"
-)
-
-// Defines values for XRunStepDeltaObjectDeltaToolCallsObjectFunctionType.
-const (
-	XRunStepDeltaObjectDeltaToolCallsObjectFunctionTypeFunction XRunStepDeltaObjectDeltaToolCallsObjectFunctionType = "function"
-)
-
-// Defines values for XRunStepDeltaObjectDeltaToolCallsObjectRetrievalType.
-const (
-	Retrieval XRunStepDeltaObjectDeltaToolCallsObjectRetrievalType = "retrieval"
-)
-
-// Defines values for XRunStepDetailsToolCallsCodeObjectImageOutputType.
-const (
-	XRunStepDetailsToolCallsCodeObjectImageOutputTypeImage XRunStepDetailsToolCallsCodeObjectImageOutputType = "image"
-)
-
-// Defines values for XRunStepDetailsToolCallsCodeObjectLogOutputType.
-const (
-	Log XRunStepDetailsToolCallsCodeObjectLogOutputType = "log"
 )
 
 // Defines values for XToolObjectObject.
@@ -1496,6 +1835,29 @@ type AssistantObjectObject string
 
 // AssistantObject_Tools_Item defines model for AssistantObject.tools.Item.
 type AssistantObject_Tools_Item struct {
+	union json.RawMessage
+}
+
+// AssistantStreamEvent Represents an event emitted when streaming a Run.
+//
+// Each event in a server-sent events stream has an `event` and `data` property:
+//
+// ```
+// event: thread.created
+// data: {"id": "thread_123", "object": "thread", ...}
+// ```
+//
+// We emit events whenever a new object is created, transitions to a new state, or is being
+// streamed in parts (deltas). For example, we emit `thread.run.created` when a new run
+// is created, `thread.run.completed` when a run completes, and so on. When an Assistant chooses
+// to create a message during a run, we emit a `thread.message.created event`, a
+// `thread.message.in_progress` event, many `thread.message.delta` events, and finally a
+// `thread.message.completed` event.
+//
+// We may add additional events over time, so we recommend handling unknown events gracefully
+// in your code. See the [Assistants API quickstart](/docs/assistants/overview) to learn how to
+// integrate the Assistants API with streaming.
+type AssistantStreamEvent struct {
 	union json.RawMessage
 }
 
@@ -1804,7 +2166,7 @@ type ChatCompletionTokenLogprob struct {
 	// Bytes A list of integers representing the UTF-8 bytes representation of the token. Useful in instances where characters are represented by multiple tokens and their byte representations must be combined to generate the correct text representation. Can be `null` if there is no bytes representation for the token.
 	Bytes *[]int `json:"bytes"`
 
-	// Logprob The log probability of this token.
+	// Logprob The log probability of this token, if it is within the top 20 most likely tokens. Otherwise, the value `-9999.0` is used to signify that the token is very unlikely.
 	Logprob float32 `json:"logprob"`
 
 	// Token The token.
@@ -1815,7 +2177,7 @@ type ChatCompletionTokenLogprob struct {
 		// Bytes A list of integers representing the UTF-8 bytes representation of the token. Useful in instances where characters are represented by multiple tokens and their byte representations must be combined to generate the correct text representation. Can be `null` if there is no bytes representation for the token.
 		Bytes *[]int `json:"bytes"`
 
-		// Logprob The log probability of this token.
+		// Logprob The log probability of this token, if it is within the top 20 most likely tokens. Otherwise, the value `-9999.0` is used to signify that the token is very unlikely.
 		Logprob float32 `json:"logprob"`
 
 		// Token The token.
@@ -2031,10 +2393,10 @@ type CreateChatCompletionRequest struct {
 	// `none` is the default when no functions are present. `auto` is the default if functions are present.
 	ToolChoice *ChatCompletionToolChoiceOption `json:"tool_choice,omitempty"`
 
-	// Tools A list of tools the model may call. Currently, only functions are supported as a tool. Use this to provide a list of functions the model may generate JSON inputs for.
+	// Tools A list of tools the model may call. Currently, only functions are supported as a tool. Use this to provide a list of functions the model may generate JSON inputs for. A max of 128 functions are supported.
 	Tools *[]ChatCompletionTool `json:"tools"`
 
-	// TopLogprobs An integer between 0 and 5 specifying the number of most likely tokens to return at each token position, each with an associated log probability. `logprobs` must be set to `true` if this parameter is used.
+	// TopLogprobs An integer between 0 and 20 specifying the number of most likely tokens to return at each token position, each with an associated log probability. `logprobs` must be set to `true` if this parameter is used.
 	TopLogprobs *int `json:"top_logprobs"`
 
 	// TopP An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.
@@ -2252,6 +2614,8 @@ type CreateCompletionRequest struct {
 	Stream *bool `json:"stream"`
 
 	// Suffix The suffix that comes after a completion of inserted text.
+	//
+	// This parameter is only supported for `gpt-3.5-turbo-instruct`.
 	Suffix *string `json:"suffix"`
 
 	// Temperature What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.
@@ -2558,7 +2922,7 @@ type CreateImageEditRequest struct {
 	// Prompt A text description of the desired image(s). The maximum length is 1000 characters.
 	Prompt string `json:"prompt"`
 
-	// ResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`.
+	// ResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
 	ResponseFormat *CreateImageEditRequestResponseFormat `json:"response_format"`
 
 	// Size The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024`.
@@ -2579,7 +2943,7 @@ type CreateImageEditRequest_Model struct {
 	union json.RawMessage
 }
 
-// CreateImageEditRequestResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`.
+// CreateImageEditRequestResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
 type CreateImageEditRequestResponseFormat string
 
 // CreateImageEditRequestSize The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024`.
@@ -2599,7 +2963,7 @@ type CreateImageRequest struct {
 	// Quality The quality of the image that will be generated. `hd` creates images with finer details and greater consistency across the image. This param is only supported for `dall-e-3`.
 	Quality *CreateImageRequestQuality `json:"quality,omitempty"`
 
-	// ResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`.
+	// ResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
 	ResponseFormat *CreateImageRequestResponseFormat `json:"response_format"`
 
 	// Size The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024` for `dall-e-2`. Must be one of `1024x1024`, `1792x1024`, or `1024x1792` for `dall-e-3` models.
@@ -2626,7 +2990,7 @@ type CreateImageRequest_Model struct {
 // CreateImageRequestQuality The quality of the image that will be generated. `hd` creates images with finer details and greater consistency across the image. This param is only supported for `dall-e-3`.
 type CreateImageRequestQuality string
 
-// CreateImageRequestResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`.
+// CreateImageRequestResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
 type CreateImageRequestResponseFormat string
 
 // CreateImageRequestSize The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024` for `dall-e-2`. Must be one of `1024x1024`, `1792x1024`, or `1024x1792` for `dall-e-3` models.
@@ -2646,7 +3010,7 @@ type CreateImageVariationRequest struct {
 	// N The number of images to generate. Must be between 1 and 10. For `dall-e-3`, only `n=1` is supported.
 	N *int `json:"n"`
 
-	// ResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`.
+	// ResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
 	ResponseFormat *CreateImageVariationRequestResponseFormat `json:"response_format"`
 
 	// Size The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024`.
@@ -2667,7 +3031,7 @@ type CreateImageVariationRequest_Model struct {
 	union json.RawMessage
 }
 
-// CreateImageVariationRequestResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`.
+// CreateImageVariationRequestResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
 type CreateImageVariationRequestResponseFormat string
 
 // CreateImageVariationRequestSize The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024`.
@@ -2726,7 +3090,7 @@ type CreateModerationRequest_Model struct {
 	union json.RawMessage
 }
 
-// CreateModerationResponse Represents policy compliance report by OpenAI's content moderation model against a given input.
+// CreateModerationResponse Represents if a given text input is potentially harmful.
 type CreateModerationResponse struct {
 	// Id The unique identifier for the moderation request.
 	Id string `json:"id"`
@@ -2808,7 +3172,7 @@ type CreateModerationResponse struct {
 			Violencegraphic float32 `json:"violence/graphic"`
 		} `json:"category_scores"`
 
-		// Flagged Whether the content violates [OpenAI's usage policies](/policies/usage-policies).
+		// Flagged Whether any of the below categories are flagged.
 		Flagged bool `json:"flagged"`
 	} `json:"results"`
 }
@@ -2830,6 +3194,9 @@ type CreateRunRequest struct {
 	// Model The ID of the [Model](/docs/api-reference/models) to be used to execute this run. If a value is provided here, it will override the model associated with the assistant. If not, the model associated with the assistant will be used.
 	Model *string `json:"model"`
 
+	// Stream If `true`, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a `data: [DONE]` message.
+	Stream *bool `json:"stream"`
+
 	// Tools Override the tools the assistant can use for this run. This is useful for modifying the behavior on a per-run basis.
 	Tools *[]CreateRunRequest_Tools_Item `json:"tools"`
 }
@@ -2847,10 +3214,7 @@ type CreateSpeechRequest struct {
 	// Model One of the available [TTS models](/docs/models/tts): `tts-1` or `tts-1-hd`
 	Model CreateSpeechRequest_Model `json:"model"`
 
-	// ResponseFormat The format to return audio in.
-	// Supported formats are `mp3`, `opus`, `aac`, `flac`, `pcm`, and `wav`.
-	//
-	// The `pcm` audio format, similar to `wav` but without a header, utilizes a 24kHz sample rate, mono channel, and 16-bit depth in signed little-endian format.
+	// ResponseFormat The format to audio in. Supported formats are `mp3`, `opus`, `aac`, `flac`, `wav`, and `pcm`.
 	ResponseFormat *CreateSpeechRequestResponseFormat `json:"response_format,omitempty"`
 
 	// Speed The speed of the generated audio. Select a value from `0.25` to `4.0`. `1.0` is the default.
@@ -2871,10 +3235,7 @@ type CreateSpeechRequest_Model struct {
 	union json.RawMessage
 }
 
-// CreateSpeechRequestResponseFormat The format to return audio in.
-// Supported formats are `mp3`, `opus`, `aac`, `flac`, `pcm`, and `wav`.
-//
-// The `pcm` audio format, similar to `wav` but without a header, utilizes a 24kHz sample rate, mono channel, and 16-bit depth in signed little-endian format.
+// CreateSpeechRequestResponseFormat The format to audio in. Supported formats are `mp3`, `opus`, `aac`, `flac`, `wav`, and `pcm`.
 type CreateSpeechRequestResponseFormat string
 
 // CreateSpeechRequestVoice The voice to use when generating the audio. Supported voices are `alloy`, `echo`, `fable`, `onyx`, `nova`, and `shimmer`. Previews of the voices are available in the [Text to speech guide](/docs/guides/text-to-speech/voice-options).
@@ -2892,7 +3253,10 @@ type CreateThreadAndRunRequest struct {
 	Metadata *map[string]interface{} `json:"metadata"`
 
 	// Model The ID of the [Model](/docs/api-reference/models) to be used to execute this run. If a value is provided here, it will override the model associated with the assistant. If not, the model associated with the assistant will be used.
-	Model  *string              `json:"model"`
+	Model *string `json:"model"`
+
+	// Stream If `true`, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a `data: [DONE]` message.
+	Stream *bool                `json:"stream"`
 	Thread *CreateThreadRequest `json:"thread,omitempty"`
 
 	// Tools Override the tools the assistant can use for this run. This is useful for modifying the behavior on a per-run basis.
@@ -2921,7 +3285,7 @@ type CreateTranscriptionRequest struct {
 	// Language The language of the input audio. Supplying the input language in [ISO-639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) format will improve accuracy and latency.
 	Language *string `json:"language,omitempty"`
 
-	// Model ID of the model to use. Only `whisper-1` is currently available.
+	// Model ID of the model to use. Only `whisper-1` (which is powered by our open source Whisper V2 model) is currently available.
 	Model CreateTranscriptionRequest_Model `json:"model"`
 
 	// Prompt An optional text to guide the model's style or continue a previous audio segment. The [prompt](/docs/guides/speech-to-text/prompting) should match the audio language.
@@ -2933,7 +3297,7 @@ type CreateTranscriptionRequest struct {
 	// Temperature The sampling temperature, between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. If set to 0, the model will use [log probability](https://en.wikipedia.org/wiki/Log_probability) to automatically increase the temperature until certain thresholds are hit.
 	Temperature *float32 `json:"temperature,omitempty"`
 
-	// TimestampGranularities The timestamp granularities to populate for this transcription. Any of these options: `word`, or `segment`. Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
+	// TimestampGranularities The timestamp granularities to populate for this transcription. `response_format` must be set `verbose_json` to use timestamp granularities. Either or both of these options are supported: `word`, or `segment`. Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
 	TimestampGranularities *[]CreateTranscriptionRequestTimestampGranularities `json:"timestamp_granularities[],omitempty"`
 }
 
@@ -2943,7 +3307,7 @@ type CreateTranscriptionRequestModel0 = string
 // CreateTranscriptionRequestModel1 defines model for CreateTranscriptionRequest.Model.1.
 type CreateTranscriptionRequestModel1 string
 
-// CreateTranscriptionRequest_Model ID of the model to use. Only `whisper-1` is currently available.
+// CreateTranscriptionRequest_Model ID of the model to use. Only `whisper-1` (which is powered by our open source Whisper V2 model) is currently available.
 type CreateTranscriptionRequest_Model struct {
 	union json.RawMessage
 }
@@ -2954,9 +3318,28 @@ type CreateTranscriptionRequestResponseFormat string
 // CreateTranscriptionRequestTimestampGranularities defines model for CreateTranscriptionRequest.TimestampGranularities.
 type CreateTranscriptionRequestTimestampGranularities string
 
-// CreateTranscriptionResponse defines model for CreateTranscriptionResponse.
-type CreateTranscriptionResponse struct {
+// CreateTranscriptionResponseJson Represents a transcription response returned by model, based on the provided input.
+type CreateTranscriptionResponseJson struct {
+	// Text The transcribed text.
 	Text string `json:"text"`
+}
+
+// CreateTranscriptionResponseVerboseJson Represents a verbose json transcription response returned by model, based on the provided input.
+type CreateTranscriptionResponseVerboseJson struct {
+	// Duration The duration of the input audio.
+	Duration string `json:"duration"`
+
+	// Language The language of the input audio.
+	Language string `json:"language"`
+
+	// Segments Segments of the transcribed text and their corresponding details.
+	Segments *[]TranscriptionSegment `json:"segments,omitempty"`
+
+	// Text The transcribed text.
+	Text string `json:"text"`
+
+	// Words Extracted words and their corresponding timestamps.
+	Words *[]TranscriptionWord `json:"words,omitempty"`
 }
 
 // CreateTranslationRequest defines model for CreateTranslationRequest.
@@ -2964,7 +3347,7 @@ type CreateTranslationRequest struct {
 	// File The audio file object (not file name) translate, in one of these formats: flac, mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm.
 	File openapi_types.File `json:"file"`
 
-	// Model ID of the model to use. Only `whisper-1` is currently available.
+	// Model ID of the model to use. Only `whisper-1` (which is powered by our open source Whisper V2 model) is currently available.
 	Model CreateTranslationRequest_Model `json:"model"`
 
 	// Prompt An optional text to guide the model's style or continue a previous audio segment. The [prompt](/docs/guides/speech-to-text/prompting) should be in English.
@@ -2983,13 +3366,28 @@ type CreateTranslationRequestModel0 = string
 // CreateTranslationRequestModel1 defines model for CreateTranslationRequest.Model.1.
 type CreateTranslationRequestModel1 string
 
-// CreateTranslationRequest_Model ID of the model to use. Only `whisper-1` is currently available.
+// CreateTranslationRequest_Model ID of the model to use. Only `whisper-1` (which is powered by our open source Whisper V2 model) is currently available.
 type CreateTranslationRequest_Model struct {
 	union json.RawMessage
 }
 
-// CreateTranslationResponse defines model for CreateTranslationResponse.
-type CreateTranslationResponse struct {
+// CreateTranslationResponseJson defines model for CreateTranslationResponseJson.
+type CreateTranslationResponseJson struct {
+	Text string `json:"text"`
+}
+
+// CreateTranslationResponseVerboseJson defines model for CreateTranslationResponseVerboseJson.
+type CreateTranslationResponseVerboseJson struct {
+	// Duration The duration of the input audio.
+	Duration string `json:"duration"`
+
+	// Language The language of the output translation (always `english`).
+	Language string `json:"language"`
+
+	// Segments Segments of the translated text and their corresponding details.
+	Segments *[]TranscriptionSegment `json:"segments,omitempty"`
+
+	// Text The translated text.
 	Text string `json:"text"`
 }
 
@@ -3050,6 +3448,18 @@ type DeleteThreadResponse struct {
 // DeleteThreadResponseObject defines model for DeleteThreadResponse.Object.
 type DeleteThreadResponseObject string
 
+// DoneEvent Occurs when a stream ends.
+type DoneEvent struct {
+	Data  DoneEventData  `json:"data"`
+	Event DoneEventEvent `json:"event"`
+}
+
+// DoneEventData defines model for DoneEvent.Data.
+type DoneEventData string
+
+// DoneEventEvent defines model for DoneEvent.Event.
+type DoneEventEvent string
+
 // Embedding Represents an embedding vector returned by embedding endpoint.
 type Embedding struct {
 	// Embedding The embedding vector, which is a list of floats or a base64 encoded string, depending on the requested return type. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).
@@ -3083,6 +3493,15 @@ type Error struct {
 	Param   *string `json:"param"`
 	Type    string  `json:"type"`
 }
+
+// ErrorEvent Occurs when an [error](/docs/guides/error-codes/api-errors) occurs. This can happen due to an internal server error or a timeout.
+type ErrorEvent struct {
+	Data  Error           `json:"data"`
+	Event ErrorEventEvent `json:"event"`
+}
+
+// ErrorEventEvent defines model for ErrorEvent.Event.
+type ErrorEventEvent string
 
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
@@ -3148,6 +3567,29 @@ type ExtendedAssistantObjectObject string
 
 // ExtendedAssistantObject_Tools_Item defines model for ExtendedAssistantObject.tools.Item.
 type ExtendedAssistantObject_Tools_Item struct {
+	union json.RawMessage
+}
+
+// ExtendedAssistantStreamEvent Represents an event emitted when streaming a Run.
+//
+// Each event in a server-sent events stream has an `event` and `data` property:
+//
+// ```
+// event: thread.created
+// data: {"id": "thread_123", "object": "thread", ...}
+// ```
+//
+// We emit events whenever a new object is created, transitions to a new state, or is being
+// streamed in parts (deltas). For example, we emit `thread.run.created` when a new run
+// is created, `thread.run.completed` when a run completes, and so on. When an Assistant chooses
+// to create a message during a run, we emit a `thread.message.created event`, a
+// `thread.message.in_progress` event, many `thread.message.delta` events, and finally a
+// `thread.message.completed` event.
+//
+// We may add additional events over time, so we recommend handling unknown events gracefully
+// in your code. See the [Assistants API quickstart](/docs/assistants/overview) to learn how to
+// integrate the Assistants API with streaming.
+type ExtendedAssistantStreamEvent struct {
 	union json.RawMessage
 }
 
@@ -3456,7 +3898,7 @@ type ExtendedChatCompletionTokenLogprob struct {
 	// Bytes A list of integers representing the UTF-8 bytes representation of the token. Useful in instances where characters are represented by multiple tokens and their byte representations must be combined to generate the correct text representation. Can be `null` if there is no bytes representation for the token.
 	Bytes *[]int `json:"bytes"`
 
-	// Logprob The log probability of this token.
+	// Logprob The log probability of this token, if it is within the top 20 most likely tokens. Otherwise, the value `-9999.0` is used to signify that the token is very unlikely.
 	Logprob float32 `json:"logprob"`
 
 	// Token The token.
@@ -3467,7 +3909,7 @@ type ExtendedChatCompletionTokenLogprob struct {
 		// Bytes A list of integers representing the UTF-8 bytes representation of the token. Useful in instances where characters are represented by multiple tokens and their byte representations must be combined to generate the correct text representation. Can be `null` if there is no bytes representation for the token.
 		Bytes *[]int `json:"bytes"`
 
-		// Logprob The log probability of this token.
+		// Logprob The log probability of this token, if it is within the top 20 most likely tokens. Otherwise, the value `-9999.0` is used to signify that the token is very unlikely.
 		Logprob float32 `json:"logprob"`
 
 		// Token The token.
@@ -3686,10 +4128,10 @@ type ExtendedCreateChatCompletionRequest struct {
 	// `none` is the default when no functions are present. `auto` is the default if functions are present.
 	ToolChoice *ChatCompletionToolChoiceOption `json:"tool_choice,omitempty"`
 
-	// Tools A list of tools the model may call. Currently, only functions are supported as a tool. Use this to provide a list of functions the model may generate JSON inputs for.
+	// Tools A list of tools the model may call. Currently, only functions are supported as a tool. Use this to provide a list of functions the model may generate JSON inputs for. A max of 128 functions are supported.
 	Tools *[]ChatCompletionTool `json:"tools"`
 
-	// TopLogprobs An integer between 0 and 5 specifying the number of most likely tokens to return at each token position, each with an associated log probability. `logprobs` must be set to `true` if this parameter is used.
+	// TopLogprobs An integer between 0 and 20 specifying the number of most likely tokens to return at each token position, each with an associated log probability. `logprobs` must be set to `true` if this parameter is used.
 	TopLogprobs *int `json:"top_logprobs"`
 
 	// TopP An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.
@@ -3907,6 +4349,8 @@ type ExtendedCreateCompletionRequest struct {
 	Stream *bool `json:"stream"`
 
 	// Suffix The suffix that comes after a completion of inserted text.
+	//
+	// This parameter is only supported for `gpt-3.5-turbo-instruct`.
 	Suffix *string `json:"suffix"`
 
 	// Temperature What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.
@@ -4213,7 +4657,7 @@ type ExtendedCreateImageEditRequest struct {
 	// Prompt A text description of the desired image(s). The maximum length is 1000 characters.
 	Prompt string `json:"prompt"`
 
-	// ResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`.
+	// ResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
 	ResponseFormat *ExtendedCreateImageEditRequestResponseFormat `json:"response_format"`
 
 	// Size The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024`.
@@ -4234,7 +4678,7 @@ type ExtendedCreateImageEditRequest_Model struct {
 	union json.RawMessage
 }
 
-// ExtendedCreateImageEditRequestResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`.
+// ExtendedCreateImageEditRequestResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
 type ExtendedCreateImageEditRequestResponseFormat string
 
 // ExtendedCreateImageEditRequestSize The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024`.
@@ -4254,7 +4698,7 @@ type ExtendedCreateImageRequest struct {
 	// Quality The quality of the image that will be generated. `hd` creates images with finer details and greater consistency across the image. This param is only supported for `dall-e-3`.
 	Quality *ExtendedCreateImageRequestQuality `json:"quality,omitempty"`
 
-	// ResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`.
+	// ResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
 	ResponseFormat *ExtendedCreateImageRequestResponseFormat `json:"response_format"`
 
 	// Size The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024` for `dall-e-2`. Must be one of `1024x1024`, `1792x1024`, or `1024x1792` for `dall-e-3` models.
@@ -4281,7 +4725,7 @@ type ExtendedCreateImageRequest_Model struct {
 // ExtendedCreateImageRequestQuality The quality of the image that will be generated. `hd` creates images with finer details and greater consistency across the image. This param is only supported for `dall-e-3`.
 type ExtendedCreateImageRequestQuality string
 
-// ExtendedCreateImageRequestResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`.
+// ExtendedCreateImageRequestResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
 type ExtendedCreateImageRequestResponseFormat string
 
 // ExtendedCreateImageRequestSize The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024` for `dall-e-2`. Must be one of `1024x1024`, `1792x1024`, or `1024x1792` for `dall-e-3` models.
@@ -4301,7 +4745,7 @@ type ExtendedCreateImageVariationRequest struct {
 	// N The number of images to generate. Must be between 1 and 10. For `dall-e-3`, only `n=1` is supported.
 	N *int `json:"n"`
 
-	// ResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`.
+	// ResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
 	ResponseFormat *ExtendedCreateImageVariationRequestResponseFormat `json:"response_format"`
 
 	// Size The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024`.
@@ -4322,7 +4766,7 @@ type ExtendedCreateImageVariationRequest_Model struct {
 	union json.RawMessage
 }
 
-// ExtendedCreateImageVariationRequestResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`.
+// ExtendedCreateImageVariationRequestResponseFormat The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.
 type ExtendedCreateImageVariationRequestResponseFormat string
 
 // ExtendedCreateImageVariationRequestSize The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024`.
@@ -4381,7 +4825,7 @@ type ExtendedCreateModerationRequest_Model struct {
 	union json.RawMessage
 }
 
-// ExtendedCreateModerationResponse Represents policy compliance report by OpenAI's content moderation model against a given input.
+// ExtendedCreateModerationResponse Represents if a given text input is potentially harmful.
 type ExtendedCreateModerationResponse struct {
 	// Id The unique identifier for the moderation request.
 	Id string `json:"id"`
@@ -4463,7 +4907,7 @@ type ExtendedCreateModerationResponse struct {
 			Violencegraphic float32 `json:"violence/graphic"`
 		} `json:"category_scores"`
 
-		// Flagged Whether the content violates [OpenAI's usage policies](/policies/usage-policies).
+		// Flagged Whether any of the below categories are flagged.
 		Flagged bool `json:"flagged"`
 	} `json:"results"`
 }
@@ -4505,10 +4949,7 @@ type ExtendedCreateSpeechRequest struct {
 	// Model One of the available [TTS models](/docs/models/tts): `tts-1` or `tts-1-hd`
 	Model ExtendedCreateSpeechRequest_Model `json:"model"`
 
-	// ResponseFormat The format to return audio in.
-	// Supported formats are `mp3`, `opus`, `aac`, `flac`, `pcm`, and `wav`.
-	//
-	// The `pcm` audio format, similar to `wav` but without a header, utilizes a 24kHz sample rate, mono channel, and 16-bit depth in signed little-endian format.
+	// ResponseFormat The format to audio in. Supported formats are `mp3`, `opus`, `aac`, `flac`, `wav`, and `pcm`.
 	ResponseFormat *ExtendedCreateSpeechRequestResponseFormat `json:"response_format,omitempty"`
 
 	// Speed The speed of the generated audio. Select a value from `0.25` to `4.0`. `1.0` is the default.
@@ -4529,10 +4970,7 @@ type ExtendedCreateSpeechRequest_Model struct {
 	union json.RawMessage
 }
 
-// ExtendedCreateSpeechRequestResponseFormat The format to return audio in.
-// Supported formats are `mp3`, `opus`, `aac`, `flac`, `pcm`, and `wav`.
-//
-// The `pcm` audio format, similar to `wav` but without a header, utilizes a 24kHz sample rate, mono channel, and 16-bit depth in signed little-endian format.
+// ExtendedCreateSpeechRequestResponseFormat The format to audio in. Supported formats are `mp3`, `opus`, `aac`, `flac`, `wav`, and `pcm`.
 type ExtendedCreateSpeechRequestResponseFormat string
 
 // ExtendedCreateSpeechRequestVoice The voice to use when generating the audio. Supported voices are `alloy`, `echo`, `fable`, `onyx`, `nova`, and `shimmer`. Previews of the voices are available in the [Text to speech guide](/docs/guides/text-to-speech/voice-options).
@@ -4550,7 +4988,10 @@ type ExtendedCreateThreadAndRunRequest struct {
 	Metadata *map[string]interface{} `json:"metadata"`
 
 	// Model The ID of the [Model](/docs/api-reference/models) to be used to execute this run. If a value is provided here, it will override the model associated with the assistant. If not, the model associated with the assistant will be used.
-	Model  *string              `json:"model"`
+	Model *string `json:"model"`
+
+	// Stream If `true`, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a `data: [DONE]` message.
+	Stream *bool                `json:"stream"`
 	Thread *CreateThreadRequest `json:"thread,omitempty"`
 
 	// Tools Override the tools the assistant can use for this run. This is useful for modifying the behavior on a per-run basis.
@@ -4579,7 +5020,7 @@ type ExtendedCreateTranscriptionRequest struct {
 	// Language The language of the input audio. Supplying the input language in [ISO-639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) format will improve accuracy and latency.
 	Language *string `json:"language,omitempty"`
 
-	// Model ID of the model to use. Only `whisper-1` is currently available.
+	// Model ID of the model to use. Only `whisper-1` (which is powered by our open source Whisper V2 model) is currently available.
 	Model ExtendedCreateTranscriptionRequest_Model `json:"model"`
 
 	// Prompt An optional text to guide the model's style or continue a previous audio segment. The [prompt](/docs/guides/speech-to-text/prompting) should match the audio language.
@@ -4591,7 +5032,7 @@ type ExtendedCreateTranscriptionRequest struct {
 	// Temperature The sampling temperature, between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. If set to 0, the model will use [log probability](https://en.wikipedia.org/wiki/Log_probability) to automatically increase the temperature until certain thresholds are hit.
 	Temperature *float32 `json:"temperature,omitempty"`
 
-	// TimestampGranularities The timestamp granularities to populate for this transcription. Any of these options: `word`, or `segment`. Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
+	// TimestampGranularities The timestamp granularities to populate for this transcription. `response_format` must be set `verbose_json` to use timestamp granularities. Either or both of these options are supported: `word`, or `segment`. Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
 	TimestampGranularities *[]ExtendedCreateTranscriptionRequestTimestampGranularities `json:"timestamp_granularities[],omitempty"`
 }
 
@@ -4601,7 +5042,7 @@ type ExtendedCreateTranscriptionRequestModel0 = string
 // ExtendedCreateTranscriptionRequestModel1 defines model for ExtendedCreateTranscriptionRequest.Model.1.
 type ExtendedCreateTranscriptionRequestModel1 string
 
-// ExtendedCreateTranscriptionRequest_Model ID of the model to use. Only `whisper-1` is currently available.
+// ExtendedCreateTranscriptionRequest_Model ID of the model to use. Only `whisper-1` (which is powered by our open source Whisper V2 model) is currently available.
 type ExtendedCreateTranscriptionRequest_Model struct {
 	union json.RawMessage
 }
@@ -4612,9 +5053,28 @@ type ExtendedCreateTranscriptionRequestResponseFormat string
 // ExtendedCreateTranscriptionRequestTimestampGranularities defines model for ExtendedCreateTranscriptionRequest.TimestampGranularities.
 type ExtendedCreateTranscriptionRequestTimestampGranularities string
 
-// ExtendedCreateTranscriptionResponse defines model for ExtendedCreateTranscriptionResponse.
-type ExtendedCreateTranscriptionResponse struct {
+// ExtendedCreateTranscriptionResponseJson Represents a transcription response returned by model, based on the provided input.
+type ExtendedCreateTranscriptionResponseJson struct {
+	// Text The transcribed text.
 	Text string `json:"text"`
+}
+
+// ExtendedCreateTranscriptionResponseVerboseJson Represents a verbose json transcription response returned by model, based on the provided input.
+type ExtendedCreateTranscriptionResponseVerboseJson struct {
+	// Duration The duration of the input audio.
+	Duration string `json:"duration"`
+
+	// Language The language of the input audio.
+	Language string `json:"language"`
+
+	// Segments Segments of the transcribed text and their corresponding details.
+	Segments *[]TranscriptionSegment `json:"segments,omitempty"`
+
+	// Text The transcribed text.
+	Text string `json:"text"`
+
+	// Words Extracted words and their corresponding timestamps.
+	Words *[]TranscriptionWord `json:"words,omitempty"`
 }
 
 // ExtendedCreateTranslationRequest defines model for ExtendedCreateTranslationRequest.
@@ -4622,7 +5082,7 @@ type ExtendedCreateTranslationRequest struct {
 	// File The audio file object (not file name) translate, in one of these formats: flac, mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm.
 	File openapi_types.File `json:"file"`
 
-	// Model ID of the model to use. Only `whisper-1` is currently available.
+	// Model ID of the model to use. Only `whisper-1` (which is powered by our open source Whisper V2 model) is currently available.
 	Model ExtendedCreateTranslationRequest_Model `json:"model"`
 
 	// Prompt An optional text to guide the model's style or continue a previous audio segment. The [prompt](/docs/guides/speech-to-text/prompting) should be in English.
@@ -4641,13 +5101,28 @@ type ExtendedCreateTranslationRequestModel0 = string
 // ExtendedCreateTranslationRequestModel1 defines model for ExtendedCreateTranslationRequest.Model.1.
 type ExtendedCreateTranslationRequestModel1 string
 
-// ExtendedCreateTranslationRequest_Model ID of the model to use. Only `whisper-1` is currently available.
+// ExtendedCreateTranslationRequest_Model ID of the model to use. Only `whisper-1` (which is powered by our open source Whisper V2 model) is currently available.
 type ExtendedCreateTranslationRequest_Model struct {
 	union json.RawMessage
 }
 
-// ExtendedCreateTranslationResponse defines model for ExtendedCreateTranslationResponse.
-type ExtendedCreateTranslationResponse struct {
+// ExtendedCreateTranslationResponseJson defines model for ExtendedCreateTranslationResponseJson.
+type ExtendedCreateTranslationResponseJson struct {
+	Text string `json:"text"`
+}
+
+// ExtendedCreateTranslationResponseVerboseJson defines model for ExtendedCreateTranslationResponseVerboseJson.
+type ExtendedCreateTranslationResponseVerboseJson struct {
+	// Duration The duration of the input audio.
+	Duration string `json:"duration"`
+
+	// Language The language of the output translation (always `english`).
+	Language string `json:"language"`
+
+	// Segments Segments of the translated text and their corresponding details.
+	Segments *[]TranscriptionSegment `json:"segments,omitempty"`
+
+	// Text The translated text.
 	Text string `json:"text"`
 }
 
@@ -4708,6 +5183,18 @@ type ExtendedDeleteThreadResponse struct {
 // ExtendedDeleteThreadResponseObject defines model for ExtendedDeleteThreadResponse.Object.
 type ExtendedDeleteThreadResponseObject string
 
+// ExtendedDoneEvent Occurs when a stream ends.
+type ExtendedDoneEvent struct {
+	Data  ExtendedDoneEventData  `json:"data"`
+	Event ExtendedDoneEventEvent `json:"event"`
+}
+
+// ExtendedDoneEventData defines model for ExtendedDoneEvent.Data.
+type ExtendedDoneEventData string
+
+// ExtendedDoneEventEvent defines model for ExtendedDoneEvent.Event.
+type ExtendedDoneEventEvent string
+
 // ExtendedEmbedding Represents an embedding vector returned by embedding endpoint.
 type ExtendedEmbedding struct {
 	// Embedding The embedding vector, which is a list of floats or a base64 encoded string, depending on the requested return type. The length of vector depends on the model as listed in the [embedding guide](/docs/guides/embeddings).
@@ -4741,6 +5228,15 @@ type ExtendedError struct {
 	Param   *string `json:"param"`
 	Type    string  `json:"type"`
 }
+
+// ExtendedErrorEvent Occurs when an [error](/docs/guides/error-codes/api-errors) occurs. This can happen due to an internal server error or a timeout.
+type ExtendedErrorEvent struct {
+	Data  Error                   `json:"data"`
+	Event ExtendedErrorEventEvent `json:"event"`
+}
+
+// ExtendedErrorEventEvent defines model for ExtendedErrorEvent.Event.
+type ExtendedErrorEventEvent string
 
 // ExtendedErrorResponse defines model for ExtendedErrorResponse.
 type ExtendedErrorResponse struct {
@@ -5051,6 +5547,125 @@ type ExtendedMessageContentTextObject_Text_Annotations_Item struct {
 // ExtendedMessageContentTextObjectType Always `text`.
 type ExtendedMessageContentTextObjectType string
 
+// ExtendedMessageDeltaContentImageFileObject References an image [File](/docs/api-reference/files) in the content of a message.
+type ExtendedMessageDeltaContentImageFileObject struct {
+	ImageFile *struct {
+		// FileId The [File](/docs/api-reference/files) ID of the image in the message content.
+		FileId *string `json:"file_id,omitempty"`
+	} `json:"image_file,omitempty"`
+
+	// Index The index of the content part in the message.
+	Index int `json:"index"`
+
+	// Type Always `image_file`.
+	Type ExtendedMessageDeltaContentImageFileObjectType `json:"type"`
+}
+
+// ExtendedMessageDeltaContentImageFileObjectType Always `image_file`.
+type ExtendedMessageDeltaContentImageFileObjectType string
+
+// ExtendedMessageDeltaContentTextAnnotationsFileCitationObject A citation within the message that points to a specific quote from a specific File associated with the assistant or the message. Generated when the assistant uses the "retrieval" tool to search files.
+type ExtendedMessageDeltaContentTextAnnotationsFileCitationObject struct {
+	EndIndex     *int `json:"end_index,omitempty"`
+	FileCitation *struct {
+		// FileId The ID of the specific File the citation is from.
+		FileId *string `json:"file_id,omitempty"`
+
+		// Quote The specific quote in the file.
+		Quote *string `json:"quote,omitempty"`
+	} `json:"file_citation,omitempty"`
+
+	// Index The index of the annotation in the text content part.
+	Index      int  `json:"index"`
+	StartIndex *int `json:"start_index,omitempty"`
+
+	// Text The text in the message content that needs to be replaced.
+	Text *string `json:"text,omitempty"`
+
+	// Type Always `file_citation`.
+	Type ExtendedMessageDeltaContentTextAnnotationsFileCitationObjectType `json:"type"`
+}
+
+// ExtendedMessageDeltaContentTextAnnotationsFileCitationObjectType Always `file_citation`.
+type ExtendedMessageDeltaContentTextAnnotationsFileCitationObjectType string
+
+// ExtendedMessageDeltaContentTextAnnotationsFilePathObject A URL for the file that's generated when the assistant used the `code_interpreter` tool to generate a file.
+type ExtendedMessageDeltaContentTextAnnotationsFilePathObject struct {
+	EndIndex *int `json:"end_index,omitempty"`
+	FilePath *struct {
+		// FileId The ID of the file that was generated.
+		FileId *string `json:"file_id,omitempty"`
+	} `json:"file_path,omitempty"`
+
+	// Index The index of the annotation in the text content part.
+	Index      int  `json:"index"`
+	StartIndex *int `json:"start_index,omitempty"`
+
+	// Text The text in the message content that needs to be replaced.
+	Text *string `json:"text,omitempty"`
+
+	// Type Always `file_path`.
+	Type ExtendedMessageDeltaContentTextAnnotationsFilePathObjectType `json:"type"`
+}
+
+// ExtendedMessageDeltaContentTextAnnotationsFilePathObjectType Always `file_path`.
+type ExtendedMessageDeltaContentTextAnnotationsFilePathObjectType string
+
+// ExtendedMessageDeltaContentTextObject The text content that is part of a message.
+type ExtendedMessageDeltaContentTextObject struct {
+	// Index The index of the content part in the message.
+	Index int `json:"index"`
+	Text  *struct {
+		Annotations *[]ExtendedMessageDeltaContentTextObject_Text_Annotations_Item `json:"annotations,omitempty"`
+
+		// Value The data that makes up the text.
+		Value *string `json:"value,omitempty"`
+	} `json:"text,omitempty"`
+
+	// Type Always `text`.
+	Type ExtendedMessageDeltaContentTextObjectType `json:"type"`
+}
+
+// ExtendedMessageDeltaContentTextObject_Text_Annotations_Item defines model for ExtendedMessageDeltaContentTextObject.Text.Annotations.Item.
+type ExtendedMessageDeltaContentTextObject_Text_Annotations_Item struct {
+	union json.RawMessage
+}
+
+// ExtendedMessageDeltaContentTextObjectType Always `text`.
+type ExtendedMessageDeltaContentTextObjectType string
+
+// ExtendedMessageDeltaObject Represents a message delta i.e. any changed fields on a message during streaming.
+type ExtendedMessageDeltaObject struct {
+	// Delta The delta containing the fields that have changed on the Message.
+	Delta struct {
+		// Content The content of the message in array of text and/or images.
+		Content *[]ExtendedMessageDeltaObject_Delta_Content_Item `json:"content,omitempty"`
+
+		// FileIds A list of [file](/docs/api-reference/files) IDs that the assistant should use. Useful for tools like retrieval and code_interpreter that can access files. A maximum of 10 files can be attached to a message.
+		FileIds *[]string `json:"file_ids,omitempty"`
+
+		// Role The entity that produced the message. One of `user` or `assistant`.
+		Role *ExtendedMessageDeltaObjectDeltaRole `json:"role,omitempty"`
+	} `json:"delta"`
+
+	// Id The identifier of the message, which can be referenced in API endpoints.
+	Id string `json:"id"`
+
+	// Object The object type, which is always `thread.message.delta`.
+	Object ExtendedMessageDeltaObjectObject `json:"object"`
+}
+
+// ExtendedMessageDeltaObject_Delta_Content_Item defines model for ExtendedMessageDeltaObject.Delta.Content.Item.
+type ExtendedMessageDeltaObject_Delta_Content_Item struct {
+	union json.RawMessage
+}
+
+// ExtendedMessageDeltaObjectDeltaRole The entity that produced the message. One of `user` or `assistant`.
+type ExtendedMessageDeltaObjectDeltaRole string
+
+// ExtendedMessageDeltaObjectObject The object type, which is always `thread.message.delta`.
+type ExtendedMessageDeltaObjectObject string
+
 // ExtendedMessageFileObject A list of files attached to a `message`.
 type ExtendedMessageFileObject struct {
 	// CreatedAt The Unix timestamp (in seconds) for when the message file was created.
@@ -5110,7 +5725,7 @@ type ExtendedMessageObject struct {
 	RunId *string `json:"run_id"`
 
 	// Status The status of the message, which can be either in_progress, incomplete, or completed.
-	Status *ExtendedMessageObjectStatus `json:"status,omitempty"`
+	Status ExtendedMessageObjectStatus `json:"status"`
 
 	// ThreadId The [thread](/docs/api-reference/threads) ID that this message belongs to.
 	ThreadId string `json:"thread_id"`
@@ -5129,6 +5744,61 @@ type ExtendedMessageObjectRole string
 
 // ExtendedMessageObjectStatus The status of the message, which can be either in_progress, incomplete, or completed.
 type ExtendedMessageObjectStatus string
+
+// ExtendedMessageStreamEvent defines model for ExtendedMessageStreamEvent.
+type ExtendedMessageStreamEvent struct {
+	union json.RawMessage
+}
+
+// ExtendedMessageStreamEvent0 Occurs when a [message](/docs/api-reference/messages/object) is created.
+type ExtendedMessageStreamEvent0 struct {
+	// Data Represents a message within a [thread](/docs/api-reference/threads).
+	Data  MessageObject                    `json:"data"`
+	Event ExtendedMessageStreamEvent0Event `json:"event"`
+}
+
+// ExtendedMessageStreamEvent0Event defines model for ExtendedMessageStreamEvent.0.Event.
+type ExtendedMessageStreamEvent0Event string
+
+// ExtendedMessageStreamEvent1 Occurs when a [message](/docs/api-reference/messages/object) moves to an `in_progress` state.
+type ExtendedMessageStreamEvent1 struct {
+	// Data Represents a message within a [thread](/docs/api-reference/threads).
+	Data  MessageObject                    `json:"data"`
+	Event ExtendedMessageStreamEvent1Event `json:"event"`
+}
+
+// ExtendedMessageStreamEvent1Event defines model for ExtendedMessageStreamEvent.1.Event.
+type ExtendedMessageStreamEvent1Event string
+
+// ExtendedMessageStreamEvent2 Occurs when parts of a [Message](/docs/api-reference/messages/object) are being streamed.
+type ExtendedMessageStreamEvent2 struct {
+	// Data Represents a message delta i.e. any changed fields on a message during streaming.
+	Data  MessageDeltaObject               `json:"data"`
+	Event ExtendedMessageStreamEvent2Event `json:"event"`
+}
+
+// ExtendedMessageStreamEvent2Event defines model for ExtendedMessageStreamEvent.2.Event.
+type ExtendedMessageStreamEvent2Event string
+
+// ExtendedMessageStreamEvent3 Occurs when a [message](/docs/api-reference/messages/object) is completed.
+type ExtendedMessageStreamEvent3 struct {
+	// Data Represents a message within a [thread](/docs/api-reference/threads).
+	Data  MessageObject                    `json:"data"`
+	Event ExtendedMessageStreamEvent3Event `json:"event"`
+}
+
+// ExtendedMessageStreamEvent3Event defines model for ExtendedMessageStreamEvent.3.Event.
+type ExtendedMessageStreamEvent3Event string
+
+// ExtendedMessageStreamEvent4 Occurs when a [message](/docs/api-reference/messages/object) ends before it is completed.
+type ExtendedMessageStreamEvent4 struct {
+	// Data Represents a message within a [thread](/docs/api-reference/threads).
+	Data  MessageObject                    `json:"data"`
+	Event ExtendedMessageStreamEvent4Event `json:"event"`
+}
+
+// ExtendedMessageStreamEvent4Event defines model for ExtendedMessageStreamEvent.4.Event.
+type ExtendedMessageStreamEvent4Event string
 
 // ExtendedModel Describes an OpenAI model offering that can be used with the API.
 type ExtendedModel struct {
@@ -5271,7 +5941,7 @@ type ExtendedRunObject struct {
 	CreatedAt int `json:"created_at"`
 
 	// ExpiresAt The Unix timestamp (in seconds) for when the run will expire.
-	ExpiresAt int `json:"expires_at"`
+	ExpiresAt *int `json:"expires_at"`
 
 	// FailedAt The Unix timestamp (in seconds) for when the run failed.
 	FailedAt *int `json:"failed_at"`
@@ -5287,7 +5957,7 @@ type ExtendedRunObject struct {
 
 	// LastError The last error associated with this run. Will be `null` if there are no errors.
 	LastError *struct {
-		// Code One of `server_error` or `rate_limit_exceeded`.
+		// Code One of `server_error`, `rate_limit_exceeded`, or `invalid_prompt`.
 		Code ExtendedRunObjectLastErrorCode `json:"code"`
 
 		// Message A human-readable description of the error.
@@ -5331,7 +6001,7 @@ type ExtendedRunObject struct {
 	Usage *RunCompletionUsage `json:"usage"`
 }
 
-// ExtendedRunObjectLastErrorCode One of `server_error` or `rate_limit_exceeded`.
+// ExtendedRunObjectLastErrorCode One of `server_error`, `rate_limit_exceeded`, or `invalid_prompt`.
 type ExtendedRunObjectLastErrorCode string
 
 // ExtendedRunObjectObject The object type, which is always `thread.run`.
@@ -5359,6 +6029,166 @@ type ExtendedRunStepCompletionUsage struct {
 	// TotalTokens Total number of tokens used (prompt + completion).
 	TotalTokens int `json:"total_tokens"`
 }
+
+// ExtendedRunStepDeltaObject Represents a run step delta i.e. any changed fields on a run step during streaming.
+type ExtendedRunStepDeltaObject struct {
+	// Delta The delta containing the fields that have changed on the run step.
+	Delta struct {
+		// StepDetails The details of the run step.
+		StepDetails *ExtendedRunStepDeltaObject_Delta_StepDetails `json:"step_details,omitempty"`
+	} `json:"delta"`
+
+	// Id The identifier of the run step, which can be referenced in API endpoints.
+	Id string `json:"id"`
+
+	// Object The object type, which is always `thread.run.step.delta`.
+	Object ExtendedRunStepDeltaObjectObject `json:"object"`
+}
+
+// ExtendedRunStepDeltaObject_Delta_StepDetails The details of the run step.
+type ExtendedRunStepDeltaObject_Delta_StepDetails struct {
+	union json.RawMessage
+}
+
+// ExtendedRunStepDeltaObjectObject The object type, which is always `thread.run.step.delta`.
+type ExtendedRunStepDeltaObjectObject string
+
+// ExtendedRunStepDeltaStepDetailsMessageCreationObject Details of the message creation by the run step.
+type ExtendedRunStepDeltaStepDetailsMessageCreationObject struct {
+	MessageCreation *struct {
+		// MessageId The ID of the message that was created by this run step.
+		MessageId *string `json:"message_id,omitempty"`
+	} `json:"message_creation,omitempty"`
+
+	// Type Always `message_creation`.
+	Type ExtendedRunStepDeltaStepDetailsMessageCreationObjectType `json:"type"`
+}
+
+// ExtendedRunStepDeltaStepDetailsMessageCreationObjectType Always `message_creation`.
+type ExtendedRunStepDeltaStepDetailsMessageCreationObjectType string
+
+// ExtendedRunStepDeltaStepDetailsToolCallsCodeObject Details of the Code Interpreter tool call the run step was involved in.
+type ExtendedRunStepDeltaStepDetailsToolCallsCodeObject struct {
+	// CodeInterpreter The Code Interpreter tool call definition.
+	CodeInterpreter *struct {
+		// Input The input to the Code Interpreter tool call.
+		Input *string `json:"input,omitempty"`
+
+		// Outputs The outputs from the Code Interpreter tool call. Code Interpreter can output one or more items, including text (`logs`) or images (`image`). Each of these are represented by a different object type.
+		Outputs *[]ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item `json:"outputs,omitempty"`
+	} `json:"code_interpreter,omitempty"`
+
+	// Id The ID of the tool call.
+	Id *string `json:"id,omitempty"`
+
+	// Index The index of the tool call in the tool calls array.
+	Index int `json:"index"`
+
+	// Type The type of tool call. This is always going to be `code_interpreter` for this type of tool call.
+	Type ExtendedRunStepDeltaStepDetailsToolCallsCodeObjectType `json:"type"`
+}
+
+// ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item defines model for ExtendedRunStepDeltaStepDetailsToolCallsCodeObject.CodeInterpreter.Outputs.Item.
+type ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item struct {
+	union json.RawMessage
+}
+
+// ExtendedRunStepDeltaStepDetailsToolCallsCodeObjectType The type of tool call. This is always going to be `code_interpreter` for this type of tool call.
+type ExtendedRunStepDeltaStepDetailsToolCallsCodeObjectType string
+
+// ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputImageObject defines model for ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputImageObject.
+type ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputImageObject struct {
+	Image *struct {
+		// FileId The [file](/docs/api-reference/files) ID of the image.
+		FileId *string `json:"file_id,omitempty"`
+	} `json:"image,omitempty"`
+
+	// Index The index of the output in the outputs array.
+	Index int `json:"index"`
+
+	// Type Always `image`.
+	Type ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputImageObjectType `json:"type"`
+}
+
+// ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputImageObjectType Always `image`.
+type ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputImageObjectType string
+
+// ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject Text output from the Code Interpreter tool call as part of a run step.
+type ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject struct {
+	// Index The index of the output in the outputs array.
+	Index int `json:"index"`
+
+	// Logs The text output from the Code Interpreter tool call.
+	Logs *string `json:"logs,omitempty"`
+
+	// Type Always `logs`.
+	Type ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectType `json:"type"`
+}
+
+// ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectType Always `logs`.
+type ExtendedRunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectType string
+
+// ExtendedRunStepDeltaStepDetailsToolCallsFunctionObject defines model for ExtendedRunStepDeltaStepDetailsToolCallsFunctionObject.
+type ExtendedRunStepDeltaStepDetailsToolCallsFunctionObject struct {
+	// Function The definition of the function that was called.
+	Function *struct {
+		// Arguments The arguments passed to the function.
+		Arguments *string `json:"arguments,omitempty"`
+
+		// Name The name of the function.
+		Name *string `json:"name,omitempty"`
+
+		// Output The output of the function. This will be `null` if the outputs have not been [submitted](/docs/api-reference/runs/submitToolOutputs) yet.
+		Output *string `json:"output"`
+	} `json:"function,omitempty"`
+
+	// Id The ID of the tool call object.
+	Id *string `json:"id,omitempty"`
+
+	// Index The index of the tool call in the tool calls array.
+	Index int `json:"index"`
+
+	// Type The type of tool call. This is always going to be `function` for this type of tool call.
+	Type ExtendedRunStepDeltaStepDetailsToolCallsFunctionObjectType `json:"type"`
+}
+
+// ExtendedRunStepDeltaStepDetailsToolCallsFunctionObjectType The type of tool call. This is always going to be `function` for this type of tool call.
+type ExtendedRunStepDeltaStepDetailsToolCallsFunctionObjectType string
+
+// ExtendedRunStepDeltaStepDetailsToolCallsObject Details of the tool call.
+type ExtendedRunStepDeltaStepDetailsToolCallsObject struct {
+	// ToolCalls An array of tool calls the run step was involved in. These can be associated with one of three types of tools: `code_interpreter`, `retrieval`, or `function`.
+	ToolCalls *[]ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item `json:"tool_calls,omitempty"`
+
+	// Type Always `tool_calls`.
+	Type ExtendedRunStepDeltaStepDetailsToolCallsObjectType `json:"type"`
+}
+
+// ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item defines model for ExtendedRunStepDeltaStepDetailsToolCallsObject.tool_calls.Item.
+type ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item struct {
+	union json.RawMessage
+}
+
+// ExtendedRunStepDeltaStepDetailsToolCallsObjectType Always `tool_calls`.
+type ExtendedRunStepDeltaStepDetailsToolCallsObjectType string
+
+// ExtendedRunStepDeltaStepDetailsToolCallsRetrievalObject defines model for ExtendedRunStepDeltaStepDetailsToolCallsRetrievalObject.
+type ExtendedRunStepDeltaStepDetailsToolCallsRetrievalObject struct {
+	// Id The ID of the tool call object.
+	Id *string `json:"id,omitempty"`
+
+	// Index The index of the tool call in the tool calls array.
+	Index int `json:"index"`
+
+	// Retrieval For now, this is always going to be an empty object.
+	Retrieval *map[string]interface{} `json:"retrieval,omitempty"`
+
+	// Type The type of tool call. This is always going to be `retrieval` for this type of tool call.
+	Type ExtendedRunStepDeltaStepDetailsToolCallsRetrievalObjectType `json:"type"`
+}
+
+// ExtendedRunStepDeltaStepDetailsToolCallsRetrievalObjectType The type of tool call. This is always going to be `retrieval` for this type of tool call.
+type ExtendedRunStepDeltaStepDetailsToolCallsRetrievalObjectType string
 
 // ExtendedRunStepDetailsMessageCreationObject Details of the message creation by the run step.
 type ExtendedRunStepDetailsMessageCreationObject struct {
@@ -5556,6 +6386,176 @@ type ExtendedRunStepObject_StepDetails struct {
 // ExtendedRunStepObjectType The type of run step, which can be either `message_creation` or `tool_calls`.
 type ExtendedRunStepObjectType string
 
+// ExtendedRunStepStreamEvent defines model for ExtendedRunStepStreamEvent.
+type ExtendedRunStepStreamEvent struct {
+	union json.RawMessage
+}
+
+// ExtendedRunStepStreamEvent0 Occurs when a [run step](/docs/api-reference/runs/step-object) is created.
+type ExtendedRunStepStreamEvent0 struct {
+	// Data Represents a step in execution of a run.
+	Data  RunStepObject                    `json:"data"`
+	Event ExtendedRunStepStreamEvent0Event `json:"event"`
+}
+
+// ExtendedRunStepStreamEvent0Event defines model for ExtendedRunStepStreamEvent.0.Event.
+type ExtendedRunStepStreamEvent0Event string
+
+// ExtendedRunStepStreamEvent1 Occurs when a [run step](/docs/api-reference/runs/step-object) moves to an `in_progress` state.
+type ExtendedRunStepStreamEvent1 struct {
+	// Data Represents a step in execution of a run.
+	Data  RunStepObject                    `json:"data"`
+	Event ExtendedRunStepStreamEvent1Event `json:"event"`
+}
+
+// ExtendedRunStepStreamEvent1Event defines model for ExtendedRunStepStreamEvent.1.Event.
+type ExtendedRunStepStreamEvent1Event string
+
+// ExtendedRunStepStreamEvent2 Occurs when parts of a [run step](/docs/api-reference/runs/step-object) are being streamed.
+type ExtendedRunStepStreamEvent2 struct {
+	// Data Represents a run step delta i.e. any changed fields on a run step during streaming.
+	Data  RunStepDeltaObject               `json:"data"`
+	Event ExtendedRunStepStreamEvent2Event `json:"event"`
+}
+
+// ExtendedRunStepStreamEvent2Event defines model for ExtendedRunStepStreamEvent.2.Event.
+type ExtendedRunStepStreamEvent2Event string
+
+// ExtendedRunStepStreamEvent3 Occurs when a [run step](/docs/api-reference/runs/step-object) is completed.
+type ExtendedRunStepStreamEvent3 struct {
+	// Data Represents a step in execution of a run.
+	Data  RunStepObject                    `json:"data"`
+	Event ExtendedRunStepStreamEvent3Event `json:"event"`
+}
+
+// ExtendedRunStepStreamEvent3Event defines model for ExtendedRunStepStreamEvent.3.Event.
+type ExtendedRunStepStreamEvent3Event string
+
+// ExtendedRunStepStreamEvent4 Occurs when a [run step](/docs/api-reference/runs/step-object) fails.
+type ExtendedRunStepStreamEvent4 struct {
+	// Data Represents a step in execution of a run.
+	Data  RunStepObject                    `json:"data"`
+	Event ExtendedRunStepStreamEvent4Event `json:"event"`
+}
+
+// ExtendedRunStepStreamEvent4Event defines model for ExtendedRunStepStreamEvent.4.Event.
+type ExtendedRunStepStreamEvent4Event string
+
+// ExtendedRunStepStreamEvent5 Occurs when a [run step](/docs/api-reference/runs/step-object) is cancelled.
+type ExtendedRunStepStreamEvent5 struct {
+	// Data Represents a step in execution of a run.
+	Data  RunStepObject                    `json:"data"`
+	Event ExtendedRunStepStreamEvent5Event `json:"event"`
+}
+
+// ExtendedRunStepStreamEvent5Event defines model for ExtendedRunStepStreamEvent.5.Event.
+type ExtendedRunStepStreamEvent5Event string
+
+// ExtendedRunStepStreamEvent6 Occurs when a [run step](/docs/api-reference/runs/step-object) expires.
+type ExtendedRunStepStreamEvent6 struct {
+	// Data Represents a step in execution of a run.
+	Data  RunStepObject                    `json:"data"`
+	Event ExtendedRunStepStreamEvent6Event `json:"event"`
+}
+
+// ExtendedRunStepStreamEvent6Event defines model for ExtendedRunStepStreamEvent.6.Event.
+type ExtendedRunStepStreamEvent6Event string
+
+// ExtendedRunStreamEvent defines model for ExtendedRunStreamEvent.
+type ExtendedRunStreamEvent struct {
+	union json.RawMessage
+}
+
+// ExtendedRunStreamEvent0 Occurs when a new [run](/docs/api-reference/runs/object) is created.
+type ExtendedRunStreamEvent0 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject                    `json:"data"`
+	Event ExtendedRunStreamEvent0Event `json:"event"`
+}
+
+// ExtendedRunStreamEvent0Event defines model for ExtendedRunStreamEvent.0.Event.
+type ExtendedRunStreamEvent0Event string
+
+// ExtendedRunStreamEvent1 Occurs when a [run](/docs/api-reference/runs/object) moves to a `queued` status.
+type ExtendedRunStreamEvent1 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject                    `json:"data"`
+	Event ExtendedRunStreamEvent1Event `json:"event"`
+}
+
+// ExtendedRunStreamEvent1Event defines model for ExtendedRunStreamEvent.1.Event.
+type ExtendedRunStreamEvent1Event string
+
+// ExtendedRunStreamEvent2 Occurs when a [run](/docs/api-reference/runs/object) moves to an `in_progress` status.
+type ExtendedRunStreamEvent2 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject                    `json:"data"`
+	Event ExtendedRunStreamEvent2Event `json:"event"`
+}
+
+// ExtendedRunStreamEvent2Event defines model for ExtendedRunStreamEvent.2.Event.
+type ExtendedRunStreamEvent2Event string
+
+// ExtendedRunStreamEvent3 Occurs when a [run](/docs/api-reference/runs/object) moves to a `requires_action` status.
+type ExtendedRunStreamEvent3 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject                    `json:"data"`
+	Event ExtendedRunStreamEvent3Event `json:"event"`
+}
+
+// ExtendedRunStreamEvent3Event defines model for ExtendedRunStreamEvent.3.Event.
+type ExtendedRunStreamEvent3Event string
+
+// ExtendedRunStreamEvent4 Occurs when a [run](/docs/api-reference/runs/object) is completed.
+type ExtendedRunStreamEvent4 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject                    `json:"data"`
+	Event ExtendedRunStreamEvent4Event `json:"event"`
+}
+
+// ExtendedRunStreamEvent4Event defines model for ExtendedRunStreamEvent.4.Event.
+type ExtendedRunStreamEvent4Event string
+
+// ExtendedRunStreamEvent5 Occurs when a [run](/docs/api-reference/runs/object) fails.
+type ExtendedRunStreamEvent5 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject                    `json:"data"`
+	Event ExtendedRunStreamEvent5Event `json:"event"`
+}
+
+// ExtendedRunStreamEvent5Event defines model for ExtendedRunStreamEvent.5.Event.
+type ExtendedRunStreamEvent5Event string
+
+// ExtendedRunStreamEvent6 Occurs when a [run](/docs/api-reference/runs/object) moves to a `cancelling` status.
+type ExtendedRunStreamEvent6 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject                    `json:"data"`
+	Event ExtendedRunStreamEvent6Event `json:"event"`
+}
+
+// ExtendedRunStreamEvent6Event defines model for ExtendedRunStreamEvent.6.Event.
+type ExtendedRunStreamEvent6Event string
+
+// ExtendedRunStreamEvent7 Occurs when a [run](/docs/api-reference/runs/object) is cancelled.
+type ExtendedRunStreamEvent7 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject                    `json:"data"`
+	Event ExtendedRunStreamEvent7Event `json:"event"`
+}
+
+// ExtendedRunStreamEvent7Event defines model for ExtendedRunStreamEvent.7.Event.
+type ExtendedRunStreamEvent7Event string
+
+// ExtendedRunStreamEvent8 Occurs when a [run](/docs/api-reference/runs/object) expires.
+type ExtendedRunStreamEvent8 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject                    `json:"data"`
+	Event ExtendedRunStreamEvent8Event `json:"event"`
+}
+
+// ExtendedRunStreamEvent8Event defines model for ExtendedRunStreamEvent.8.Event.
+type ExtendedRunStreamEvent8Event string
+
 // ExtendedRunToolCallObject Tool call objects
 type ExtendedRunToolCallObject struct {
 	// Function The function definition.
@@ -5609,6 +6609,66 @@ type ExtendedThreadObject struct {
 
 // ExtendedThreadObjectObject The object type, which is always `thread`.
 type ExtendedThreadObjectObject string
+
+// ExtendedThreadStreamEvent defines model for ExtendedThreadStreamEvent.
+type ExtendedThreadStreamEvent struct {
+	union json.RawMessage
+}
+
+// ExtendedThreadStreamEvent0 Occurs when a new [thread](/docs/api-reference/threads/object) is created.
+type ExtendedThreadStreamEvent0 struct {
+	// Data Represents a thread that contains [messages](/docs/api-reference/messages).
+	Data  ThreadObject                    `json:"data"`
+	Event ExtendedThreadStreamEvent0Event `json:"event"`
+}
+
+// ExtendedThreadStreamEvent0Event defines model for ExtendedThreadStreamEvent.0.Event.
+type ExtendedThreadStreamEvent0Event string
+
+// ExtendedTranscriptionSegment defines model for ExtendedTranscriptionSegment.
+type ExtendedTranscriptionSegment struct {
+	// AvgLogprob Average logprob of the segment. If the value is lower than -1, consider the logprobs failed.
+	AvgLogprob float32 `json:"avg_logprob"`
+
+	// CompressionRatio Compression ratio of the segment. If the value is greater than 2.4, consider the compression failed.
+	CompressionRatio float32 `json:"compression_ratio"`
+
+	// End End time of the segment in seconds.
+	End float32 `json:"end"`
+
+	// Id Unique identifier of the segment.
+	Id int `json:"id"`
+
+	// NoSpeechProb Probability of no speech in the segment. If the value is higher than 1.0 and the `avg_logprob` is below -1, consider this segment silent.
+	NoSpeechProb float32 `json:"no_speech_prob"`
+
+	// Seek Seek offset of the segment.
+	Seek int `json:"seek"`
+
+	// Start Start time of the segment in seconds.
+	Start float32 `json:"start"`
+
+	// Temperature Temperature parameter used for generating the segment.
+	Temperature float32 `json:"temperature"`
+
+	// Text Text content of the segment.
+	Text string `json:"text"`
+
+	// Tokens Array of token IDs for the text content.
+	Tokens []int `json:"tokens"`
+}
+
+// ExtendedTranscriptionWord defines model for ExtendedTranscriptionWord.
+type ExtendedTranscriptionWord struct {
+	// End End time of the word in seconds.
+	End float32 `json:"end"`
+
+	// Start Start time of the word in seconds.
+	Start float32 `json:"start"`
+
+	// Word The text content of the word.
+	Word string `json:"word"`
+}
 
 // FineTuningJob The `fine_tuning.job` object represents a fine-tuning job that has been created through the API.
 type FineTuningJob struct {
@@ -5914,6 +6974,125 @@ type MessageContentTextObject_Text_Annotations_Item struct {
 // MessageContentTextObjectType Always `text`.
 type MessageContentTextObjectType string
 
+// MessageDeltaContentImageFileObject References an image [File](/docs/api-reference/files) in the content of a message.
+type MessageDeltaContentImageFileObject struct {
+	ImageFile *struct {
+		// FileId The [File](/docs/api-reference/files) ID of the image in the message content.
+		FileId *string `json:"file_id,omitempty"`
+	} `json:"image_file,omitempty"`
+
+	// Index The index of the content part in the message.
+	Index int `json:"index"`
+
+	// Type Always `image_file`.
+	Type MessageDeltaContentImageFileObjectType `json:"type"`
+}
+
+// MessageDeltaContentImageFileObjectType Always `image_file`.
+type MessageDeltaContentImageFileObjectType string
+
+// MessageDeltaContentTextAnnotationsFileCitationObject A citation within the message that points to a specific quote from a specific File associated with the assistant or the message. Generated when the assistant uses the "retrieval" tool to search files.
+type MessageDeltaContentTextAnnotationsFileCitationObject struct {
+	EndIndex     *int `json:"end_index,omitempty"`
+	FileCitation *struct {
+		// FileId The ID of the specific File the citation is from.
+		FileId *string `json:"file_id,omitempty"`
+
+		// Quote The specific quote in the file.
+		Quote *string `json:"quote,omitempty"`
+	} `json:"file_citation,omitempty"`
+
+	// Index The index of the annotation in the text content part.
+	Index      int  `json:"index"`
+	StartIndex *int `json:"start_index,omitempty"`
+
+	// Text The text in the message content that needs to be replaced.
+	Text *string `json:"text,omitempty"`
+
+	// Type Always `file_citation`.
+	Type MessageDeltaContentTextAnnotationsFileCitationObjectType `json:"type"`
+}
+
+// MessageDeltaContentTextAnnotationsFileCitationObjectType Always `file_citation`.
+type MessageDeltaContentTextAnnotationsFileCitationObjectType string
+
+// MessageDeltaContentTextAnnotationsFilePathObject A URL for the file that's generated when the assistant used the `code_interpreter` tool to generate a file.
+type MessageDeltaContentTextAnnotationsFilePathObject struct {
+	EndIndex *int `json:"end_index,omitempty"`
+	FilePath *struct {
+		// FileId The ID of the file that was generated.
+		FileId *string `json:"file_id,omitempty"`
+	} `json:"file_path,omitempty"`
+
+	// Index The index of the annotation in the text content part.
+	Index      int  `json:"index"`
+	StartIndex *int `json:"start_index,omitempty"`
+
+	// Text The text in the message content that needs to be replaced.
+	Text *string `json:"text,omitempty"`
+
+	// Type Always `file_path`.
+	Type MessageDeltaContentTextAnnotationsFilePathObjectType `json:"type"`
+}
+
+// MessageDeltaContentTextAnnotationsFilePathObjectType Always `file_path`.
+type MessageDeltaContentTextAnnotationsFilePathObjectType string
+
+// MessageDeltaContentTextObject The text content that is part of a message.
+type MessageDeltaContentTextObject struct {
+	// Index The index of the content part in the message.
+	Index int `json:"index"`
+	Text  *struct {
+		Annotations *[]MessageDeltaContentTextObject_Text_Annotations_Item `json:"annotations,omitempty"`
+
+		// Value The data that makes up the text.
+		Value *string `json:"value,omitempty"`
+	} `json:"text,omitempty"`
+
+	// Type Always `text`.
+	Type MessageDeltaContentTextObjectType `json:"type"`
+}
+
+// MessageDeltaContentTextObject_Text_Annotations_Item defines model for MessageDeltaContentTextObject.Text.Annotations.Item.
+type MessageDeltaContentTextObject_Text_Annotations_Item struct {
+	union json.RawMessage
+}
+
+// MessageDeltaContentTextObjectType Always `text`.
+type MessageDeltaContentTextObjectType string
+
+// MessageDeltaObject Represents a message delta i.e. any changed fields on a message during streaming.
+type MessageDeltaObject struct {
+	// Delta The delta containing the fields that have changed on the Message.
+	Delta struct {
+		// Content The content of the message in array of text and/or images.
+		Content *[]MessageDeltaObject_Delta_Content_Item `json:"content,omitempty"`
+
+		// FileIds A list of [file](/docs/api-reference/files) IDs that the assistant should use. Useful for tools like retrieval and code_interpreter that can access files. A maximum of 10 files can be attached to a message.
+		FileIds *[]string `json:"file_ids,omitempty"`
+
+		// Role The entity that produced the message. One of `user` or `assistant`.
+		Role *MessageDeltaObjectDeltaRole `json:"role,omitempty"`
+	} `json:"delta"`
+
+	// Id The identifier of the message, which can be referenced in API endpoints.
+	Id string `json:"id"`
+
+	// Object The object type, which is always `thread.message.delta`.
+	Object MessageDeltaObjectObject `json:"object"`
+}
+
+// MessageDeltaObject_Delta_Content_Item defines model for MessageDeltaObject.Delta.Content.Item.
+type MessageDeltaObject_Delta_Content_Item struct {
+	union json.RawMessage
+}
+
+// MessageDeltaObjectDeltaRole The entity that produced the message. One of `user` or `assistant`.
+type MessageDeltaObjectDeltaRole string
+
+// MessageDeltaObjectObject The object type, which is always `thread.message.delta`.
+type MessageDeltaObjectObject string
+
 // MessageFileObject A list of files attached to a `message`.
 type MessageFileObject struct {
 	// CreatedAt The Unix timestamp (in seconds) for when the message file was created.
@@ -5937,6 +7116,9 @@ type MessageObject struct {
 	// AssistantId If applicable, the ID of the [assistant](/docs/api-reference/assistants) that authored this message.
 	AssistantId *string `json:"assistant_id"`
 
+	// CompletedAt The Unix timestamp (in seconds) for when the message was completed.
+	CompletedAt *int `json:"completed_at"`
+
 	// Content The content of the message in array of text and/or images.
 	Content []MessageObject_Content_Item `json:"content"`
 
@@ -5948,6 +7130,15 @@ type MessageObject struct {
 
 	// Id The identifier, which can be referenced in API endpoints.
 	Id string `json:"id"`
+
+	// IncompleteAt The Unix timestamp (in seconds) for when the message was marked as incomplete.
+	IncompleteAt *int `json:"incomplete_at"`
+
+	// IncompleteDetails On an incomplete message, details about why the message is incomplete.
+	IncompleteDetails *struct {
+		// Reason The reason the message is incomplete.
+		Reason MessageObjectIncompleteDetailsReason `json:"reason"`
+	} `json:"incomplete_details"`
 
 	// Metadata Set of 16 key-value pairs that can be attached to an object. This can be useful for storing additional information about the object in a structured format. Keys can be a maximum of 64 characters long and values can be a maxium of 512 characters long.
 	Metadata *map[string]interface{} `json:"metadata"`
@@ -5961,6 +7152,9 @@ type MessageObject struct {
 	// RunId If applicable, the ID of the [run](/docs/api-reference/runs) associated with the authoring of this message.
 	RunId *string `json:"run_id"`
 
+	// Status The status of the message, which can be either `in_progress`, `incomplete`, or `completed`.
+	Status MessageObjectStatus `json:"status"`
+
 	// ThreadId The [thread](/docs/api-reference/threads) ID that this message belongs to.
 	ThreadId string `json:"thread_id"`
 }
@@ -5970,11 +7164,72 @@ type MessageObject_Content_Item struct {
 	union json.RawMessage
 }
 
+// MessageObjectIncompleteDetailsReason The reason the message is incomplete.
+type MessageObjectIncompleteDetailsReason string
+
 // MessageObjectObject The object type, which is always `thread.message`.
 type MessageObjectObject string
 
 // MessageObjectRole The entity that produced the message. One of `user` or `assistant`.
 type MessageObjectRole string
+
+// MessageObjectStatus The status of the message, which can be either `in_progress`, `incomplete`, or `completed`.
+type MessageObjectStatus string
+
+// MessageStreamEvent defines model for MessageStreamEvent.
+type MessageStreamEvent struct {
+	union json.RawMessage
+}
+
+// MessageStreamEvent0 Occurs when a [message](/docs/api-reference/messages/object) is created.
+type MessageStreamEvent0 struct {
+	// Data Represents a message within a [thread](/docs/api-reference/threads).
+	Data  MessageObject            `json:"data"`
+	Event MessageStreamEvent0Event `json:"event"`
+}
+
+// MessageStreamEvent0Event defines model for MessageStreamEvent.0.Event.
+type MessageStreamEvent0Event string
+
+// MessageStreamEvent1 Occurs when a [message](/docs/api-reference/messages/object) moves to an `in_progress` state.
+type MessageStreamEvent1 struct {
+	// Data Represents a message within a [thread](/docs/api-reference/threads).
+	Data  MessageObject            `json:"data"`
+	Event MessageStreamEvent1Event `json:"event"`
+}
+
+// MessageStreamEvent1Event defines model for MessageStreamEvent.1.Event.
+type MessageStreamEvent1Event string
+
+// MessageStreamEvent2 Occurs when parts of a [Message](/docs/api-reference/messages/object) are being streamed.
+type MessageStreamEvent2 struct {
+	// Data Represents a message delta i.e. any changed fields on a message during streaming.
+	Data  MessageDeltaObject       `json:"data"`
+	Event MessageStreamEvent2Event `json:"event"`
+}
+
+// MessageStreamEvent2Event defines model for MessageStreamEvent.2.Event.
+type MessageStreamEvent2Event string
+
+// MessageStreamEvent3 Occurs when a [message](/docs/api-reference/messages/object) is completed.
+type MessageStreamEvent3 struct {
+	// Data Represents a message within a [thread](/docs/api-reference/threads).
+	Data  MessageObject            `json:"data"`
+	Event MessageStreamEvent3Event `json:"event"`
+}
+
+// MessageStreamEvent3Event defines model for MessageStreamEvent.3.Event.
+type MessageStreamEvent3Event string
+
+// MessageStreamEvent4 Occurs when a [message](/docs/api-reference/messages/object) ends before it is completed.
+type MessageStreamEvent4 struct {
+	// Data Represents a message within a [thread](/docs/api-reference/threads).
+	Data  MessageObject            `json:"data"`
+	Event MessageStreamEvent4Event `json:"event"`
+}
+
+// MessageStreamEvent4Event defines model for MessageStreamEvent.4.Event.
+type MessageStreamEvent4Event string
 
 // Model Describes an OpenAI model offering that can be used with the API.
 type Model struct {
@@ -6114,7 +7369,7 @@ type RunObject struct {
 	CreatedAt int `json:"created_at"`
 
 	// ExpiresAt The Unix timestamp (in seconds) for when the run will expire.
-	ExpiresAt int `json:"expires_at"`
+	ExpiresAt *int `json:"expires_at"`
 
 	// FailedAt The Unix timestamp (in seconds) for when the run failed.
 	FailedAt *int `json:"failed_at"`
@@ -6130,7 +7385,7 @@ type RunObject struct {
 
 	// LastError The last error associated with this run. Will be `null` if there are no errors.
 	LastError *struct {
-		// Code One of `server_error` or `rate_limit_exceeded`.
+		// Code One of `server_error`, `rate_limit_exceeded`, or `invalid_prompt`.
 		Code RunObjectLastErrorCode `json:"code"`
 
 		// Message A human-readable description of the error.
@@ -6174,7 +7429,7 @@ type RunObject struct {
 	Usage *RunCompletionUsage `json:"usage"`
 }
 
-// RunObjectLastErrorCode One of `server_error` or `rate_limit_exceeded`.
+// RunObjectLastErrorCode One of `server_error`, `rate_limit_exceeded`, or `invalid_prompt`.
 type RunObjectLastErrorCode string
 
 // RunObjectObject The object type, which is always `thread.run`.
@@ -6202,6 +7457,166 @@ type RunStepCompletionUsage struct {
 	// TotalTokens Total number of tokens used (prompt + completion).
 	TotalTokens int `json:"total_tokens"`
 }
+
+// RunStepDeltaObject Represents a run step delta i.e. any changed fields on a run step during streaming.
+type RunStepDeltaObject struct {
+	// Delta The delta containing the fields that have changed on the run step.
+	Delta struct {
+		// StepDetails The details of the run step.
+		StepDetails *RunStepDeltaObject_Delta_StepDetails `json:"step_details,omitempty"`
+	} `json:"delta"`
+
+	// Id The identifier of the run step, which can be referenced in API endpoints.
+	Id string `json:"id"`
+
+	// Object The object type, which is always `thread.run.step.delta`.
+	Object RunStepDeltaObjectObject `json:"object"`
+}
+
+// RunStepDeltaObject_Delta_StepDetails The details of the run step.
+type RunStepDeltaObject_Delta_StepDetails struct {
+	union json.RawMessage
+}
+
+// RunStepDeltaObjectObject The object type, which is always `thread.run.step.delta`.
+type RunStepDeltaObjectObject string
+
+// RunStepDeltaStepDetailsMessageCreationObject Details of the message creation by the run step.
+type RunStepDeltaStepDetailsMessageCreationObject struct {
+	MessageCreation *struct {
+		// MessageId The ID of the message that was created by this run step.
+		MessageId *string `json:"message_id,omitempty"`
+	} `json:"message_creation,omitempty"`
+
+	// Type Always `message_creation`.
+	Type RunStepDeltaStepDetailsMessageCreationObjectType `json:"type"`
+}
+
+// RunStepDeltaStepDetailsMessageCreationObjectType Always `message_creation`.
+type RunStepDeltaStepDetailsMessageCreationObjectType string
+
+// RunStepDeltaStepDetailsToolCallsCodeObject Details of the Code Interpreter tool call the run step was involved in.
+type RunStepDeltaStepDetailsToolCallsCodeObject struct {
+	// CodeInterpreter The Code Interpreter tool call definition.
+	CodeInterpreter *struct {
+		// Input The input to the Code Interpreter tool call.
+		Input *string `json:"input,omitempty"`
+
+		// Outputs The outputs from the Code Interpreter tool call. Code Interpreter can output one or more items, including text (`logs`) or images (`image`). Each of these are represented by a different object type.
+		Outputs *[]RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item `json:"outputs,omitempty"`
+	} `json:"code_interpreter,omitempty"`
+
+	// Id The ID of the tool call.
+	Id *string `json:"id,omitempty"`
+
+	// Index The index of the tool call in the tool calls array.
+	Index int `json:"index"`
+
+	// Type The type of tool call. This is always going to be `code_interpreter` for this type of tool call.
+	Type RunStepDeltaStepDetailsToolCallsCodeObjectType `json:"type"`
+}
+
+// RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item defines model for RunStepDeltaStepDetailsToolCallsCodeObject.CodeInterpreter.Outputs.Item.
+type RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item struct {
+	union json.RawMessage
+}
+
+// RunStepDeltaStepDetailsToolCallsCodeObjectType The type of tool call. This is always going to be `code_interpreter` for this type of tool call.
+type RunStepDeltaStepDetailsToolCallsCodeObjectType string
+
+// RunStepDeltaStepDetailsToolCallsCodeOutputImageObject defines model for RunStepDeltaStepDetailsToolCallsCodeOutputImageObject.
+type RunStepDeltaStepDetailsToolCallsCodeOutputImageObject struct {
+	Image *struct {
+		// FileId The [file](/docs/api-reference/files) ID of the image.
+		FileId *string `json:"file_id,omitempty"`
+	} `json:"image,omitempty"`
+
+	// Index The index of the output in the outputs array.
+	Index int `json:"index"`
+
+	// Type Always `image`.
+	Type RunStepDeltaStepDetailsToolCallsCodeOutputImageObjectType `json:"type"`
+}
+
+// RunStepDeltaStepDetailsToolCallsCodeOutputImageObjectType Always `image`.
+type RunStepDeltaStepDetailsToolCallsCodeOutputImageObjectType string
+
+// RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject Text output from the Code Interpreter tool call as part of a run step.
+type RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject struct {
+	// Index The index of the output in the outputs array.
+	Index int `json:"index"`
+
+	// Logs The text output from the Code Interpreter tool call.
+	Logs *string `json:"logs,omitempty"`
+
+	// Type Always `logs`.
+	Type RunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectType `json:"type"`
+}
+
+// RunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectType Always `logs`.
+type RunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectType string
+
+// RunStepDeltaStepDetailsToolCallsFunctionObject defines model for RunStepDeltaStepDetailsToolCallsFunctionObject.
+type RunStepDeltaStepDetailsToolCallsFunctionObject struct {
+	// Function The definition of the function that was called.
+	Function *struct {
+		// Arguments The arguments passed to the function.
+		Arguments *string `json:"arguments,omitempty"`
+
+		// Name The name of the function.
+		Name *string `json:"name,omitempty"`
+
+		// Output The output of the function. This will be `null` if the outputs have not been [submitted](/docs/api-reference/runs/submitToolOutputs) yet.
+		Output *string `json:"output"`
+	} `json:"function,omitempty"`
+
+	// Id The ID of the tool call object.
+	Id *string `json:"id,omitempty"`
+
+	// Index The index of the tool call in the tool calls array.
+	Index int `json:"index"`
+
+	// Type The type of tool call. This is always going to be `function` for this type of tool call.
+	Type RunStepDeltaStepDetailsToolCallsFunctionObjectType `json:"type"`
+}
+
+// RunStepDeltaStepDetailsToolCallsFunctionObjectType The type of tool call. This is always going to be `function` for this type of tool call.
+type RunStepDeltaStepDetailsToolCallsFunctionObjectType string
+
+// RunStepDeltaStepDetailsToolCallsObject Details of the tool call.
+type RunStepDeltaStepDetailsToolCallsObject struct {
+	// ToolCalls An array of tool calls the run step was involved in. These can be associated with one of three types of tools: `code_interpreter`, `retrieval`, or `function`.
+	ToolCalls *[]RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item `json:"tool_calls,omitempty"`
+
+	// Type Always `tool_calls`.
+	Type RunStepDeltaStepDetailsToolCallsObjectType `json:"type"`
+}
+
+// RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item defines model for RunStepDeltaStepDetailsToolCallsObject.tool_calls.Item.
+type RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item struct {
+	union json.RawMessage
+}
+
+// RunStepDeltaStepDetailsToolCallsObjectType Always `tool_calls`.
+type RunStepDeltaStepDetailsToolCallsObjectType string
+
+// RunStepDeltaStepDetailsToolCallsRetrievalObject defines model for RunStepDeltaStepDetailsToolCallsRetrievalObject.
+type RunStepDeltaStepDetailsToolCallsRetrievalObject struct {
+	// Id The ID of the tool call object.
+	Id *string `json:"id,omitempty"`
+
+	// Index The index of the tool call in the tool calls array.
+	Index int `json:"index"`
+
+	// Retrieval For now, this is always going to be an empty object.
+	Retrieval *map[string]interface{} `json:"retrieval,omitempty"`
+
+	// Type The type of tool call. This is always going to be `retrieval` for this type of tool call.
+	Type RunStepDeltaStepDetailsToolCallsRetrievalObjectType `json:"type"`
+}
+
+// RunStepDeltaStepDetailsToolCallsRetrievalObjectType The type of tool call. This is always going to be `retrieval` for this type of tool call.
+type RunStepDeltaStepDetailsToolCallsRetrievalObjectType string
 
 // RunStepDetailsMessageCreationObject Details of the message creation by the run step.
 type RunStepDetailsMessageCreationObject struct {
@@ -6399,6 +7814,176 @@ type RunStepObject_StepDetails struct {
 // RunStepObjectType The type of run step, which can be either `message_creation` or `tool_calls`.
 type RunStepObjectType string
 
+// RunStepStreamEvent defines model for RunStepStreamEvent.
+type RunStepStreamEvent struct {
+	union json.RawMessage
+}
+
+// RunStepStreamEvent0 Occurs when a [run step](/docs/api-reference/runs/step-object) is created.
+type RunStepStreamEvent0 struct {
+	// Data Represents a step in execution of a run.
+	Data  RunStepObject            `json:"data"`
+	Event RunStepStreamEvent0Event `json:"event"`
+}
+
+// RunStepStreamEvent0Event defines model for RunStepStreamEvent.0.Event.
+type RunStepStreamEvent0Event string
+
+// RunStepStreamEvent1 Occurs when a [run step](/docs/api-reference/runs/step-object) moves to an `in_progress` state.
+type RunStepStreamEvent1 struct {
+	// Data Represents a step in execution of a run.
+	Data  RunStepObject            `json:"data"`
+	Event RunStepStreamEvent1Event `json:"event"`
+}
+
+// RunStepStreamEvent1Event defines model for RunStepStreamEvent.1.Event.
+type RunStepStreamEvent1Event string
+
+// RunStepStreamEvent2 Occurs when parts of a [run step](/docs/api-reference/runs/step-object) are being streamed.
+type RunStepStreamEvent2 struct {
+	// Data Represents a run step delta i.e. any changed fields on a run step during streaming.
+	Data  RunStepDeltaObject       `json:"data"`
+	Event RunStepStreamEvent2Event `json:"event"`
+}
+
+// RunStepStreamEvent2Event defines model for RunStepStreamEvent.2.Event.
+type RunStepStreamEvent2Event string
+
+// RunStepStreamEvent3 Occurs when a [run step](/docs/api-reference/runs/step-object) is completed.
+type RunStepStreamEvent3 struct {
+	// Data Represents a step in execution of a run.
+	Data  RunStepObject            `json:"data"`
+	Event RunStepStreamEvent3Event `json:"event"`
+}
+
+// RunStepStreamEvent3Event defines model for RunStepStreamEvent.3.Event.
+type RunStepStreamEvent3Event string
+
+// RunStepStreamEvent4 Occurs when a [run step](/docs/api-reference/runs/step-object) fails.
+type RunStepStreamEvent4 struct {
+	// Data Represents a step in execution of a run.
+	Data  RunStepObject            `json:"data"`
+	Event RunStepStreamEvent4Event `json:"event"`
+}
+
+// RunStepStreamEvent4Event defines model for RunStepStreamEvent.4.Event.
+type RunStepStreamEvent4Event string
+
+// RunStepStreamEvent5 Occurs when a [run step](/docs/api-reference/runs/step-object) is cancelled.
+type RunStepStreamEvent5 struct {
+	// Data Represents a step in execution of a run.
+	Data  RunStepObject            `json:"data"`
+	Event RunStepStreamEvent5Event `json:"event"`
+}
+
+// RunStepStreamEvent5Event defines model for RunStepStreamEvent.5.Event.
+type RunStepStreamEvent5Event string
+
+// RunStepStreamEvent6 Occurs when a [run step](/docs/api-reference/runs/step-object) expires.
+type RunStepStreamEvent6 struct {
+	// Data Represents a step in execution of a run.
+	Data  RunStepObject            `json:"data"`
+	Event RunStepStreamEvent6Event `json:"event"`
+}
+
+// RunStepStreamEvent6Event defines model for RunStepStreamEvent.6.Event.
+type RunStepStreamEvent6Event string
+
+// RunStreamEvent defines model for RunStreamEvent.
+type RunStreamEvent struct {
+	union json.RawMessage
+}
+
+// RunStreamEvent0 Occurs when a new [run](/docs/api-reference/runs/object) is created.
+type RunStreamEvent0 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject            `json:"data"`
+	Event RunStreamEvent0Event `json:"event"`
+}
+
+// RunStreamEvent0Event defines model for RunStreamEvent.0.Event.
+type RunStreamEvent0Event string
+
+// RunStreamEvent1 Occurs when a [run](/docs/api-reference/runs/object) moves to a `queued` status.
+type RunStreamEvent1 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject            `json:"data"`
+	Event RunStreamEvent1Event `json:"event"`
+}
+
+// RunStreamEvent1Event defines model for RunStreamEvent.1.Event.
+type RunStreamEvent1Event string
+
+// RunStreamEvent2 Occurs when a [run](/docs/api-reference/runs/object) moves to an `in_progress` status.
+type RunStreamEvent2 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject            `json:"data"`
+	Event RunStreamEvent2Event `json:"event"`
+}
+
+// RunStreamEvent2Event defines model for RunStreamEvent.2.Event.
+type RunStreamEvent2Event string
+
+// RunStreamEvent3 Occurs when a [run](/docs/api-reference/runs/object) moves to a `requires_action` status.
+type RunStreamEvent3 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject            `json:"data"`
+	Event RunStreamEvent3Event `json:"event"`
+}
+
+// RunStreamEvent3Event defines model for RunStreamEvent.3.Event.
+type RunStreamEvent3Event string
+
+// RunStreamEvent4 Occurs when a [run](/docs/api-reference/runs/object) is completed.
+type RunStreamEvent4 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject            `json:"data"`
+	Event RunStreamEvent4Event `json:"event"`
+}
+
+// RunStreamEvent4Event defines model for RunStreamEvent.4.Event.
+type RunStreamEvent4Event string
+
+// RunStreamEvent5 Occurs when a [run](/docs/api-reference/runs/object) fails.
+type RunStreamEvent5 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject            `json:"data"`
+	Event RunStreamEvent5Event `json:"event"`
+}
+
+// RunStreamEvent5Event defines model for RunStreamEvent.5.Event.
+type RunStreamEvent5Event string
+
+// RunStreamEvent6 Occurs when a [run](/docs/api-reference/runs/object) moves to a `cancelling` status.
+type RunStreamEvent6 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject            `json:"data"`
+	Event RunStreamEvent6Event `json:"event"`
+}
+
+// RunStreamEvent6Event defines model for RunStreamEvent.6.Event.
+type RunStreamEvent6Event string
+
+// RunStreamEvent7 Occurs when a [run](/docs/api-reference/runs/object) is cancelled.
+type RunStreamEvent7 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject            `json:"data"`
+	Event RunStreamEvent7Event `json:"event"`
+}
+
+// RunStreamEvent7Event defines model for RunStreamEvent.7.Event.
+type RunStreamEvent7Event string
+
+// RunStreamEvent8 Occurs when a [run](/docs/api-reference/runs/object) expires.
+type RunStreamEvent8 struct {
+	// Data Represents an execution run on a [thread](/docs/api-reference/threads).
+	Data  RunObject            `json:"data"`
+	Event RunStreamEvent8Event `json:"event"`
+}
+
+// RunStreamEvent8Event defines model for RunStreamEvent.8.Event.
+type RunStreamEvent8Event string
+
 // RunToolCallObject Tool call objects
 type RunToolCallObject struct {
 	// Function The function definition.
@@ -6422,6 +8007,9 @@ type RunToolCallObjectType string
 
 // SubmitToolOutputsRunRequest defines model for SubmitToolOutputsRunRequest.
 type SubmitToolOutputsRunRequest struct {
+	// Stream If `true`, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a `data: [DONE]` message.
+	Stream *bool `json:"stream"`
+
 	// ToolOutputs A list of tools for which the outputs are being submitted.
 	ToolOutputs []struct {
 		// Output The output of the tool call to be submitted to continue the run.
@@ -6449,6 +8037,66 @@ type ThreadObject struct {
 
 // ThreadObjectObject The object type, which is always `thread`.
 type ThreadObjectObject string
+
+// ThreadStreamEvent defines model for ThreadStreamEvent.
+type ThreadStreamEvent struct {
+	union json.RawMessage
+}
+
+// ThreadStreamEvent0 Occurs when a new [thread](/docs/api-reference/threads/object) is created.
+type ThreadStreamEvent0 struct {
+	// Data Represents a thread that contains [messages](/docs/api-reference/messages).
+	Data  ThreadObject            `json:"data"`
+	Event ThreadStreamEvent0Event `json:"event"`
+}
+
+// ThreadStreamEvent0Event defines model for ThreadStreamEvent.0.Event.
+type ThreadStreamEvent0Event string
+
+// TranscriptionSegment defines model for TranscriptionSegment.
+type TranscriptionSegment struct {
+	// AvgLogprob Average logprob of the segment. If the value is lower than -1, consider the logprobs failed.
+	AvgLogprob float32 `json:"avg_logprob"`
+
+	// CompressionRatio Compression ratio of the segment. If the value is greater than 2.4, consider the compression failed.
+	CompressionRatio float32 `json:"compression_ratio"`
+
+	// End End time of the segment in seconds.
+	End float32 `json:"end"`
+
+	// Id Unique identifier of the segment.
+	Id int `json:"id"`
+
+	// NoSpeechProb Probability of no speech in the segment. If the value is higher than 1.0 and the `avg_logprob` is below -1, consider this segment silent.
+	NoSpeechProb float32 `json:"no_speech_prob"`
+
+	// Seek Seek offset of the segment.
+	Seek int `json:"seek"`
+
+	// Start Start time of the segment in seconds.
+	Start float32 `json:"start"`
+
+	// Temperature Temperature parameter used for generating the segment.
+	Temperature float32 `json:"temperature"`
+
+	// Text Text content of the segment.
+	Text string `json:"text"`
+
+	// Tokens Array of token IDs for the text content.
+	Tokens []int `json:"tokens"`
+}
+
+// TranscriptionWord defines model for TranscriptionWord.
+type TranscriptionWord struct {
+	// End End time of the word in seconds.
+	End float32 `json:"end"`
+
+	// Start Start time of the word in seconds.
+	Start float32 `json:"start"`
+
+	// Word The text content of the word.
+	Word string `json:"word"`
+}
 
 // XCreateToolRequest defines model for XCreateToolRequest.
 type XCreateToolRequest struct {
@@ -6493,126 +8141,6 @@ type XListToolsResponse struct {
 	Object  string        `json:"object"`
 }
 
-// XMessageDeltaContentImageFileObject References an image [File](/docs/api-reference/files) in the content of a message.
-type XMessageDeltaContentImageFileObject struct {
-	ImageFile struct {
-		// FileId The [File](/docs/api-reference/files) ID of the image in the message content.
-		FileId string `json:"file_id"`
-	} `json:"image_file"`
-
-	// Index The index of the content part in the message.
-	Index *int `json:"index,omitempty"`
-
-	// Type Always `image_file`.
-	Type XMessageDeltaContentImageFileObjectType `json:"type"`
-}
-
-// XMessageDeltaContentImageFileObjectType Always `image_file`.
-type XMessageDeltaContentImageFileObjectType string
-
-// XMessageDeltaContentTextObject defines model for XMessageDeltaContentTextObject.
-type XMessageDeltaContentTextObject struct {
-	// Index The index of the content part in the message.
-	Index *int                                `json:"index,omitempty"`
-	Text  *XMessageDeltaContentTextObjectText `json:"text,omitempty"`
-
-	// Type Always `text`.
-	Type XMessageDeltaContentTextObjectType `json:"type"`
-}
-
-// XMessageDeltaContentTextObjectType Always `text`.
-type XMessageDeltaContentTextObjectType string
-
-// XMessageDeltaContentTextObjectText defines model for XMessageDeltaContentTextObjectText.
-type XMessageDeltaContentTextObjectText struct {
-	Annotations *[]XMessageDeltaContentTextObjectText_Annotations_Item `json:"annotations,omitempty"`
-	Text        *string                                                `json:"text,omitempty"`
-}
-
-// XMessageDeltaContentTextObjectText_Annotations_Item defines model for XMessageDeltaContentTextObjectText.annotations.Item.
-type XMessageDeltaContentTextObjectText_Annotations_Item struct {
-	union json.RawMessage
-}
-
-// XMessageDeltaContentTextObjectTextAnnotationFileCitation defines model for XMessageDeltaContentTextObjectTextAnnotationFileCitation.
-type XMessageDeltaContentTextObjectTextAnnotationFileCitation struct {
-	EndIndex     *int                                                            `json:"end_index,omitempty"`
-	FileCitation *XMessageDeltaContentTextObjectTextAnnotationFileCitationObject `json:"file_citation,omitempty"`
-	Index        *int                                                            `json:"index,omitempty"`
-	StartIndex   *int                                                            `json:"start_index,omitempty"`
-	Text         *string                                                         `json:"text,omitempty"`
-	Type         *XMessageDeltaContentTextObjectTextAnnotationFileCitationType   `json:"type,omitempty"`
-}
-
-// XMessageDeltaContentTextObjectTextAnnotationFileCitationType defines model for XMessageDeltaContentTextObjectTextAnnotationFileCitation.Type.
-type XMessageDeltaContentTextObjectTextAnnotationFileCitationType string
-
-// XMessageDeltaContentTextObjectTextAnnotationFileCitationObject defines model for XMessageDeltaContentTextObjectTextAnnotationFileCitationObject.
-type XMessageDeltaContentTextObjectTextAnnotationFileCitationObject struct {
-	FileId string `json:"file_id"`
-	Quote  string `json:"quote"`
-}
-
-// XMessageDeltaContentTextObjectTextAnnotationFilePath defines model for XMessageDeltaContentTextObjectTextAnnotationFilePath.
-type XMessageDeltaContentTextObjectTextAnnotationFilePath struct {
-	EndIndex   *int                                                        `json:"end_index,omitempty"`
-	FilePath   *XMessageDeltaContentTextObjectTextAnnotationFilePathObject `json:"file_path,omitempty"`
-	Index      *int                                                        `json:"index,omitempty"`
-	StartIndex *int                                                        `json:"start_index,omitempty"`
-	Text       *string                                                     `json:"text,omitempty"`
-	Type       *XMessageDeltaContentTextObjectTextAnnotationFilePathType   `json:"type,omitempty"`
-}
-
-// XMessageDeltaContentTextObjectTextAnnotationFilePathType defines model for XMessageDeltaContentTextObjectTextAnnotationFilePath.Type.
-type XMessageDeltaContentTextObjectTextAnnotationFilePathType string
-
-// XMessageDeltaContentTextObjectTextAnnotationFilePathObject defines model for XMessageDeltaContentTextObjectTextAnnotationFilePathObject.
-type XMessageDeltaContentTextObjectTextAnnotationFilePathObject struct {
-	FileId string `json:"file_id"`
-}
-
-// XMessageDeltaObject Represents a message delta i.e. any changed fields on a message during streaming.
-type XMessageDeltaObject struct {
-	Delta *XMessageDeltaObjectDelta `json:"delta,omitempty"`
-
-	// Id The identifier, which can be referenced in API endpoints.
-	Id string `json:"id"`
-
-	// Object The object type, which is always `thread.message.delta`.
-	Object XMessageDeltaObjectObject `json:"object"`
-}
-
-// XMessageDeltaObjectObject The object type, which is always `thread.message.delta`.
-type XMessageDeltaObjectObject string
-
-// XMessageDeltaObjectDelta defines model for XMessageDeltaObjectDelta.
-type XMessageDeltaObjectDelta struct {
-	// Content The content of the message in array of text and/or images.
-	Content XMessageDeltaObjectDeltaContent `json:"content"`
-
-	// FileIds A list of [file](/docs/api-reference/files) IDs that the assistant should use. Useful for tools like retrieval and code_interpreter that can access files. A maximum of 10 files can be attached to a message.
-	FileIds *[]string `json:"file_ids,omitempty"`
-
-	// Role The entity that produced the message. One of `user` or `assistant`.
-	Role *XMessageDeltaObjectDeltaRole `json:"role,omitempty"`
-}
-
-// XMessageDeltaObjectDeltaRole The entity that produced the message. One of `user` or `assistant`.
-type XMessageDeltaObjectDeltaRole string
-
-// XMessageDeltaObjectDeltaContent The content of the message in array of text and/or images.
-type XMessageDeltaObjectDeltaContent = []XMessageDeltaObjectDeltaContent_Item
-
-// XMessageDeltaObjectDeltaContent_Item defines model for XMessageDeltaObjectDeltaContent.Item.
-type XMessageDeltaObjectDeltaContent_Item struct {
-	union json.RawMessage
-}
-
-// XMessageDeltaObjectDeltaMessageCreation defines model for XMessageDeltaObjectDeltaMessageCreation.
-type XMessageDeltaObjectDeltaMessageCreation struct {
-	MessageId string `json:"message_id"`
-}
-
 // XModifyToolRequest defines model for XModifyToolRequest.
 type XModifyToolRequest struct {
 	// Contents Contents of the tool
@@ -6630,128 +8158,6 @@ type XModifyToolRequest struct {
 	// Url URL of the tool
 	Url *string `json:"url"`
 }
-
-// XRunStepDeltaDetailsToolCallsFunctionObject defines model for XRunStepDeltaDetailsToolCallsFunctionObject.
-type XRunStepDeltaDetailsToolCallsFunctionObject struct {
-	Arguments *string `json:"arguments,omitempty"`
-	Name      string  `json:"name"`
-	Output    *string `json:"output,omitempty"`
-}
-
-// XRunStepDeltaObject defines model for XRunStepDeltaObject.
-type XRunStepDeltaObject struct {
-	Delta  XRunStepDeltaObjectDelta  `json:"delta"`
-	Id     string                    `json:"id"`
-	Object XRunStepDeltaObjectObject `json:"object"`
-}
-
-// XRunStepDeltaObjectObject defines model for XRunStepDeltaObject.Object.
-type XRunStepDeltaObjectObject string
-
-// XRunStepDeltaObjectDelta defines model for XRunStepDeltaObjectDelta.
-type XRunStepDeltaObjectDelta struct {
-	StepDetails *XRunStepDeltaObjectDelta_StepDetails `json:"step_details,omitempty"`
-}
-
-// XRunStepDeltaObjectDelta_StepDetails defines model for XRunStepDeltaObjectDelta.StepDetails.
-type XRunStepDeltaObjectDelta_StepDetails struct {
-	union json.RawMessage
-}
-
-// XRunStepDeltaObjectDeltaMessageCreation defines model for XRunStepDeltaObjectDeltaMessageCreation.
-type XRunStepDeltaObjectDeltaMessageCreation struct {
-	MessageCreation XMessageDeltaObjectDeltaMessageCreation     `json:"message_creation"`
-	Type            XRunStepDeltaObjectDeltaMessageCreationType `json:"type"`
-}
-
-// XRunStepDeltaObjectDeltaMessageCreationType defines model for XRunStepDeltaObjectDeltaMessageCreation.Type.
-type XRunStepDeltaObjectDeltaMessageCreationType string
-
-// XRunStepDeltaObjectDeltaToolCalls defines model for XRunStepDeltaObjectDeltaToolCalls.
-type XRunStepDeltaObjectDeltaToolCalls struct {
-	ToolCalls []XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item `json:"tool_calls"`
-	Type      XRunStepDeltaObjectDeltaToolCallsType              `json:"type"`
-}
-
-// XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item defines model for XRunStepDeltaObjectDeltaToolCalls.tool_calls.Item.
-type XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item struct {
-	union json.RawMessage
-}
-
-// XRunStepDeltaObjectDeltaToolCallsType defines model for XRunStepDeltaObjectDeltaToolCalls.Type.
-type XRunStepDeltaObjectDeltaToolCallsType string
-
-// XRunStepDeltaObjectDeltaToolCallsObjectCode defines model for XRunStepDeltaObjectDeltaToolCallsObjectCode.
-type XRunStepDeltaObjectDeltaToolCallsObjectCode struct {
-	CodeInterpreter XRunStepDetailsToolCallsCodeObject              `json:"code_interpreter"`
-	Id              string                                          `json:"id"`
-	Index           int                                             `json:"index"`
-	Type            XRunStepDeltaObjectDeltaToolCallsObjectCodeType `json:"type"`
-}
-
-// XRunStepDeltaObjectDeltaToolCallsObjectCodeType defines model for XRunStepDeltaObjectDeltaToolCallsObjectCode.Type.
-type XRunStepDeltaObjectDeltaToolCallsObjectCodeType string
-
-// XRunStepDeltaObjectDeltaToolCallsObjectFunction defines model for XRunStepDeltaObjectDeltaToolCallsObjectFunction.
-type XRunStepDeltaObjectDeltaToolCallsObjectFunction struct {
-	Function *XRunStepDeltaDetailsToolCallsFunctionObject        `json:"function,omitempty"`
-	Id       string                                              `json:"id"`
-	Index    int                                                 `json:"index"`
-	Type     XRunStepDeltaObjectDeltaToolCallsObjectFunctionType `json:"type"`
-}
-
-// XRunStepDeltaObjectDeltaToolCallsObjectFunctionType defines model for XRunStepDeltaObjectDeltaToolCallsObjectFunction.Type.
-type XRunStepDeltaObjectDeltaToolCallsObjectFunctionType string
-
-// XRunStepDeltaObjectDeltaToolCallsObjectRetrieval defines model for XRunStepDeltaObjectDeltaToolCallsObjectRetrieval.
-type XRunStepDeltaObjectDeltaToolCallsObjectRetrieval struct {
-	Id    string `json:"id"`
-	Index int    `json:"index"`
-
-	// Retrieval For now, this is always going to be an empty object.
-	Retrieval *map[string]interface{}                              `json:"retrieval,omitempty"`
-	Type      XRunStepDeltaObjectDeltaToolCallsObjectRetrievalType `json:"type"`
-}
-
-// XRunStepDeltaObjectDeltaToolCallsObjectRetrievalType defines model for XRunStepDeltaObjectDeltaToolCallsObjectRetrieval.Type.
-type XRunStepDeltaObjectDeltaToolCallsObjectRetrievalType string
-
-// XRunStepDetailsToolCallsCodeObject defines model for XRunStepDetailsToolCallsCodeObject.
-type XRunStepDetailsToolCallsCodeObject struct {
-	// Input The input to the Code Interpreter tool call.
-	Input   *string                                            `json:"input,omitempty"`
-	Outputs *[]XRunStepDetailsToolCallsCodeObject_Outputs_Item `json:"outputs,omitempty"`
-}
-
-// XRunStepDetailsToolCallsCodeObject_Outputs_Item defines model for XRunStepDetailsToolCallsCodeObject.outputs.Item.
-type XRunStepDetailsToolCallsCodeObject_Outputs_Item struct {
-	union json.RawMessage
-}
-
-// XRunStepDetailsToolCallsCodeObjectImageOutput defines model for XRunStepDetailsToolCallsCodeObjectImageOutput.
-type XRunStepDetailsToolCallsCodeObjectImageOutput struct {
-	Image XRunStepDetailsToolCallsCodeObjectImageOutputObject `json:"image"`
-	Index int                                                 `json:"index"`
-	Type  XRunStepDetailsToolCallsCodeObjectImageOutputType   `json:"type"`
-}
-
-// XRunStepDetailsToolCallsCodeObjectImageOutputType defines model for XRunStepDetailsToolCallsCodeObjectImageOutput.Type.
-type XRunStepDetailsToolCallsCodeObjectImageOutputType string
-
-// XRunStepDetailsToolCallsCodeObjectImageOutputObject defines model for XRunStepDetailsToolCallsCodeObjectImageOutputObject.
-type XRunStepDetailsToolCallsCodeObjectImageOutputObject struct {
-	FileId string `json:"file_id"`
-}
-
-// XRunStepDetailsToolCallsCodeObjectLogOutput defines model for XRunStepDetailsToolCallsCodeObjectLogOutput.
-type XRunStepDetailsToolCallsCodeObjectLogOutput struct {
-	Index int                                             `json:"index"`
-	Log   string                                          `json:"log"`
-	Type  XRunStepDetailsToolCallsCodeObjectLogOutputType `json:"type"`
-}
-
-// XRunStepDetailsToolCallsCodeObjectLogOutputType defines model for XRunStepDetailsToolCallsCodeObjectLogOutput.Type.
-type XRunStepDetailsToolCallsCodeObjectLogOutputType string
 
 // XToolObject defines model for XToolObject.
 type XToolObject struct {
@@ -6995,6 +8401,11 @@ type ListThreadsParams struct {
 
 // ListThreadsParamsOrder defines parameters for ListThreads.
 type ListThreadsParamsOrder string
+
+// StreamRunParams defines parameters for StreamRun.
+type StreamRunParams struct {
+	Index *int `form:"index,omitempty" json:"index,omitempty"`
+}
 
 // ListToolsParams defines parameters for ListTools.
 type ListToolsParams struct {
@@ -7314,6 +8725,172 @@ func (t AssistantObject_Tools_Item) MarshalJSON() ([]byte, error) {
 }
 
 func (t *AssistantObject_Tools_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsThreadStreamEvent returns the union data inside the AssistantStreamEvent as a ThreadStreamEvent
+func (t AssistantStreamEvent) AsThreadStreamEvent() (ThreadStreamEvent, error) {
+	var body ThreadStreamEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromThreadStreamEvent overwrites any union data inside the AssistantStreamEvent as the provided ThreadStreamEvent
+func (t *AssistantStreamEvent) FromThreadStreamEvent(v ThreadStreamEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeThreadStreamEvent performs a merge with any union data inside the AssistantStreamEvent, using the provided ThreadStreamEvent
+func (t *AssistantStreamEvent) MergeThreadStreamEvent(v ThreadStreamEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStreamEvent returns the union data inside the AssistantStreamEvent as a RunStreamEvent
+func (t AssistantStreamEvent) AsRunStreamEvent() (RunStreamEvent, error) {
+	var body RunStreamEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStreamEvent overwrites any union data inside the AssistantStreamEvent as the provided RunStreamEvent
+func (t *AssistantStreamEvent) FromRunStreamEvent(v RunStreamEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStreamEvent performs a merge with any union data inside the AssistantStreamEvent, using the provided RunStreamEvent
+func (t *AssistantStreamEvent) MergeRunStreamEvent(v RunStreamEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepStreamEvent returns the union data inside the AssistantStreamEvent as a RunStepStreamEvent
+func (t AssistantStreamEvent) AsRunStepStreamEvent() (RunStepStreamEvent, error) {
+	var body RunStepStreamEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepStreamEvent overwrites any union data inside the AssistantStreamEvent as the provided RunStepStreamEvent
+func (t *AssistantStreamEvent) FromRunStepStreamEvent(v RunStepStreamEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepStreamEvent performs a merge with any union data inside the AssistantStreamEvent, using the provided RunStepStreamEvent
+func (t *AssistantStreamEvent) MergeRunStepStreamEvent(v RunStepStreamEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMessageStreamEvent returns the union data inside the AssistantStreamEvent as a MessageStreamEvent
+func (t AssistantStreamEvent) AsMessageStreamEvent() (MessageStreamEvent, error) {
+	var body MessageStreamEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageStreamEvent overwrites any union data inside the AssistantStreamEvent as the provided MessageStreamEvent
+func (t *AssistantStreamEvent) FromMessageStreamEvent(v MessageStreamEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageStreamEvent performs a merge with any union data inside the AssistantStreamEvent, using the provided MessageStreamEvent
+func (t *AssistantStreamEvent) MergeMessageStreamEvent(v MessageStreamEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsErrorEvent returns the union data inside the AssistantStreamEvent as a ErrorEvent
+func (t AssistantStreamEvent) AsErrorEvent() (ErrorEvent, error) {
+	var body ErrorEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromErrorEvent overwrites any union data inside the AssistantStreamEvent as the provided ErrorEvent
+func (t *AssistantStreamEvent) FromErrorEvent(v ErrorEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeErrorEvent performs a merge with any union data inside the AssistantStreamEvent, using the provided ErrorEvent
+func (t *AssistantStreamEvent) MergeErrorEvent(v ErrorEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDoneEvent returns the union data inside the AssistantStreamEvent as a DoneEvent
+func (t AssistantStreamEvent) AsDoneEvent() (DoneEvent, error) {
+	var body DoneEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDoneEvent overwrites any union data inside the AssistantStreamEvent as the provided DoneEvent
+func (t *AssistantStreamEvent) FromDoneEvent(v DoneEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDoneEvent performs a merge with any union data inside the AssistantStreamEvent, using the provided DoneEvent
+func (t *AssistantStreamEvent) MergeDoneEvent(v DoneEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t AssistantStreamEvent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *AssistantStreamEvent) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -9434,6 +11011,172 @@ func (t ExtendedAssistantObject_Tools_Item) MarshalJSON() ([]byte, error) {
 }
 
 func (t *ExtendedAssistantObject_Tools_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsThreadStreamEvent returns the union data inside the ExtendedAssistantStreamEvent as a ThreadStreamEvent
+func (t ExtendedAssistantStreamEvent) AsThreadStreamEvent() (ThreadStreamEvent, error) {
+	var body ThreadStreamEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromThreadStreamEvent overwrites any union data inside the ExtendedAssistantStreamEvent as the provided ThreadStreamEvent
+func (t *ExtendedAssistantStreamEvent) FromThreadStreamEvent(v ThreadStreamEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeThreadStreamEvent performs a merge with any union data inside the ExtendedAssistantStreamEvent, using the provided ThreadStreamEvent
+func (t *ExtendedAssistantStreamEvent) MergeThreadStreamEvent(v ThreadStreamEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStreamEvent returns the union data inside the ExtendedAssistantStreamEvent as a RunStreamEvent
+func (t ExtendedAssistantStreamEvent) AsRunStreamEvent() (RunStreamEvent, error) {
+	var body RunStreamEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStreamEvent overwrites any union data inside the ExtendedAssistantStreamEvent as the provided RunStreamEvent
+func (t *ExtendedAssistantStreamEvent) FromRunStreamEvent(v RunStreamEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStreamEvent performs a merge with any union data inside the ExtendedAssistantStreamEvent, using the provided RunStreamEvent
+func (t *ExtendedAssistantStreamEvent) MergeRunStreamEvent(v RunStreamEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepStreamEvent returns the union data inside the ExtendedAssistantStreamEvent as a RunStepStreamEvent
+func (t ExtendedAssistantStreamEvent) AsRunStepStreamEvent() (RunStepStreamEvent, error) {
+	var body RunStepStreamEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepStreamEvent overwrites any union data inside the ExtendedAssistantStreamEvent as the provided RunStepStreamEvent
+func (t *ExtendedAssistantStreamEvent) FromRunStepStreamEvent(v RunStepStreamEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepStreamEvent performs a merge with any union data inside the ExtendedAssistantStreamEvent, using the provided RunStepStreamEvent
+func (t *ExtendedAssistantStreamEvent) MergeRunStepStreamEvent(v RunStepStreamEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMessageStreamEvent returns the union data inside the ExtendedAssistantStreamEvent as a MessageStreamEvent
+func (t ExtendedAssistantStreamEvent) AsMessageStreamEvent() (MessageStreamEvent, error) {
+	var body MessageStreamEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageStreamEvent overwrites any union data inside the ExtendedAssistantStreamEvent as the provided MessageStreamEvent
+func (t *ExtendedAssistantStreamEvent) FromMessageStreamEvent(v MessageStreamEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageStreamEvent performs a merge with any union data inside the ExtendedAssistantStreamEvent, using the provided MessageStreamEvent
+func (t *ExtendedAssistantStreamEvent) MergeMessageStreamEvent(v MessageStreamEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsErrorEvent returns the union data inside the ExtendedAssistantStreamEvent as a ErrorEvent
+func (t ExtendedAssistantStreamEvent) AsErrorEvent() (ErrorEvent, error) {
+	var body ErrorEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromErrorEvent overwrites any union data inside the ExtendedAssistantStreamEvent as the provided ErrorEvent
+func (t *ExtendedAssistantStreamEvent) FromErrorEvent(v ErrorEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeErrorEvent performs a merge with any union data inside the ExtendedAssistantStreamEvent, using the provided ErrorEvent
+func (t *ExtendedAssistantStreamEvent) MergeErrorEvent(v ErrorEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDoneEvent returns the union data inside the ExtendedAssistantStreamEvent as a DoneEvent
+func (t ExtendedAssistantStreamEvent) AsDoneEvent() (DoneEvent, error) {
+	var body DoneEvent
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDoneEvent overwrites any union data inside the ExtendedAssistantStreamEvent as the provided DoneEvent
+func (t *ExtendedAssistantStreamEvent) FromDoneEvent(v DoneEvent) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDoneEvent performs a merge with any union data inside the ExtendedAssistantStreamEvent, using the provided DoneEvent
+func (t *ExtendedAssistantStreamEvent) MergeDoneEvent(v DoneEvent) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ExtendedAssistantStreamEvent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ExtendedAssistantStreamEvent) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -11594,6 +13337,130 @@ func (t *ExtendedMessageContentTextObject_Text_Annotations_Item) UnmarshalJSON(b
 	return err
 }
 
+// AsMessageDeltaContentTextAnnotationsFileCitationObject returns the union data inside the ExtendedMessageDeltaContentTextObject_Text_Annotations_Item as a MessageDeltaContentTextAnnotationsFileCitationObject
+func (t ExtendedMessageDeltaContentTextObject_Text_Annotations_Item) AsMessageDeltaContentTextAnnotationsFileCitationObject() (MessageDeltaContentTextAnnotationsFileCitationObject, error) {
+	var body MessageDeltaContentTextAnnotationsFileCitationObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageDeltaContentTextAnnotationsFileCitationObject overwrites any union data inside the ExtendedMessageDeltaContentTextObject_Text_Annotations_Item as the provided MessageDeltaContentTextAnnotationsFileCitationObject
+func (t *ExtendedMessageDeltaContentTextObject_Text_Annotations_Item) FromMessageDeltaContentTextAnnotationsFileCitationObject(v MessageDeltaContentTextAnnotationsFileCitationObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageDeltaContentTextAnnotationsFileCitationObject performs a merge with any union data inside the ExtendedMessageDeltaContentTextObject_Text_Annotations_Item, using the provided MessageDeltaContentTextAnnotationsFileCitationObject
+func (t *ExtendedMessageDeltaContentTextObject_Text_Annotations_Item) MergeMessageDeltaContentTextAnnotationsFileCitationObject(v MessageDeltaContentTextAnnotationsFileCitationObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMessageDeltaContentTextAnnotationsFilePathObject returns the union data inside the ExtendedMessageDeltaContentTextObject_Text_Annotations_Item as a MessageDeltaContentTextAnnotationsFilePathObject
+func (t ExtendedMessageDeltaContentTextObject_Text_Annotations_Item) AsMessageDeltaContentTextAnnotationsFilePathObject() (MessageDeltaContentTextAnnotationsFilePathObject, error) {
+	var body MessageDeltaContentTextAnnotationsFilePathObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageDeltaContentTextAnnotationsFilePathObject overwrites any union data inside the ExtendedMessageDeltaContentTextObject_Text_Annotations_Item as the provided MessageDeltaContentTextAnnotationsFilePathObject
+func (t *ExtendedMessageDeltaContentTextObject_Text_Annotations_Item) FromMessageDeltaContentTextAnnotationsFilePathObject(v MessageDeltaContentTextAnnotationsFilePathObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageDeltaContentTextAnnotationsFilePathObject performs a merge with any union data inside the ExtendedMessageDeltaContentTextObject_Text_Annotations_Item, using the provided MessageDeltaContentTextAnnotationsFilePathObject
+func (t *ExtendedMessageDeltaContentTextObject_Text_Annotations_Item) MergeMessageDeltaContentTextAnnotationsFilePathObject(v MessageDeltaContentTextAnnotationsFilePathObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ExtendedMessageDeltaContentTextObject_Text_Annotations_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ExtendedMessageDeltaContentTextObject_Text_Annotations_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsMessageDeltaContentImageFileObject returns the union data inside the ExtendedMessageDeltaObject_Delta_Content_Item as a MessageDeltaContentImageFileObject
+func (t ExtendedMessageDeltaObject_Delta_Content_Item) AsMessageDeltaContentImageFileObject() (MessageDeltaContentImageFileObject, error) {
+	var body MessageDeltaContentImageFileObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageDeltaContentImageFileObject overwrites any union data inside the ExtendedMessageDeltaObject_Delta_Content_Item as the provided MessageDeltaContentImageFileObject
+func (t *ExtendedMessageDeltaObject_Delta_Content_Item) FromMessageDeltaContentImageFileObject(v MessageDeltaContentImageFileObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageDeltaContentImageFileObject performs a merge with any union data inside the ExtendedMessageDeltaObject_Delta_Content_Item, using the provided MessageDeltaContentImageFileObject
+func (t *ExtendedMessageDeltaObject_Delta_Content_Item) MergeMessageDeltaContentImageFileObject(v MessageDeltaContentImageFileObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMessageDeltaContentTextObject returns the union data inside the ExtendedMessageDeltaObject_Delta_Content_Item as a MessageDeltaContentTextObject
+func (t ExtendedMessageDeltaObject_Delta_Content_Item) AsMessageDeltaContentTextObject() (MessageDeltaContentTextObject, error) {
+	var body MessageDeltaContentTextObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageDeltaContentTextObject overwrites any union data inside the ExtendedMessageDeltaObject_Delta_Content_Item as the provided MessageDeltaContentTextObject
+func (t *ExtendedMessageDeltaObject_Delta_Content_Item) FromMessageDeltaContentTextObject(v MessageDeltaContentTextObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageDeltaContentTextObject performs a merge with any union data inside the ExtendedMessageDeltaObject_Delta_Content_Item, using the provided MessageDeltaContentTextObject
+func (t *ExtendedMessageDeltaObject_Delta_Content_Item) MergeMessageDeltaContentTextObject(v MessageDeltaContentTextObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ExtendedMessageDeltaObject_Delta_Content_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ExtendedMessageDeltaObject_Delta_Content_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsMessageContentImageFileObject returns the union data inside the ExtendedMessageObject_Content_Item as a MessageContentImageFileObject
 func (t ExtendedMessageObject_Content_Item) AsMessageContentImageFileObject() (MessageContentImageFileObject, error) {
 	var body MessageContentImageFileObject
@@ -11652,6 +13519,146 @@ func (t ExtendedMessageObject_Content_Item) MarshalJSON() ([]byte, error) {
 }
 
 func (t *ExtendedMessageObject_Content_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsExtendedMessageStreamEvent0 returns the union data inside the ExtendedMessageStreamEvent as a ExtendedMessageStreamEvent0
+func (t ExtendedMessageStreamEvent) AsExtendedMessageStreamEvent0() (ExtendedMessageStreamEvent0, error) {
+	var body ExtendedMessageStreamEvent0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedMessageStreamEvent0 overwrites any union data inside the ExtendedMessageStreamEvent as the provided ExtendedMessageStreamEvent0
+func (t *ExtendedMessageStreamEvent) FromExtendedMessageStreamEvent0(v ExtendedMessageStreamEvent0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedMessageStreamEvent0 performs a merge with any union data inside the ExtendedMessageStreamEvent, using the provided ExtendedMessageStreamEvent0
+func (t *ExtendedMessageStreamEvent) MergeExtendedMessageStreamEvent0(v ExtendedMessageStreamEvent0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedMessageStreamEvent1 returns the union data inside the ExtendedMessageStreamEvent as a ExtendedMessageStreamEvent1
+func (t ExtendedMessageStreamEvent) AsExtendedMessageStreamEvent1() (ExtendedMessageStreamEvent1, error) {
+	var body ExtendedMessageStreamEvent1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedMessageStreamEvent1 overwrites any union data inside the ExtendedMessageStreamEvent as the provided ExtendedMessageStreamEvent1
+func (t *ExtendedMessageStreamEvent) FromExtendedMessageStreamEvent1(v ExtendedMessageStreamEvent1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedMessageStreamEvent1 performs a merge with any union data inside the ExtendedMessageStreamEvent, using the provided ExtendedMessageStreamEvent1
+func (t *ExtendedMessageStreamEvent) MergeExtendedMessageStreamEvent1(v ExtendedMessageStreamEvent1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedMessageStreamEvent2 returns the union data inside the ExtendedMessageStreamEvent as a ExtendedMessageStreamEvent2
+func (t ExtendedMessageStreamEvent) AsExtendedMessageStreamEvent2() (ExtendedMessageStreamEvent2, error) {
+	var body ExtendedMessageStreamEvent2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedMessageStreamEvent2 overwrites any union data inside the ExtendedMessageStreamEvent as the provided ExtendedMessageStreamEvent2
+func (t *ExtendedMessageStreamEvent) FromExtendedMessageStreamEvent2(v ExtendedMessageStreamEvent2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedMessageStreamEvent2 performs a merge with any union data inside the ExtendedMessageStreamEvent, using the provided ExtendedMessageStreamEvent2
+func (t *ExtendedMessageStreamEvent) MergeExtendedMessageStreamEvent2(v ExtendedMessageStreamEvent2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedMessageStreamEvent3 returns the union data inside the ExtendedMessageStreamEvent as a ExtendedMessageStreamEvent3
+func (t ExtendedMessageStreamEvent) AsExtendedMessageStreamEvent3() (ExtendedMessageStreamEvent3, error) {
+	var body ExtendedMessageStreamEvent3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedMessageStreamEvent3 overwrites any union data inside the ExtendedMessageStreamEvent as the provided ExtendedMessageStreamEvent3
+func (t *ExtendedMessageStreamEvent) FromExtendedMessageStreamEvent3(v ExtendedMessageStreamEvent3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedMessageStreamEvent3 performs a merge with any union data inside the ExtendedMessageStreamEvent, using the provided ExtendedMessageStreamEvent3
+func (t *ExtendedMessageStreamEvent) MergeExtendedMessageStreamEvent3(v ExtendedMessageStreamEvent3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedMessageStreamEvent4 returns the union data inside the ExtendedMessageStreamEvent as a ExtendedMessageStreamEvent4
+func (t ExtendedMessageStreamEvent) AsExtendedMessageStreamEvent4() (ExtendedMessageStreamEvent4, error) {
+	var body ExtendedMessageStreamEvent4
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedMessageStreamEvent4 overwrites any union data inside the ExtendedMessageStreamEvent as the provided ExtendedMessageStreamEvent4
+func (t *ExtendedMessageStreamEvent) FromExtendedMessageStreamEvent4(v ExtendedMessageStreamEvent4) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedMessageStreamEvent4 performs a merge with any union data inside the ExtendedMessageStreamEvent, using the provided ExtendedMessageStreamEvent4
+func (t *ExtendedMessageStreamEvent) MergeExtendedMessageStreamEvent4(v ExtendedMessageStreamEvent4) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ExtendedMessageStreamEvent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ExtendedMessageStreamEvent) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -11868,6 +13875,218 @@ func (t *ExtendedRunObject_Tools_Item) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsRunStepDeltaStepDetailsMessageCreationObject returns the union data inside the ExtendedRunStepDeltaObject_Delta_StepDetails as a RunStepDeltaStepDetailsMessageCreationObject
+func (t ExtendedRunStepDeltaObject_Delta_StepDetails) AsRunStepDeltaStepDetailsMessageCreationObject() (RunStepDeltaStepDetailsMessageCreationObject, error) {
+	var body RunStepDeltaStepDetailsMessageCreationObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsMessageCreationObject overwrites any union data inside the ExtendedRunStepDeltaObject_Delta_StepDetails as the provided RunStepDeltaStepDetailsMessageCreationObject
+func (t *ExtendedRunStepDeltaObject_Delta_StepDetails) FromRunStepDeltaStepDetailsMessageCreationObject(v RunStepDeltaStepDetailsMessageCreationObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsMessageCreationObject performs a merge with any union data inside the ExtendedRunStepDeltaObject_Delta_StepDetails, using the provided RunStepDeltaStepDetailsMessageCreationObject
+func (t *ExtendedRunStepDeltaObject_Delta_StepDetails) MergeRunStepDeltaStepDetailsMessageCreationObject(v RunStepDeltaStepDetailsMessageCreationObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepDeltaStepDetailsToolCallsObject returns the union data inside the ExtendedRunStepDeltaObject_Delta_StepDetails as a RunStepDeltaStepDetailsToolCallsObject
+func (t ExtendedRunStepDeltaObject_Delta_StepDetails) AsRunStepDeltaStepDetailsToolCallsObject() (RunStepDeltaStepDetailsToolCallsObject, error) {
+	var body RunStepDeltaStepDetailsToolCallsObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsToolCallsObject overwrites any union data inside the ExtendedRunStepDeltaObject_Delta_StepDetails as the provided RunStepDeltaStepDetailsToolCallsObject
+func (t *ExtendedRunStepDeltaObject_Delta_StepDetails) FromRunStepDeltaStepDetailsToolCallsObject(v RunStepDeltaStepDetailsToolCallsObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsToolCallsObject performs a merge with any union data inside the ExtendedRunStepDeltaObject_Delta_StepDetails, using the provided RunStepDeltaStepDetailsToolCallsObject
+func (t *ExtendedRunStepDeltaObject_Delta_StepDetails) MergeRunStepDeltaStepDetailsToolCallsObject(v RunStepDeltaStepDetailsToolCallsObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ExtendedRunStepDeltaObject_Delta_StepDetails) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ExtendedRunStepDeltaObject_Delta_StepDetails) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject returns the union data inside the ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item as a RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject
+func (t ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) AsRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject() (RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject, error) {
+	var body RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject overwrites any union data inside the ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item as the provided RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject
+func (t *ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) FromRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject(v RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject performs a merge with any union data inside the ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item, using the provided RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject
+func (t *ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) MergeRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject(v RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepDeltaStepDetailsToolCallsCodeOutputImageObject returns the union data inside the ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item as a RunStepDeltaStepDetailsToolCallsCodeOutputImageObject
+func (t ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) AsRunStepDeltaStepDetailsToolCallsCodeOutputImageObject() (RunStepDeltaStepDetailsToolCallsCodeOutputImageObject, error) {
+	var body RunStepDeltaStepDetailsToolCallsCodeOutputImageObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsToolCallsCodeOutputImageObject overwrites any union data inside the ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item as the provided RunStepDeltaStepDetailsToolCallsCodeOutputImageObject
+func (t *ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) FromRunStepDeltaStepDetailsToolCallsCodeOutputImageObject(v RunStepDeltaStepDetailsToolCallsCodeOutputImageObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsToolCallsCodeOutputImageObject performs a merge with any union data inside the ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item, using the provided RunStepDeltaStepDetailsToolCallsCodeOutputImageObject
+func (t *ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) MergeRunStepDeltaStepDetailsToolCallsCodeOutputImageObject(v RunStepDeltaStepDetailsToolCallsCodeOutputImageObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ExtendedRunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsRunStepDeltaStepDetailsToolCallsCodeObject returns the union data inside the ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item as a RunStepDeltaStepDetailsToolCallsCodeObject
+func (t ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) AsRunStepDeltaStepDetailsToolCallsCodeObject() (RunStepDeltaStepDetailsToolCallsCodeObject, error) {
+	var body RunStepDeltaStepDetailsToolCallsCodeObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsToolCallsCodeObject overwrites any union data inside the ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item as the provided RunStepDeltaStepDetailsToolCallsCodeObject
+func (t *ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) FromRunStepDeltaStepDetailsToolCallsCodeObject(v RunStepDeltaStepDetailsToolCallsCodeObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsToolCallsCodeObject performs a merge with any union data inside the ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item, using the provided RunStepDeltaStepDetailsToolCallsCodeObject
+func (t *ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) MergeRunStepDeltaStepDetailsToolCallsCodeObject(v RunStepDeltaStepDetailsToolCallsCodeObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepDeltaStepDetailsToolCallsRetrievalObject returns the union data inside the ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item as a RunStepDeltaStepDetailsToolCallsRetrievalObject
+func (t ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) AsRunStepDeltaStepDetailsToolCallsRetrievalObject() (RunStepDeltaStepDetailsToolCallsRetrievalObject, error) {
+	var body RunStepDeltaStepDetailsToolCallsRetrievalObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsToolCallsRetrievalObject overwrites any union data inside the ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item as the provided RunStepDeltaStepDetailsToolCallsRetrievalObject
+func (t *ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) FromRunStepDeltaStepDetailsToolCallsRetrievalObject(v RunStepDeltaStepDetailsToolCallsRetrievalObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsToolCallsRetrievalObject performs a merge with any union data inside the ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item, using the provided RunStepDeltaStepDetailsToolCallsRetrievalObject
+func (t *ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) MergeRunStepDeltaStepDetailsToolCallsRetrievalObject(v RunStepDeltaStepDetailsToolCallsRetrievalObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepDeltaStepDetailsToolCallsFunctionObject returns the union data inside the ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item as a RunStepDeltaStepDetailsToolCallsFunctionObject
+func (t ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) AsRunStepDeltaStepDetailsToolCallsFunctionObject() (RunStepDeltaStepDetailsToolCallsFunctionObject, error) {
+	var body RunStepDeltaStepDetailsToolCallsFunctionObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsToolCallsFunctionObject overwrites any union data inside the ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item as the provided RunStepDeltaStepDetailsToolCallsFunctionObject
+func (t *ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) FromRunStepDeltaStepDetailsToolCallsFunctionObject(v RunStepDeltaStepDetailsToolCallsFunctionObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsToolCallsFunctionObject performs a merge with any union data inside the ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item, using the provided RunStepDeltaStepDetailsToolCallsFunctionObject
+func (t *ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) MergeRunStepDeltaStepDetailsToolCallsFunctionObject(v RunStepDeltaStepDetailsToolCallsFunctionObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ExtendedRunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsRunStepDetailsToolCallsCodeOutputLogsObject returns the union data inside the ExtendedRunStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item as a RunStepDetailsToolCallsCodeOutputLogsObject
 func (t ExtendedRunStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) AsRunStepDetailsToolCallsCodeOutputLogsObject() (RunStepDetailsToolCallsCodeOutputLogsObject, error) {
 	var body RunStepDetailsToolCallsCodeOutputLogsObject
@@ -12080,6 +14299,478 @@ func (t *ExtendedRunStepObject_StepDetails) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsExtendedRunStepStreamEvent0 returns the union data inside the ExtendedRunStepStreamEvent as a ExtendedRunStepStreamEvent0
+func (t ExtendedRunStepStreamEvent) AsExtendedRunStepStreamEvent0() (ExtendedRunStepStreamEvent0, error) {
+	var body ExtendedRunStepStreamEvent0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStepStreamEvent0 overwrites any union data inside the ExtendedRunStepStreamEvent as the provided ExtendedRunStepStreamEvent0
+func (t *ExtendedRunStepStreamEvent) FromExtendedRunStepStreamEvent0(v ExtendedRunStepStreamEvent0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStepStreamEvent0 performs a merge with any union data inside the ExtendedRunStepStreamEvent, using the provided ExtendedRunStepStreamEvent0
+func (t *ExtendedRunStepStreamEvent) MergeExtendedRunStepStreamEvent0(v ExtendedRunStepStreamEvent0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStepStreamEvent1 returns the union data inside the ExtendedRunStepStreamEvent as a ExtendedRunStepStreamEvent1
+func (t ExtendedRunStepStreamEvent) AsExtendedRunStepStreamEvent1() (ExtendedRunStepStreamEvent1, error) {
+	var body ExtendedRunStepStreamEvent1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStepStreamEvent1 overwrites any union data inside the ExtendedRunStepStreamEvent as the provided ExtendedRunStepStreamEvent1
+func (t *ExtendedRunStepStreamEvent) FromExtendedRunStepStreamEvent1(v ExtendedRunStepStreamEvent1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStepStreamEvent1 performs a merge with any union data inside the ExtendedRunStepStreamEvent, using the provided ExtendedRunStepStreamEvent1
+func (t *ExtendedRunStepStreamEvent) MergeExtendedRunStepStreamEvent1(v ExtendedRunStepStreamEvent1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStepStreamEvent2 returns the union data inside the ExtendedRunStepStreamEvent as a ExtendedRunStepStreamEvent2
+func (t ExtendedRunStepStreamEvent) AsExtendedRunStepStreamEvent2() (ExtendedRunStepStreamEvent2, error) {
+	var body ExtendedRunStepStreamEvent2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStepStreamEvent2 overwrites any union data inside the ExtendedRunStepStreamEvent as the provided ExtendedRunStepStreamEvent2
+func (t *ExtendedRunStepStreamEvent) FromExtendedRunStepStreamEvent2(v ExtendedRunStepStreamEvent2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStepStreamEvent2 performs a merge with any union data inside the ExtendedRunStepStreamEvent, using the provided ExtendedRunStepStreamEvent2
+func (t *ExtendedRunStepStreamEvent) MergeExtendedRunStepStreamEvent2(v ExtendedRunStepStreamEvent2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStepStreamEvent3 returns the union data inside the ExtendedRunStepStreamEvent as a ExtendedRunStepStreamEvent3
+func (t ExtendedRunStepStreamEvent) AsExtendedRunStepStreamEvent3() (ExtendedRunStepStreamEvent3, error) {
+	var body ExtendedRunStepStreamEvent3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStepStreamEvent3 overwrites any union data inside the ExtendedRunStepStreamEvent as the provided ExtendedRunStepStreamEvent3
+func (t *ExtendedRunStepStreamEvent) FromExtendedRunStepStreamEvent3(v ExtendedRunStepStreamEvent3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStepStreamEvent3 performs a merge with any union data inside the ExtendedRunStepStreamEvent, using the provided ExtendedRunStepStreamEvent3
+func (t *ExtendedRunStepStreamEvent) MergeExtendedRunStepStreamEvent3(v ExtendedRunStepStreamEvent3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStepStreamEvent4 returns the union data inside the ExtendedRunStepStreamEvent as a ExtendedRunStepStreamEvent4
+func (t ExtendedRunStepStreamEvent) AsExtendedRunStepStreamEvent4() (ExtendedRunStepStreamEvent4, error) {
+	var body ExtendedRunStepStreamEvent4
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStepStreamEvent4 overwrites any union data inside the ExtendedRunStepStreamEvent as the provided ExtendedRunStepStreamEvent4
+func (t *ExtendedRunStepStreamEvent) FromExtendedRunStepStreamEvent4(v ExtendedRunStepStreamEvent4) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStepStreamEvent4 performs a merge with any union data inside the ExtendedRunStepStreamEvent, using the provided ExtendedRunStepStreamEvent4
+func (t *ExtendedRunStepStreamEvent) MergeExtendedRunStepStreamEvent4(v ExtendedRunStepStreamEvent4) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStepStreamEvent5 returns the union data inside the ExtendedRunStepStreamEvent as a ExtendedRunStepStreamEvent5
+func (t ExtendedRunStepStreamEvent) AsExtendedRunStepStreamEvent5() (ExtendedRunStepStreamEvent5, error) {
+	var body ExtendedRunStepStreamEvent5
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStepStreamEvent5 overwrites any union data inside the ExtendedRunStepStreamEvent as the provided ExtendedRunStepStreamEvent5
+func (t *ExtendedRunStepStreamEvent) FromExtendedRunStepStreamEvent5(v ExtendedRunStepStreamEvent5) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStepStreamEvent5 performs a merge with any union data inside the ExtendedRunStepStreamEvent, using the provided ExtendedRunStepStreamEvent5
+func (t *ExtendedRunStepStreamEvent) MergeExtendedRunStepStreamEvent5(v ExtendedRunStepStreamEvent5) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStepStreamEvent6 returns the union data inside the ExtendedRunStepStreamEvent as a ExtendedRunStepStreamEvent6
+func (t ExtendedRunStepStreamEvent) AsExtendedRunStepStreamEvent6() (ExtendedRunStepStreamEvent6, error) {
+	var body ExtendedRunStepStreamEvent6
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStepStreamEvent6 overwrites any union data inside the ExtendedRunStepStreamEvent as the provided ExtendedRunStepStreamEvent6
+func (t *ExtendedRunStepStreamEvent) FromExtendedRunStepStreamEvent6(v ExtendedRunStepStreamEvent6) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStepStreamEvent6 performs a merge with any union data inside the ExtendedRunStepStreamEvent, using the provided ExtendedRunStepStreamEvent6
+func (t *ExtendedRunStepStreamEvent) MergeExtendedRunStepStreamEvent6(v ExtendedRunStepStreamEvent6) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ExtendedRunStepStreamEvent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ExtendedRunStepStreamEvent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsExtendedRunStreamEvent0 returns the union data inside the ExtendedRunStreamEvent as a ExtendedRunStreamEvent0
+func (t ExtendedRunStreamEvent) AsExtendedRunStreamEvent0() (ExtendedRunStreamEvent0, error) {
+	var body ExtendedRunStreamEvent0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStreamEvent0 overwrites any union data inside the ExtendedRunStreamEvent as the provided ExtendedRunStreamEvent0
+func (t *ExtendedRunStreamEvent) FromExtendedRunStreamEvent0(v ExtendedRunStreamEvent0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStreamEvent0 performs a merge with any union data inside the ExtendedRunStreamEvent, using the provided ExtendedRunStreamEvent0
+func (t *ExtendedRunStreamEvent) MergeExtendedRunStreamEvent0(v ExtendedRunStreamEvent0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStreamEvent1 returns the union data inside the ExtendedRunStreamEvent as a ExtendedRunStreamEvent1
+func (t ExtendedRunStreamEvent) AsExtendedRunStreamEvent1() (ExtendedRunStreamEvent1, error) {
+	var body ExtendedRunStreamEvent1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStreamEvent1 overwrites any union data inside the ExtendedRunStreamEvent as the provided ExtendedRunStreamEvent1
+func (t *ExtendedRunStreamEvent) FromExtendedRunStreamEvent1(v ExtendedRunStreamEvent1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStreamEvent1 performs a merge with any union data inside the ExtendedRunStreamEvent, using the provided ExtendedRunStreamEvent1
+func (t *ExtendedRunStreamEvent) MergeExtendedRunStreamEvent1(v ExtendedRunStreamEvent1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStreamEvent2 returns the union data inside the ExtendedRunStreamEvent as a ExtendedRunStreamEvent2
+func (t ExtendedRunStreamEvent) AsExtendedRunStreamEvent2() (ExtendedRunStreamEvent2, error) {
+	var body ExtendedRunStreamEvent2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStreamEvent2 overwrites any union data inside the ExtendedRunStreamEvent as the provided ExtendedRunStreamEvent2
+func (t *ExtendedRunStreamEvent) FromExtendedRunStreamEvent2(v ExtendedRunStreamEvent2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStreamEvent2 performs a merge with any union data inside the ExtendedRunStreamEvent, using the provided ExtendedRunStreamEvent2
+func (t *ExtendedRunStreamEvent) MergeExtendedRunStreamEvent2(v ExtendedRunStreamEvent2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStreamEvent3 returns the union data inside the ExtendedRunStreamEvent as a ExtendedRunStreamEvent3
+func (t ExtendedRunStreamEvent) AsExtendedRunStreamEvent3() (ExtendedRunStreamEvent3, error) {
+	var body ExtendedRunStreamEvent3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStreamEvent3 overwrites any union data inside the ExtendedRunStreamEvent as the provided ExtendedRunStreamEvent3
+func (t *ExtendedRunStreamEvent) FromExtendedRunStreamEvent3(v ExtendedRunStreamEvent3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStreamEvent3 performs a merge with any union data inside the ExtendedRunStreamEvent, using the provided ExtendedRunStreamEvent3
+func (t *ExtendedRunStreamEvent) MergeExtendedRunStreamEvent3(v ExtendedRunStreamEvent3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStreamEvent4 returns the union data inside the ExtendedRunStreamEvent as a ExtendedRunStreamEvent4
+func (t ExtendedRunStreamEvent) AsExtendedRunStreamEvent4() (ExtendedRunStreamEvent4, error) {
+	var body ExtendedRunStreamEvent4
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStreamEvent4 overwrites any union data inside the ExtendedRunStreamEvent as the provided ExtendedRunStreamEvent4
+func (t *ExtendedRunStreamEvent) FromExtendedRunStreamEvent4(v ExtendedRunStreamEvent4) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStreamEvent4 performs a merge with any union data inside the ExtendedRunStreamEvent, using the provided ExtendedRunStreamEvent4
+func (t *ExtendedRunStreamEvent) MergeExtendedRunStreamEvent4(v ExtendedRunStreamEvent4) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStreamEvent5 returns the union data inside the ExtendedRunStreamEvent as a ExtendedRunStreamEvent5
+func (t ExtendedRunStreamEvent) AsExtendedRunStreamEvent5() (ExtendedRunStreamEvent5, error) {
+	var body ExtendedRunStreamEvent5
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStreamEvent5 overwrites any union data inside the ExtendedRunStreamEvent as the provided ExtendedRunStreamEvent5
+func (t *ExtendedRunStreamEvent) FromExtendedRunStreamEvent5(v ExtendedRunStreamEvent5) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStreamEvent5 performs a merge with any union data inside the ExtendedRunStreamEvent, using the provided ExtendedRunStreamEvent5
+func (t *ExtendedRunStreamEvent) MergeExtendedRunStreamEvent5(v ExtendedRunStreamEvent5) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStreamEvent6 returns the union data inside the ExtendedRunStreamEvent as a ExtendedRunStreamEvent6
+func (t ExtendedRunStreamEvent) AsExtendedRunStreamEvent6() (ExtendedRunStreamEvent6, error) {
+	var body ExtendedRunStreamEvent6
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStreamEvent6 overwrites any union data inside the ExtendedRunStreamEvent as the provided ExtendedRunStreamEvent6
+func (t *ExtendedRunStreamEvent) FromExtendedRunStreamEvent6(v ExtendedRunStreamEvent6) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStreamEvent6 performs a merge with any union data inside the ExtendedRunStreamEvent, using the provided ExtendedRunStreamEvent6
+func (t *ExtendedRunStreamEvent) MergeExtendedRunStreamEvent6(v ExtendedRunStreamEvent6) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStreamEvent7 returns the union data inside the ExtendedRunStreamEvent as a ExtendedRunStreamEvent7
+func (t ExtendedRunStreamEvent) AsExtendedRunStreamEvent7() (ExtendedRunStreamEvent7, error) {
+	var body ExtendedRunStreamEvent7
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStreamEvent7 overwrites any union data inside the ExtendedRunStreamEvent as the provided ExtendedRunStreamEvent7
+func (t *ExtendedRunStreamEvent) FromExtendedRunStreamEvent7(v ExtendedRunStreamEvent7) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStreamEvent7 performs a merge with any union data inside the ExtendedRunStreamEvent, using the provided ExtendedRunStreamEvent7
+func (t *ExtendedRunStreamEvent) MergeExtendedRunStreamEvent7(v ExtendedRunStreamEvent7) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsExtendedRunStreamEvent8 returns the union data inside the ExtendedRunStreamEvent as a ExtendedRunStreamEvent8
+func (t ExtendedRunStreamEvent) AsExtendedRunStreamEvent8() (ExtendedRunStreamEvent8, error) {
+	var body ExtendedRunStreamEvent8
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedRunStreamEvent8 overwrites any union data inside the ExtendedRunStreamEvent as the provided ExtendedRunStreamEvent8
+func (t *ExtendedRunStreamEvent) FromExtendedRunStreamEvent8(v ExtendedRunStreamEvent8) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedRunStreamEvent8 performs a merge with any union data inside the ExtendedRunStreamEvent, using the provided ExtendedRunStreamEvent8
+func (t *ExtendedRunStreamEvent) MergeExtendedRunStreamEvent8(v ExtendedRunStreamEvent8) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ExtendedRunStreamEvent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ExtendedRunStreamEvent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsExtendedThreadStreamEvent0 returns the union data inside the ExtendedThreadStreamEvent as a ExtendedThreadStreamEvent0
+func (t ExtendedThreadStreamEvent) AsExtendedThreadStreamEvent0() (ExtendedThreadStreamEvent0, error) {
+	var body ExtendedThreadStreamEvent0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromExtendedThreadStreamEvent0 overwrites any union data inside the ExtendedThreadStreamEvent as the provided ExtendedThreadStreamEvent0
+func (t *ExtendedThreadStreamEvent) FromExtendedThreadStreamEvent0(v ExtendedThreadStreamEvent0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeExtendedThreadStreamEvent0 performs a merge with any union data inside the ExtendedThreadStreamEvent, using the provided ExtendedThreadStreamEvent0
+func (t *ExtendedThreadStreamEvent) MergeExtendedThreadStreamEvent0(v ExtendedThreadStreamEvent0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ExtendedThreadStreamEvent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ExtendedThreadStreamEvent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsFineTuningJobHyperparametersNEpochs0 returns the union data inside the FineTuningJob_Hyperparameters_NEpochs as a FineTuningJobHyperparametersNEpochs0
 func (t FineTuningJob_Hyperparameters_NEpochs) AsFineTuningJobHyperparametersNEpochs0() (FineTuningJobHyperparametersNEpochs0, error) {
 	var body FineTuningJobHyperparametersNEpochs0
@@ -12204,6 +14895,130 @@ func (t *MessageContentTextObject_Text_Annotations_Item) UnmarshalJSON(b []byte)
 	return err
 }
 
+// AsMessageDeltaContentTextAnnotationsFileCitationObject returns the union data inside the MessageDeltaContentTextObject_Text_Annotations_Item as a MessageDeltaContentTextAnnotationsFileCitationObject
+func (t MessageDeltaContentTextObject_Text_Annotations_Item) AsMessageDeltaContentTextAnnotationsFileCitationObject() (MessageDeltaContentTextAnnotationsFileCitationObject, error) {
+	var body MessageDeltaContentTextAnnotationsFileCitationObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageDeltaContentTextAnnotationsFileCitationObject overwrites any union data inside the MessageDeltaContentTextObject_Text_Annotations_Item as the provided MessageDeltaContentTextAnnotationsFileCitationObject
+func (t *MessageDeltaContentTextObject_Text_Annotations_Item) FromMessageDeltaContentTextAnnotationsFileCitationObject(v MessageDeltaContentTextAnnotationsFileCitationObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageDeltaContentTextAnnotationsFileCitationObject performs a merge with any union data inside the MessageDeltaContentTextObject_Text_Annotations_Item, using the provided MessageDeltaContentTextAnnotationsFileCitationObject
+func (t *MessageDeltaContentTextObject_Text_Annotations_Item) MergeMessageDeltaContentTextAnnotationsFileCitationObject(v MessageDeltaContentTextAnnotationsFileCitationObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMessageDeltaContentTextAnnotationsFilePathObject returns the union data inside the MessageDeltaContentTextObject_Text_Annotations_Item as a MessageDeltaContentTextAnnotationsFilePathObject
+func (t MessageDeltaContentTextObject_Text_Annotations_Item) AsMessageDeltaContentTextAnnotationsFilePathObject() (MessageDeltaContentTextAnnotationsFilePathObject, error) {
+	var body MessageDeltaContentTextAnnotationsFilePathObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageDeltaContentTextAnnotationsFilePathObject overwrites any union data inside the MessageDeltaContentTextObject_Text_Annotations_Item as the provided MessageDeltaContentTextAnnotationsFilePathObject
+func (t *MessageDeltaContentTextObject_Text_Annotations_Item) FromMessageDeltaContentTextAnnotationsFilePathObject(v MessageDeltaContentTextAnnotationsFilePathObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageDeltaContentTextAnnotationsFilePathObject performs a merge with any union data inside the MessageDeltaContentTextObject_Text_Annotations_Item, using the provided MessageDeltaContentTextAnnotationsFilePathObject
+func (t *MessageDeltaContentTextObject_Text_Annotations_Item) MergeMessageDeltaContentTextAnnotationsFilePathObject(v MessageDeltaContentTextAnnotationsFilePathObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t MessageDeltaContentTextObject_Text_Annotations_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *MessageDeltaContentTextObject_Text_Annotations_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsMessageDeltaContentImageFileObject returns the union data inside the MessageDeltaObject_Delta_Content_Item as a MessageDeltaContentImageFileObject
+func (t MessageDeltaObject_Delta_Content_Item) AsMessageDeltaContentImageFileObject() (MessageDeltaContentImageFileObject, error) {
+	var body MessageDeltaContentImageFileObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageDeltaContentImageFileObject overwrites any union data inside the MessageDeltaObject_Delta_Content_Item as the provided MessageDeltaContentImageFileObject
+func (t *MessageDeltaObject_Delta_Content_Item) FromMessageDeltaContentImageFileObject(v MessageDeltaContentImageFileObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageDeltaContentImageFileObject performs a merge with any union data inside the MessageDeltaObject_Delta_Content_Item, using the provided MessageDeltaContentImageFileObject
+func (t *MessageDeltaObject_Delta_Content_Item) MergeMessageDeltaContentImageFileObject(v MessageDeltaContentImageFileObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMessageDeltaContentTextObject returns the union data inside the MessageDeltaObject_Delta_Content_Item as a MessageDeltaContentTextObject
+func (t MessageDeltaObject_Delta_Content_Item) AsMessageDeltaContentTextObject() (MessageDeltaContentTextObject, error) {
+	var body MessageDeltaContentTextObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageDeltaContentTextObject overwrites any union data inside the MessageDeltaObject_Delta_Content_Item as the provided MessageDeltaContentTextObject
+func (t *MessageDeltaObject_Delta_Content_Item) FromMessageDeltaContentTextObject(v MessageDeltaContentTextObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageDeltaContentTextObject performs a merge with any union data inside the MessageDeltaObject_Delta_Content_Item, using the provided MessageDeltaContentTextObject
+func (t *MessageDeltaObject_Delta_Content_Item) MergeMessageDeltaContentTextObject(v MessageDeltaContentTextObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t MessageDeltaObject_Delta_Content_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *MessageDeltaObject_Delta_Content_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsMessageContentImageFileObject returns the union data inside the MessageObject_Content_Item as a MessageContentImageFileObject
 func (t MessageObject_Content_Item) AsMessageContentImageFileObject() (MessageContentImageFileObject, error) {
 	var body MessageContentImageFileObject
@@ -12262,6 +15077,146 @@ func (t MessageObject_Content_Item) MarshalJSON() ([]byte, error) {
 }
 
 func (t *MessageObject_Content_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsMessageStreamEvent0 returns the union data inside the MessageStreamEvent as a MessageStreamEvent0
+func (t MessageStreamEvent) AsMessageStreamEvent0() (MessageStreamEvent0, error) {
+	var body MessageStreamEvent0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageStreamEvent0 overwrites any union data inside the MessageStreamEvent as the provided MessageStreamEvent0
+func (t *MessageStreamEvent) FromMessageStreamEvent0(v MessageStreamEvent0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageStreamEvent0 performs a merge with any union data inside the MessageStreamEvent, using the provided MessageStreamEvent0
+func (t *MessageStreamEvent) MergeMessageStreamEvent0(v MessageStreamEvent0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMessageStreamEvent1 returns the union data inside the MessageStreamEvent as a MessageStreamEvent1
+func (t MessageStreamEvent) AsMessageStreamEvent1() (MessageStreamEvent1, error) {
+	var body MessageStreamEvent1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageStreamEvent1 overwrites any union data inside the MessageStreamEvent as the provided MessageStreamEvent1
+func (t *MessageStreamEvent) FromMessageStreamEvent1(v MessageStreamEvent1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageStreamEvent1 performs a merge with any union data inside the MessageStreamEvent, using the provided MessageStreamEvent1
+func (t *MessageStreamEvent) MergeMessageStreamEvent1(v MessageStreamEvent1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMessageStreamEvent2 returns the union data inside the MessageStreamEvent as a MessageStreamEvent2
+func (t MessageStreamEvent) AsMessageStreamEvent2() (MessageStreamEvent2, error) {
+	var body MessageStreamEvent2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageStreamEvent2 overwrites any union data inside the MessageStreamEvent as the provided MessageStreamEvent2
+func (t *MessageStreamEvent) FromMessageStreamEvent2(v MessageStreamEvent2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageStreamEvent2 performs a merge with any union data inside the MessageStreamEvent, using the provided MessageStreamEvent2
+func (t *MessageStreamEvent) MergeMessageStreamEvent2(v MessageStreamEvent2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMessageStreamEvent3 returns the union data inside the MessageStreamEvent as a MessageStreamEvent3
+func (t MessageStreamEvent) AsMessageStreamEvent3() (MessageStreamEvent3, error) {
+	var body MessageStreamEvent3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageStreamEvent3 overwrites any union data inside the MessageStreamEvent as the provided MessageStreamEvent3
+func (t *MessageStreamEvent) FromMessageStreamEvent3(v MessageStreamEvent3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageStreamEvent3 performs a merge with any union data inside the MessageStreamEvent, using the provided MessageStreamEvent3
+func (t *MessageStreamEvent) MergeMessageStreamEvent3(v MessageStreamEvent3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsMessageStreamEvent4 returns the union data inside the MessageStreamEvent as a MessageStreamEvent4
+func (t MessageStreamEvent) AsMessageStreamEvent4() (MessageStreamEvent4, error) {
+	var body MessageStreamEvent4
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMessageStreamEvent4 overwrites any union data inside the MessageStreamEvent as the provided MessageStreamEvent4
+func (t *MessageStreamEvent) FromMessageStreamEvent4(v MessageStreamEvent4) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMessageStreamEvent4 performs a merge with any union data inside the MessageStreamEvent, using the provided MessageStreamEvent4
+func (t *MessageStreamEvent) MergeMessageStreamEvent4(v MessageStreamEvent4) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t MessageStreamEvent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *MessageStreamEvent) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -12478,6 +15433,218 @@ func (t *RunObject_Tools_Item) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsRunStepDeltaStepDetailsMessageCreationObject returns the union data inside the RunStepDeltaObject_Delta_StepDetails as a RunStepDeltaStepDetailsMessageCreationObject
+func (t RunStepDeltaObject_Delta_StepDetails) AsRunStepDeltaStepDetailsMessageCreationObject() (RunStepDeltaStepDetailsMessageCreationObject, error) {
+	var body RunStepDeltaStepDetailsMessageCreationObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsMessageCreationObject overwrites any union data inside the RunStepDeltaObject_Delta_StepDetails as the provided RunStepDeltaStepDetailsMessageCreationObject
+func (t *RunStepDeltaObject_Delta_StepDetails) FromRunStepDeltaStepDetailsMessageCreationObject(v RunStepDeltaStepDetailsMessageCreationObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsMessageCreationObject performs a merge with any union data inside the RunStepDeltaObject_Delta_StepDetails, using the provided RunStepDeltaStepDetailsMessageCreationObject
+func (t *RunStepDeltaObject_Delta_StepDetails) MergeRunStepDeltaStepDetailsMessageCreationObject(v RunStepDeltaStepDetailsMessageCreationObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepDeltaStepDetailsToolCallsObject returns the union data inside the RunStepDeltaObject_Delta_StepDetails as a RunStepDeltaStepDetailsToolCallsObject
+func (t RunStepDeltaObject_Delta_StepDetails) AsRunStepDeltaStepDetailsToolCallsObject() (RunStepDeltaStepDetailsToolCallsObject, error) {
+	var body RunStepDeltaStepDetailsToolCallsObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsToolCallsObject overwrites any union data inside the RunStepDeltaObject_Delta_StepDetails as the provided RunStepDeltaStepDetailsToolCallsObject
+func (t *RunStepDeltaObject_Delta_StepDetails) FromRunStepDeltaStepDetailsToolCallsObject(v RunStepDeltaStepDetailsToolCallsObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsToolCallsObject performs a merge with any union data inside the RunStepDeltaObject_Delta_StepDetails, using the provided RunStepDeltaStepDetailsToolCallsObject
+func (t *RunStepDeltaObject_Delta_StepDetails) MergeRunStepDeltaStepDetailsToolCallsObject(v RunStepDeltaStepDetailsToolCallsObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RunStepDeltaObject_Delta_StepDetails) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *RunStepDeltaObject_Delta_StepDetails) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject returns the union data inside the RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item as a RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject
+func (t RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) AsRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject() (RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject, error) {
+	var body RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject overwrites any union data inside the RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item as the provided RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject
+func (t *RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) FromRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject(v RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject performs a merge with any union data inside the RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item, using the provided RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject
+func (t *RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) MergeRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject(v RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepDeltaStepDetailsToolCallsCodeOutputImageObject returns the union data inside the RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item as a RunStepDeltaStepDetailsToolCallsCodeOutputImageObject
+func (t RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) AsRunStepDeltaStepDetailsToolCallsCodeOutputImageObject() (RunStepDeltaStepDetailsToolCallsCodeOutputImageObject, error) {
+	var body RunStepDeltaStepDetailsToolCallsCodeOutputImageObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsToolCallsCodeOutputImageObject overwrites any union data inside the RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item as the provided RunStepDeltaStepDetailsToolCallsCodeOutputImageObject
+func (t *RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) FromRunStepDeltaStepDetailsToolCallsCodeOutputImageObject(v RunStepDeltaStepDetailsToolCallsCodeOutputImageObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsToolCallsCodeOutputImageObject performs a merge with any union data inside the RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item, using the provided RunStepDeltaStepDetailsToolCallsCodeOutputImageObject
+func (t *RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) MergeRunStepDeltaStepDetailsToolCallsCodeOutputImageObject(v RunStepDeltaStepDetailsToolCallsCodeOutputImageObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsRunStepDeltaStepDetailsToolCallsCodeObject returns the union data inside the RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item as a RunStepDeltaStepDetailsToolCallsCodeObject
+func (t RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) AsRunStepDeltaStepDetailsToolCallsCodeObject() (RunStepDeltaStepDetailsToolCallsCodeObject, error) {
+	var body RunStepDeltaStepDetailsToolCallsCodeObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsToolCallsCodeObject overwrites any union data inside the RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item as the provided RunStepDeltaStepDetailsToolCallsCodeObject
+func (t *RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) FromRunStepDeltaStepDetailsToolCallsCodeObject(v RunStepDeltaStepDetailsToolCallsCodeObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsToolCallsCodeObject performs a merge with any union data inside the RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item, using the provided RunStepDeltaStepDetailsToolCallsCodeObject
+func (t *RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) MergeRunStepDeltaStepDetailsToolCallsCodeObject(v RunStepDeltaStepDetailsToolCallsCodeObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepDeltaStepDetailsToolCallsRetrievalObject returns the union data inside the RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item as a RunStepDeltaStepDetailsToolCallsRetrievalObject
+func (t RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) AsRunStepDeltaStepDetailsToolCallsRetrievalObject() (RunStepDeltaStepDetailsToolCallsRetrievalObject, error) {
+	var body RunStepDeltaStepDetailsToolCallsRetrievalObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsToolCallsRetrievalObject overwrites any union data inside the RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item as the provided RunStepDeltaStepDetailsToolCallsRetrievalObject
+func (t *RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) FromRunStepDeltaStepDetailsToolCallsRetrievalObject(v RunStepDeltaStepDetailsToolCallsRetrievalObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsToolCallsRetrievalObject performs a merge with any union data inside the RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item, using the provided RunStepDeltaStepDetailsToolCallsRetrievalObject
+func (t *RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) MergeRunStepDeltaStepDetailsToolCallsRetrievalObject(v RunStepDeltaStepDetailsToolCallsRetrievalObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepDeltaStepDetailsToolCallsFunctionObject returns the union data inside the RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item as a RunStepDeltaStepDetailsToolCallsFunctionObject
+func (t RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) AsRunStepDeltaStepDetailsToolCallsFunctionObject() (RunStepDeltaStepDetailsToolCallsFunctionObject, error) {
+	var body RunStepDeltaStepDetailsToolCallsFunctionObject
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepDeltaStepDetailsToolCallsFunctionObject overwrites any union data inside the RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item as the provided RunStepDeltaStepDetailsToolCallsFunctionObject
+func (t *RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) FromRunStepDeltaStepDetailsToolCallsFunctionObject(v RunStepDeltaStepDetailsToolCallsFunctionObject) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepDeltaStepDetailsToolCallsFunctionObject performs a merge with any union data inside the RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item, using the provided RunStepDeltaStepDetailsToolCallsFunctionObject
+func (t *RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) MergeRunStepDeltaStepDetailsToolCallsFunctionObject(v RunStepDeltaStepDetailsToolCallsFunctionObject) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsRunStepDetailsToolCallsCodeOutputLogsObject returns the union data inside the RunStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item as a RunStepDetailsToolCallsCodeOutputLogsObject
 func (t RunStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item) AsRunStepDetailsToolCallsCodeOutputLogsObject() (RunStepDetailsToolCallsCodeOutputLogsObject, error) {
 	var body RunStepDetailsToolCallsCodeOutputLogsObject
@@ -12690,22 +15857,22 @@ func (t *RunStepObject_StepDetails) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-// AsXMessageDeltaContentTextObjectTextAnnotationFileCitation returns the union data inside the XMessageDeltaContentTextObjectText_Annotations_Item as a XMessageDeltaContentTextObjectTextAnnotationFileCitation
-func (t XMessageDeltaContentTextObjectText_Annotations_Item) AsXMessageDeltaContentTextObjectTextAnnotationFileCitation() (XMessageDeltaContentTextObjectTextAnnotationFileCitation, error) {
-	var body XMessageDeltaContentTextObjectTextAnnotationFileCitation
+// AsRunStepStreamEvent0 returns the union data inside the RunStepStreamEvent as a RunStepStreamEvent0
+func (t RunStepStreamEvent) AsRunStepStreamEvent0() (RunStepStreamEvent0, error) {
+	var body RunStepStreamEvent0
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromXMessageDeltaContentTextObjectTextAnnotationFileCitation overwrites any union data inside the XMessageDeltaContentTextObjectText_Annotations_Item as the provided XMessageDeltaContentTextObjectTextAnnotationFileCitation
-func (t *XMessageDeltaContentTextObjectText_Annotations_Item) FromXMessageDeltaContentTextObjectTextAnnotationFileCitation(v XMessageDeltaContentTextObjectTextAnnotationFileCitation) error {
+// FromRunStepStreamEvent0 overwrites any union data inside the RunStepStreamEvent as the provided RunStepStreamEvent0
+func (t *RunStepStreamEvent) FromRunStepStreamEvent0(v RunStepStreamEvent0) error {
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
 }
 
-// MergeXMessageDeltaContentTextObjectTextAnnotationFileCitation performs a merge with any union data inside the XMessageDeltaContentTextObjectText_Annotations_Item, using the provided XMessageDeltaContentTextObjectTextAnnotationFileCitation
-func (t *XMessageDeltaContentTextObjectText_Annotations_Item) MergeXMessageDeltaContentTextObjectTextAnnotationFileCitation(v XMessageDeltaContentTextObjectTextAnnotationFileCitation) error {
+// MergeRunStepStreamEvent0 performs a merge with any union data inside the RunStepStreamEvent, using the provided RunStepStreamEvent0
+func (t *RunStepStreamEvent) MergeRunStepStreamEvent0(v RunStepStreamEvent0) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -12716,22 +15883,22 @@ func (t *XMessageDeltaContentTextObjectText_Annotations_Item) MergeXMessageDelta
 	return err
 }
 
-// AsXMessageDeltaContentTextObjectTextAnnotationFilePath returns the union data inside the XMessageDeltaContentTextObjectText_Annotations_Item as a XMessageDeltaContentTextObjectTextAnnotationFilePath
-func (t XMessageDeltaContentTextObjectText_Annotations_Item) AsXMessageDeltaContentTextObjectTextAnnotationFilePath() (XMessageDeltaContentTextObjectTextAnnotationFilePath, error) {
-	var body XMessageDeltaContentTextObjectTextAnnotationFilePath
+// AsRunStepStreamEvent1 returns the union data inside the RunStepStreamEvent as a RunStepStreamEvent1
+func (t RunStepStreamEvent) AsRunStepStreamEvent1() (RunStepStreamEvent1, error) {
+	var body RunStepStreamEvent1
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromXMessageDeltaContentTextObjectTextAnnotationFilePath overwrites any union data inside the XMessageDeltaContentTextObjectText_Annotations_Item as the provided XMessageDeltaContentTextObjectTextAnnotationFilePath
-func (t *XMessageDeltaContentTextObjectText_Annotations_Item) FromXMessageDeltaContentTextObjectTextAnnotationFilePath(v XMessageDeltaContentTextObjectTextAnnotationFilePath) error {
+// FromRunStepStreamEvent1 overwrites any union data inside the RunStepStreamEvent as the provided RunStepStreamEvent1
+func (t *RunStepStreamEvent) FromRunStepStreamEvent1(v RunStepStreamEvent1) error {
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
 }
 
-// MergeXMessageDeltaContentTextObjectTextAnnotationFilePath performs a merge with any union data inside the XMessageDeltaContentTextObjectText_Annotations_Item, using the provided XMessageDeltaContentTextObjectTextAnnotationFilePath
-func (t *XMessageDeltaContentTextObjectText_Annotations_Item) MergeXMessageDeltaContentTextObjectTextAnnotationFilePath(v XMessageDeltaContentTextObjectTextAnnotationFilePath) error {
+// MergeRunStepStreamEvent1 performs a merge with any union data inside the RunStepStreamEvent, using the provided RunStepStreamEvent1
+func (t *RunStepStreamEvent) MergeRunStepStreamEvent1(v RunStepStreamEvent1) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -12742,32 +15909,162 @@ func (t *XMessageDeltaContentTextObjectText_Annotations_Item) MergeXMessageDelta
 	return err
 }
 
-func (t XMessageDeltaContentTextObjectText_Annotations_Item) MarshalJSON() ([]byte, error) {
+// AsRunStepStreamEvent2 returns the union data inside the RunStepStreamEvent as a RunStepStreamEvent2
+func (t RunStepStreamEvent) AsRunStepStreamEvent2() (RunStepStreamEvent2, error) {
+	var body RunStepStreamEvent2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepStreamEvent2 overwrites any union data inside the RunStepStreamEvent as the provided RunStepStreamEvent2
+func (t *RunStepStreamEvent) FromRunStepStreamEvent2(v RunStepStreamEvent2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepStreamEvent2 performs a merge with any union data inside the RunStepStreamEvent, using the provided RunStepStreamEvent2
+func (t *RunStepStreamEvent) MergeRunStepStreamEvent2(v RunStepStreamEvent2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepStreamEvent3 returns the union data inside the RunStepStreamEvent as a RunStepStreamEvent3
+func (t RunStepStreamEvent) AsRunStepStreamEvent3() (RunStepStreamEvent3, error) {
+	var body RunStepStreamEvent3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepStreamEvent3 overwrites any union data inside the RunStepStreamEvent as the provided RunStepStreamEvent3
+func (t *RunStepStreamEvent) FromRunStepStreamEvent3(v RunStepStreamEvent3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepStreamEvent3 performs a merge with any union data inside the RunStepStreamEvent, using the provided RunStepStreamEvent3
+func (t *RunStepStreamEvent) MergeRunStepStreamEvent3(v RunStepStreamEvent3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepStreamEvent4 returns the union data inside the RunStepStreamEvent as a RunStepStreamEvent4
+func (t RunStepStreamEvent) AsRunStepStreamEvent4() (RunStepStreamEvent4, error) {
+	var body RunStepStreamEvent4
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepStreamEvent4 overwrites any union data inside the RunStepStreamEvent as the provided RunStepStreamEvent4
+func (t *RunStepStreamEvent) FromRunStepStreamEvent4(v RunStepStreamEvent4) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepStreamEvent4 performs a merge with any union data inside the RunStepStreamEvent, using the provided RunStepStreamEvent4
+func (t *RunStepStreamEvent) MergeRunStepStreamEvent4(v RunStepStreamEvent4) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepStreamEvent5 returns the union data inside the RunStepStreamEvent as a RunStepStreamEvent5
+func (t RunStepStreamEvent) AsRunStepStreamEvent5() (RunStepStreamEvent5, error) {
+	var body RunStepStreamEvent5
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepStreamEvent5 overwrites any union data inside the RunStepStreamEvent as the provided RunStepStreamEvent5
+func (t *RunStepStreamEvent) FromRunStepStreamEvent5(v RunStepStreamEvent5) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepStreamEvent5 performs a merge with any union data inside the RunStepStreamEvent, using the provided RunStepStreamEvent5
+func (t *RunStepStreamEvent) MergeRunStepStreamEvent5(v RunStepStreamEvent5) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStepStreamEvent6 returns the union data inside the RunStepStreamEvent as a RunStepStreamEvent6
+func (t RunStepStreamEvent) AsRunStepStreamEvent6() (RunStepStreamEvent6, error) {
+	var body RunStepStreamEvent6
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStepStreamEvent6 overwrites any union data inside the RunStepStreamEvent as the provided RunStepStreamEvent6
+func (t *RunStepStreamEvent) FromRunStepStreamEvent6(v RunStepStreamEvent6) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStepStreamEvent6 performs a merge with any union data inside the RunStepStreamEvent, using the provided RunStepStreamEvent6
+func (t *RunStepStreamEvent) MergeRunStepStreamEvent6(v RunStepStreamEvent6) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RunStepStreamEvent) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	return b, err
 }
 
-func (t *XMessageDeltaContentTextObjectText_Annotations_Item) UnmarshalJSON(b []byte) error {
+func (t *RunStepStreamEvent) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
 
-// AsXMessageDeltaContentTextObject returns the union data inside the XMessageDeltaObjectDeltaContent_Item as a XMessageDeltaContentTextObject
-func (t XMessageDeltaObjectDeltaContent_Item) AsXMessageDeltaContentTextObject() (XMessageDeltaContentTextObject, error) {
-	var body XMessageDeltaContentTextObject
+// AsRunStreamEvent0 returns the union data inside the RunStreamEvent as a RunStreamEvent0
+func (t RunStreamEvent) AsRunStreamEvent0() (RunStreamEvent0, error) {
+	var body RunStreamEvent0
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromXMessageDeltaContentTextObject overwrites any union data inside the XMessageDeltaObjectDeltaContent_Item as the provided XMessageDeltaContentTextObject
-func (t *XMessageDeltaObjectDeltaContent_Item) FromXMessageDeltaContentTextObject(v XMessageDeltaContentTextObject) error {
+// FromRunStreamEvent0 overwrites any union data inside the RunStreamEvent as the provided RunStreamEvent0
+func (t *RunStreamEvent) FromRunStreamEvent0(v RunStreamEvent0) error {
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
 }
 
-// MergeXMessageDeltaContentTextObject performs a merge with any union data inside the XMessageDeltaObjectDeltaContent_Item, using the provided XMessageDeltaContentTextObject
-func (t *XMessageDeltaObjectDeltaContent_Item) MergeXMessageDeltaContentTextObject(v XMessageDeltaContentTextObject) error {
+// MergeRunStreamEvent0 performs a merge with any union data inside the RunStreamEvent, using the provided RunStreamEvent0
+func (t *RunStreamEvent) MergeRunStreamEvent0(v RunStreamEvent0) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -12778,22 +16075,22 @@ func (t *XMessageDeltaObjectDeltaContent_Item) MergeXMessageDeltaContentTextObje
 	return err
 }
 
-// AsXMessageDeltaContentImageFileObject returns the union data inside the XMessageDeltaObjectDeltaContent_Item as a XMessageDeltaContentImageFileObject
-func (t XMessageDeltaObjectDeltaContent_Item) AsXMessageDeltaContentImageFileObject() (XMessageDeltaContentImageFileObject, error) {
-	var body XMessageDeltaContentImageFileObject
+// AsRunStreamEvent1 returns the union data inside the RunStreamEvent as a RunStreamEvent1
+func (t RunStreamEvent) AsRunStreamEvent1() (RunStreamEvent1, error) {
+	var body RunStreamEvent1
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromXMessageDeltaContentImageFileObject overwrites any union data inside the XMessageDeltaObjectDeltaContent_Item as the provided XMessageDeltaContentImageFileObject
-func (t *XMessageDeltaObjectDeltaContent_Item) FromXMessageDeltaContentImageFileObject(v XMessageDeltaContentImageFileObject) error {
+// FromRunStreamEvent1 overwrites any union data inside the RunStreamEvent as the provided RunStreamEvent1
+func (t *RunStreamEvent) FromRunStreamEvent1(v RunStreamEvent1) error {
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
 }
 
-// MergeXMessageDeltaContentImageFileObject performs a merge with any union data inside the XMessageDeltaObjectDeltaContent_Item, using the provided XMessageDeltaContentImageFileObject
-func (t *XMessageDeltaObjectDeltaContent_Item) MergeXMessageDeltaContentImageFileObject(v XMessageDeltaContentImageFileObject) error {
+// MergeRunStreamEvent1 performs a merge with any union data inside the RunStreamEvent, using the provided RunStreamEvent1
+func (t *RunStreamEvent) MergeRunStreamEvent1(v RunStreamEvent1) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -12804,32 +16101,214 @@ func (t *XMessageDeltaObjectDeltaContent_Item) MergeXMessageDeltaContentImageFil
 	return err
 }
 
-func (t XMessageDeltaObjectDeltaContent_Item) MarshalJSON() ([]byte, error) {
+// AsRunStreamEvent2 returns the union data inside the RunStreamEvent as a RunStreamEvent2
+func (t RunStreamEvent) AsRunStreamEvent2() (RunStreamEvent2, error) {
+	var body RunStreamEvent2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStreamEvent2 overwrites any union data inside the RunStreamEvent as the provided RunStreamEvent2
+func (t *RunStreamEvent) FromRunStreamEvent2(v RunStreamEvent2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStreamEvent2 performs a merge with any union data inside the RunStreamEvent, using the provided RunStreamEvent2
+func (t *RunStreamEvent) MergeRunStreamEvent2(v RunStreamEvent2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStreamEvent3 returns the union data inside the RunStreamEvent as a RunStreamEvent3
+func (t RunStreamEvent) AsRunStreamEvent3() (RunStreamEvent3, error) {
+	var body RunStreamEvent3
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStreamEvent3 overwrites any union data inside the RunStreamEvent as the provided RunStreamEvent3
+func (t *RunStreamEvent) FromRunStreamEvent3(v RunStreamEvent3) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStreamEvent3 performs a merge with any union data inside the RunStreamEvent, using the provided RunStreamEvent3
+func (t *RunStreamEvent) MergeRunStreamEvent3(v RunStreamEvent3) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStreamEvent4 returns the union data inside the RunStreamEvent as a RunStreamEvent4
+func (t RunStreamEvent) AsRunStreamEvent4() (RunStreamEvent4, error) {
+	var body RunStreamEvent4
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStreamEvent4 overwrites any union data inside the RunStreamEvent as the provided RunStreamEvent4
+func (t *RunStreamEvent) FromRunStreamEvent4(v RunStreamEvent4) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStreamEvent4 performs a merge with any union data inside the RunStreamEvent, using the provided RunStreamEvent4
+func (t *RunStreamEvent) MergeRunStreamEvent4(v RunStreamEvent4) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStreamEvent5 returns the union data inside the RunStreamEvent as a RunStreamEvent5
+func (t RunStreamEvent) AsRunStreamEvent5() (RunStreamEvent5, error) {
+	var body RunStreamEvent5
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStreamEvent5 overwrites any union data inside the RunStreamEvent as the provided RunStreamEvent5
+func (t *RunStreamEvent) FromRunStreamEvent5(v RunStreamEvent5) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStreamEvent5 performs a merge with any union data inside the RunStreamEvent, using the provided RunStreamEvent5
+func (t *RunStreamEvent) MergeRunStreamEvent5(v RunStreamEvent5) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStreamEvent6 returns the union data inside the RunStreamEvent as a RunStreamEvent6
+func (t RunStreamEvent) AsRunStreamEvent6() (RunStreamEvent6, error) {
+	var body RunStreamEvent6
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStreamEvent6 overwrites any union data inside the RunStreamEvent as the provided RunStreamEvent6
+func (t *RunStreamEvent) FromRunStreamEvent6(v RunStreamEvent6) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStreamEvent6 performs a merge with any union data inside the RunStreamEvent, using the provided RunStreamEvent6
+func (t *RunStreamEvent) MergeRunStreamEvent6(v RunStreamEvent6) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStreamEvent7 returns the union data inside the RunStreamEvent as a RunStreamEvent7
+func (t RunStreamEvent) AsRunStreamEvent7() (RunStreamEvent7, error) {
+	var body RunStreamEvent7
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStreamEvent7 overwrites any union data inside the RunStreamEvent as the provided RunStreamEvent7
+func (t *RunStreamEvent) FromRunStreamEvent7(v RunStreamEvent7) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStreamEvent7 performs a merge with any union data inside the RunStreamEvent, using the provided RunStreamEvent7
+func (t *RunStreamEvent) MergeRunStreamEvent7(v RunStreamEvent7) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsRunStreamEvent8 returns the union data inside the RunStreamEvent as a RunStreamEvent8
+func (t RunStreamEvent) AsRunStreamEvent8() (RunStreamEvent8, error) {
+	var body RunStreamEvent8
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromRunStreamEvent8 overwrites any union data inside the RunStreamEvent as the provided RunStreamEvent8
+func (t *RunStreamEvent) FromRunStreamEvent8(v RunStreamEvent8) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeRunStreamEvent8 performs a merge with any union data inside the RunStreamEvent, using the provided RunStreamEvent8
+func (t *RunStreamEvent) MergeRunStreamEvent8(v RunStreamEvent8) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t RunStreamEvent) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	return b, err
 }
 
-func (t *XMessageDeltaObjectDeltaContent_Item) UnmarshalJSON(b []byte) error {
+func (t *RunStreamEvent) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
 
-// AsXRunStepDeltaObjectDeltaMessageCreation returns the union data inside the XRunStepDeltaObjectDelta_StepDetails as a XRunStepDeltaObjectDeltaMessageCreation
-func (t XRunStepDeltaObjectDelta_StepDetails) AsXRunStepDeltaObjectDeltaMessageCreation() (XRunStepDeltaObjectDeltaMessageCreation, error) {
-	var body XRunStepDeltaObjectDeltaMessageCreation
+// AsThreadStreamEvent0 returns the union data inside the ThreadStreamEvent as a ThreadStreamEvent0
+func (t ThreadStreamEvent) AsThreadStreamEvent0() (ThreadStreamEvent0, error) {
+	var body ThreadStreamEvent0
 	err := json.Unmarshal(t.union, &body)
 	return body, err
 }
 
-// FromXRunStepDeltaObjectDeltaMessageCreation overwrites any union data inside the XRunStepDeltaObjectDelta_StepDetails as the provided XRunStepDeltaObjectDeltaMessageCreation
-func (t *XRunStepDeltaObjectDelta_StepDetails) FromXRunStepDeltaObjectDeltaMessageCreation(v XRunStepDeltaObjectDeltaMessageCreation) error {
+// FromThreadStreamEvent0 overwrites any union data inside the ThreadStreamEvent as the provided ThreadStreamEvent0
+func (t *ThreadStreamEvent) FromThreadStreamEvent0(v ThreadStreamEvent0) error {
 	b, err := json.Marshal(v)
 	t.union = b
 	return err
 }
 
-// MergeXRunStepDeltaObjectDeltaMessageCreation performs a merge with any union data inside the XRunStepDeltaObjectDelta_StepDetails, using the provided XRunStepDeltaObjectDeltaMessageCreation
-func (t *XRunStepDeltaObjectDelta_StepDetails) MergeXRunStepDeltaObjectDeltaMessageCreation(v XRunStepDeltaObjectDeltaMessageCreation) error {
+// MergeThreadStreamEvent0 performs a merge with any union data inside the ThreadStreamEvent, using the provided ThreadStreamEvent0
+func (t *ThreadStreamEvent) MergeThreadStreamEvent0(v ThreadStreamEvent0) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -12840,188 +16319,12 @@ func (t *XRunStepDeltaObjectDelta_StepDetails) MergeXRunStepDeltaObjectDeltaMess
 	return err
 }
 
-// AsXRunStepDeltaObjectDeltaToolCalls returns the union data inside the XRunStepDeltaObjectDelta_StepDetails as a XRunStepDeltaObjectDeltaToolCalls
-func (t XRunStepDeltaObjectDelta_StepDetails) AsXRunStepDeltaObjectDeltaToolCalls() (XRunStepDeltaObjectDeltaToolCalls, error) {
-	var body XRunStepDeltaObjectDeltaToolCalls
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromXRunStepDeltaObjectDeltaToolCalls overwrites any union data inside the XRunStepDeltaObjectDelta_StepDetails as the provided XRunStepDeltaObjectDeltaToolCalls
-func (t *XRunStepDeltaObjectDelta_StepDetails) FromXRunStepDeltaObjectDeltaToolCalls(v XRunStepDeltaObjectDeltaToolCalls) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeXRunStepDeltaObjectDeltaToolCalls performs a merge with any union data inside the XRunStepDeltaObjectDelta_StepDetails, using the provided XRunStepDeltaObjectDeltaToolCalls
-func (t *XRunStepDeltaObjectDelta_StepDetails) MergeXRunStepDeltaObjectDeltaToolCalls(v XRunStepDeltaObjectDeltaToolCalls) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t XRunStepDeltaObjectDelta_StepDetails) MarshalJSON() ([]byte, error) {
+func (t ThreadStreamEvent) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	return b, err
 }
 
-func (t *XRunStepDeltaObjectDelta_StepDetails) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	return err
-}
-
-// AsXRunStepDeltaObjectDeltaToolCallsObjectCode returns the union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item as a XRunStepDeltaObjectDeltaToolCallsObjectCode
-func (t XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) AsXRunStepDeltaObjectDeltaToolCallsObjectCode() (XRunStepDeltaObjectDeltaToolCallsObjectCode, error) {
-	var body XRunStepDeltaObjectDeltaToolCallsObjectCode
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromXRunStepDeltaObjectDeltaToolCallsObjectCode overwrites any union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item as the provided XRunStepDeltaObjectDeltaToolCallsObjectCode
-func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) FromXRunStepDeltaObjectDeltaToolCallsObjectCode(v XRunStepDeltaObjectDeltaToolCallsObjectCode) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeXRunStepDeltaObjectDeltaToolCallsObjectCode performs a merge with any union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item, using the provided XRunStepDeltaObjectDeltaToolCallsObjectCode
-func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) MergeXRunStepDeltaObjectDeltaToolCallsObjectCode(v XRunStepDeltaObjectDeltaToolCallsObjectCode) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsXRunStepDeltaObjectDeltaToolCallsObjectRetrieval returns the union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item as a XRunStepDeltaObjectDeltaToolCallsObjectRetrieval
-func (t XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) AsXRunStepDeltaObjectDeltaToolCallsObjectRetrieval() (XRunStepDeltaObjectDeltaToolCallsObjectRetrieval, error) {
-	var body XRunStepDeltaObjectDeltaToolCallsObjectRetrieval
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromXRunStepDeltaObjectDeltaToolCallsObjectRetrieval overwrites any union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item as the provided XRunStepDeltaObjectDeltaToolCallsObjectRetrieval
-func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) FromXRunStepDeltaObjectDeltaToolCallsObjectRetrieval(v XRunStepDeltaObjectDeltaToolCallsObjectRetrieval) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeXRunStepDeltaObjectDeltaToolCallsObjectRetrieval performs a merge with any union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item, using the provided XRunStepDeltaObjectDeltaToolCallsObjectRetrieval
-func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) MergeXRunStepDeltaObjectDeltaToolCallsObjectRetrieval(v XRunStepDeltaObjectDeltaToolCallsObjectRetrieval) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsXRunStepDeltaObjectDeltaToolCallsObjectFunction returns the union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item as a XRunStepDeltaObjectDeltaToolCallsObjectFunction
-func (t XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) AsXRunStepDeltaObjectDeltaToolCallsObjectFunction() (XRunStepDeltaObjectDeltaToolCallsObjectFunction, error) {
-	var body XRunStepDeltaObjectDeltaToolCallsObjectFunction
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromXRunStepDeltaObjectDeltaToolCallsObjectFunction overwrites any union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item as the provided XRunStepDeltaObjectDeltaToolCallsObjectFunction
-func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) FromXRunStepDeltaObjectDeltaToolCallsObjectFunction(v XRunStepDeltaObjectDeltaToolCallsObjectFunction) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeXRunStepDeltaObjectDeltaToolCallsObjectFunction performs a merge with any union data inside the XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item, using the provided XRunStepDeltaObjectDeltaToolCallsObjectFunction
-func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) MergeXRunStepDeltaObjectDeltaToolCallsObjectFunction(v XRunStepDeltaObjectDeltaToolCallsObjectFunction) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	return b, err
-}
-
-func (t *XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	return err
-}
-
-// AsXRunStepDetailsToolCallsCodeObjectLogOutput returns the union data inside the XRunStepDetailsToolCallsCodeObject_Outputs_Item as a XRunStepDetailsToolCallsCodeObjectLogOutput
-func (t XRunStepDetailsToolCallsCodeObject_Outputs_Item) AsXRunStepDetailsToolCallsCodeObjectLogOutput() (XRunStepDetailsToolCallsCodeObjectLogOutput, error) {
-	var body XRunStepDetailsToolCallsCodeObjectLogOutput
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromXRunStepDetailsToolCallsCodeObjectLogOutput overwrites any union data inside the XRunStepDetailsToolCallsCodeObject_Outputs_Item as the provided XRunStepDetailsToolCallsCodeObjectLogOutput
-func (t *XRunStepDetailsToolCallsCodeObject_Outputs_Item) FromXRunStepDetailsToolCallsCodeObjectLogOutput(v XRunStepDetailsToolCallsCodeObjectLogOutput) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeXRunStepDetailsToolCallsCodeObjectLogOutput performs a merge with any union data inside the XRunStepDetailsToolCallsCodeObject_Outputs_Item, using the provided XRunStepDetailsToolCallsCodeObjectLogOutput
-func (t *XRunStepDetailsToolCallsCodeObject_Outputs_Item) MergeXRunStepDetailsToolCallsCodeObjectLogOutput(v XRunStepDetailsToolCallsCodeObjectLogOutput) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsXRunStepDetailsToolCallsCodeObjectImageOutput returns the union data inside the XRunStepDetailsToolCallsCodeObject_Outputs_Item as a XRunStepDetailsToolCallsCodeObjectImageOutput
-func (t XRunStepDetailsToolCallsCodeObject_Outputs_Item) AsXRunStepDetailsToolCallsCodeObjectImageOutput() (XRunStepDetailsToolCallsCodeObjectImageOutput, error) {
-	var body XRunStepDetailsToolCallsCodeObjectImageOutput
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromXRunStepDetailsToolCallsCodeObjectImageOutput overwrites any union data inside the XRunStepDetailsToolCallsCodeObject_Outputs_Item as the provided XRunStepDetailsToolCallsCodeObjectImageOutput
-func (t *XRunStepDetailsToolCallsCodeObject_Outputs_Item) FromXRunStepDetailsToolCallsCodeObjectImageOutput(v XRunStepDetailsToolCallsCodeObjectImageOutput) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeXRunStepDetailsToolCallsCodeObjectImageOutput performs a merge with any union data inside the XRunStepDetailsToolCallsCodeObject_Outputs_Item, using the provided XRunStepDetailsToolCallsCodeObjectImageOutput
-func (t *XRunStepDetailsToolCallsCodeObject_Outputs_Item) MergeXRunStepDetailsToolCallsCodeObjectImageOutput(v XRunStepDetailsToolCallsCodeObjectImageOutput) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t XRunStepDetailsToolCallsCodeObject_Outputs_Item) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	return b, err
-}
-
-func (t *XRunStepDetailsToolCallsCodeObject_Outputs_Item) UnmarshalJSON(b []byte) error {
+func (t *ThreadStreamEvent) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
