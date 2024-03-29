@@ -162,7 +162,7 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 				if err := tx.Model(new(db.CreateChatCompletionResponse)).Find(&ccs).Error; err != nil {
 					return err
 				}
-				if err := tx.Model(new(db.ChatCompletionResponseChunk)).Find(&cccs).Error; err != nil {
+				if err := tx.Model(new(db.ChatCompletionResponseChunk)).Where("done != true").Find(&cccs).Error; err != nil {
 					return err
 				}
 				if len(ccs)+len(cccs) == 0 {

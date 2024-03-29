@@ -279,7 +279,7 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 		}
 
 		gdb := a.db.WithContext(ctx)
-		output, err := agents.RunTool(timeoutCtx, l, caster, gdb, opts, prg, envs, arguments, run.ID, runStep.ID)
+		output, err := agents.RunTool(timeoutCtx, l, caster, gdb, withUserOpt(opts, runStep.ID), prg, envs, arguments, run.ID, runStep.ID)
 		if err != nil {
 			return fmt.Errorf("failed to run tool call at index %d: %w", i, err)
 		}
@@ -303,12 +303,29 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 	}
 
 	if err = a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Sum usage of final chunks for run step
+		var chunks []db.ChatCompletionResponseChunk
+		if err := tx.Model(new(db.ChatCompletionResponseChunk)).
+			Where("user = ?", runStep.ID).
+			Where("done = ?", 1).
+			Find(&chunks).Error; err != nil {
+			return err
+		}
+
+		var usage openai.CompletionUsage
+		for _, chunk := range chunks {
+			u := chunk.Usage.Data()
+			usage.PromptTokens += u.PromptTokens
+			usage.CompletionTokens += u.CompletionTokens
+			usage.TotalTokens += u.TotalTokens
+		}
 		// Update the run step with the output
 		if err = tx.Model(runStep).Clauses(clause.Returning{}).Where("id = ?", runStep.ID).Updates(
 			map[string]any{
 				"status":       openai.RunObjectStatusCompleted,
 				"completed_at": z.Pointer(int(time.Now().Unix())),
 				"step_details": datatypes.NewJSONType(stepDetails),
+				"usage":        datatypes.NewJSONType(&usage),
 			}).Error; err != nil {
 			return err
 		}
@@ -339,6 +356,18 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 	a.runTrigger.Kick(run.ID)
 
 	return nil
+}
+
+// withUserOpt sets the default user field for chat completion requests made by gptscript.
+func withUserOpt(opts *gptscript.Options, user string) *gptscript.Options {
+	if opts == nil {
+		return nil
+	}
+
+	modified := *opts
+	modified.OpenAI.User = user
+
+	return &modified
 }
 
 // populateTools loads the gptscript program from the provided link and subtool. The database is checked first to see if

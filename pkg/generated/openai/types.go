@@ -4275,6 +4275,9 @@ type ExtendedCreateChatCompletionStreamResponse struct {
 	// SystemFingerprint This fingerprint represents the backend configuration that the model runs with.
 	// Can be used in conjunction with the `seed` request parameter to understand when backend changes have been made that might impact determinism.
 	SystemFingerprint *string `json:"system_fingerprint,omitempty"`
+
+	// Usage Usage statistics for the completion request.
+	Usage *CompletionUsage `json:"usage,omitempty"`
 }
 
 // ExtendedCreateChatCompletionStreamResponseChoicesFinishReason The reason the model stopped generating tokens. This will be `stop` if the model hit a natural stop point or a provided stop sequence,

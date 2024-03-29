@@ -62,7 +62,7 @@ func (c *CreateChatCompletionResponse) ToPublic() any {
 type Choice struct {
 	FinishReason string                                                   `json:"finish_reason"`
 	Index        int                                                      `json:"index"`
-	Logprobs     datatypes.JSONType[Lobprob]                              `json:"logprobs"`
+	Logprobs     datatypes.JSONType[Logprob]                              `json:"logprobs"`
 	Message      datatypes.JSONType[openai.ChatCompletionResponseMessage] `json:"message"`
 }
 
@@ -89,9 +89,9 @@ type publicChoice struct {
 }
 
 func (pc publicChoice) toDBChoice() Choice {
-	var lobProbs Lobprob
+	var lobProbs Logprob
 	if pc.Logprobs != nil {
-		lobProbs = Lobprob{
+		lobProbs = Logprob{
 			Content: z.Dereference(pc.Logprobs.Content),
 		}
 	}
@@ -129,6 +129,6 @@ func (pc publicChoices) toDBChoices() (choices []Choice) {
 	return choices
 }
 
-type Lobprob struct {
+type Logprob struct {
 	Content []openai.ChatCompletionTokenLogprob `json:"content"`
 }

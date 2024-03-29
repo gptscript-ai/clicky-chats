@@ -15,6 +15,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -288,6 +289,13 @@ func (a *agent) run(ctx context.Context) error {
 
 	l.Debug("Found chat completion", "cc", cc)
 	if z.Dereference(cc.Stream) {
+		l.Debug("Counting prompt tokens...")
+
+		promptTokens, err := countPromptTokens(cc.Model, cc)
+		if err != nil {
+			l.Warn("Prompt token count failed", "counted", promptTokens, "err", err)
+		}
+
 		l.Debug("Streaming chat completion...")
 		stream, err := agents.StreamChatCompletionRequest(ctx, l, a.client, url, a.apiKey, cc)
 		if err != nil {
@@ -295,7 +303,7 @@ func (a *agent) run(ctx context.Context) error {
 			return err
 		}
 
-		if err = streamResponses(l, a.db.WithContext(ctx), chatCompletionID, stream); err != nil {
+		if err = streamResponses(l, a.db.WithContext(ctx), chatCompletionID, z.Dereference(cc.User), promptTokens, stream); err != nil {
 			l.Error("Failed to stream chat completion responses", "err", err)
 		}
 
@@ -324,7 +332,7 @@ func (a *agent) run(ctx context.Context) error {
 	return nil
 }
 
-func streamResponses(l *slog.Logger, gdb *gorm.DB, chatCompletionID string, stream <-chan db.ChatCompletionResponseChunk) error {
+func streamResponses(l *slog.Logger, gdb *gorm.DB, chatCompletionID, user string, promptTokens int, stream <-chan db.ChatCompletionResponseChunk) error {
 	var (
 		index int
 		errs  []error
@@ -345,6 +353,15 @@ func streamResponses(l *slog.Logger, gdb *gorm.DB, chatCompletionID string, stre
 			Done:      true,
 		},
 		ResponseIdx: index,
+		Usage: datatypes.NewJSONType(&openai.CompletionUsage{
+			// TODO(njhale): Confirm that the number of response chunks is roughly equivalent to the amount of response tokens produced.
+			// TODO(njhale): Ensure tool calls are counted.
+			// TODO(njhale): Since a run step can result in multiple chat completions to different models, we'll probably need to add a model field so that users can attribute token usage correctly.
+			PromptTokens:     promptTokens,
+			CompletionTokens: index,
+			TotalTokens:      promptTokens + index,
+		}),
+		User: user,
 	}
 	if err := gdb.Transaction(func(tx *gorm.DB) error {
 		if err := db.Create(tx, chunk); err != nil {

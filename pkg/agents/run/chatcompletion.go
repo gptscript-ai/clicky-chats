@@ -52,12 +52,14 @@ func prepareChatCompletionRequest(ctx context.Context, builtInFunctionDefinition
 
 		chatMessages = append(chatMessages, *m)
 	}
+	var user string
 	for _, runStep := range runSteps {
 		messages, err := createChatMessageFromToolOutput(runStep.StepDetails.Data())
 		if err != nil {
 			return nil, err
 		}
 		chatMessages = append(chatMessages, messages...)
+		user = runStep.RunID + "." + runStep.ID
 	}
 
 	toolDefinitions := make(map[string]*openai.FunctionObject, len(tools))
@@ -85,6 +87,7 @@ func prepareChatCompletionRequest(ctx context.Context, builtInFunctionDefinition
 		Temperature: z.Pointer[float32](0.1),
 		TopP:        z.Pointer[float32](0.95),
 		Tools:       chatCompletionTools,
+		User:        z.Pointer(user),
 	}, nil
 }
 
@@ -221,6 +224,7 @@ func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *d
 				return statusCode, toolCalls, fmt.Errorf("unexpected chat completion response: %s", z.Dereference(chunk.Error))
 			}
 
+			// TODO(njhale): Add usage to run_steps from chat completion chunk
 			// These chat completions should only have one choice.
 			responseIsMessage = responseIsMessage || len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Data().Content != nil
 			if !responseIsMessage {
@@ -581,11 +585,29 @@ func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.Run
 			})
 		}
 
+		// Sum usage from all related run steps
+		var steps []db.RunStep
+		if err := tx.Model(new(db.RunStep)).Where("run_id = ?", run.ID).Find(&steps).Error; err != nil {
+			l.Error("failed to query run steps to calculate usage for run, field will be omitted", "err", err)
+		}
+
+		var usage openai.RunCompletionUsage
+		for _, step := range steps {
+			u := step.Usage.Data()
+			if u == nil {
+				continue
+			}
+
+			usage.CompletionTokens += u.CompletionTokens
+			usage.PromptTokens += u.PromptTokens
+			usage.TotalTokens += u.CompletionTokens + u.PromptTokens
+		}
+
 		if err = tx.Model(run).Where("id = ?", run.ID).Updates(map[string]any{
 			"event_index":     run.EventIndex,
 			"completed_at":    completedAt,
 			"status":          newPublicStatus,
-			"usage":           run.Usage,
+			"usage":           datatypes.NewJSONType(&usage),
 			"required_action": run.RequiredAction,
 			"system_status":   newSystemStatus,
 		}).Error; err != nil {

@@ -72,13 +72,50 @@ var (
 		},
 	}
 
+	extraChatStreamFields = openapi3.Schemas{
+		"usage": {
+			Ref: "#/components/schemas/CompletionUsage",
+			//Value: &openapi3.Schema{
+			//	Description: "The token usage for a chat completion request. It should only be set on the final message of a stream",
+			//	Type:        "object",
+			//	Nullable:    true,
+			//	Required: []string{
+			//		"completion_tokens",
+			//		"prompt_tokens",
+			//		"total_tokens",
+			//	},
+			//	Properties: openapi3.Schemas{
+			//		"completion_tokens": {
+			//			Value: &openapi3.Schema{
+			//				Type:        "integer",
+			//				Description: "Number of completion tokens used over the course of the chat request",
+			//			},
+			//		},
+			//		"prompt_tokens": {
+			//			Value: &openapi3.Schema{
+			//				Type:        "integer",
+			//				Description: "Number of prompt tokens used over the course of the run",
+			//			},
+			//		},
+			//		"total_tokens": {
+			//			Value: &openapi3.Schema{
+			//				Type:        "integer",
+			//				Description: "Total number of tokens used (prompt + completion)",
+			//			},
+			//		},
+			//	},
+			//},
+		},
+	}
+
 	extendedAPIs = map[string]openapi3.Schemas{
-		"CreateAssistantRequest":      extraAssistantFields,
-		"ModifyAssistantRequest":      extraAssistantFields,
-		"AssistantObject":             extraAssistantFields,
-		"CreateRunRequest":            extraCreateRunFields,
-		"SubmitToolOutputsRunRequest": extraCreateRunFields,
-		"MessageObject":               extraMessagesFields,
+		"CreateAssistantRequest":             extraAssistantFields,
+		"ModifyAssistantRequest":             extraAssistantFields,
+		"AssistantObject":                    extraAssistantFields,
+		"CreateRunRequest":                   extraCreateRunFields,
+		"SubmitToolOutputsRunRequest":        extraCreateRunFields,
+		"MessageObject":                      extraMessagesFields,
+		"CreateChatCompletionStreamResponse": extraChatStreamFields,
 	}
 )
 

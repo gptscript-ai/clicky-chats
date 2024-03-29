@@ -8,10 +8,13 @@ import (
 
 type ChatCompletionResponseChunk struct {
 	Base              `json:",inline"`
-	Choices           datatypes.JSONSlice[ChunkChoice] `json:"choices"`
-	Model             string                           `json:"model"`
-	SystemFingerprint *string                          `json:"system_fingerprint,omitempty"`
+	Choices           datatypes.JSONSlice[ChunkChoice]            `json:"choices"`
+	Model             string                                      `json:"model"`
+	SystemFingerprint *string                                     `json:"system_fingerprint,omitempty"`
+	Usage             datatypes.JSONType[*openai.CompletionUsage] `json:"usage,omitempty"`
+
 	// Not part of the public API
+	User        string `json:"user"`
 	JobResponse `json:",inline"`
 	ResponseIdx int `json:"response_idx"`
 }
@@ -30,18 +33,19 @@ func (c *ChatCompletionResponseChunk) GetEvent() string {
 
 func (c *ChatCompletionResponseChunk) ToPublic() any {
 	//nolint:govet
-	return &openai.CreateChatCompletionStreamResponse{
+	return &openai.ExtendedCreateChatCompletionStreamResponse{
 		chunkChoices(c.Choices).toPublic(),
 		c.CreatedAt,
 		c.ID,
 		c.Model,
-		openai.CreateChatCompletionStreamResponseObjectChatCompletionChunk,
+		openai.ExtendedCreateChatCompletionStreamResponseObjectChatCompletionChunk,
 		c.SystemFingerprint,
+		c.Usage.Data(),
 	}
 }
 
 func (c *ChatCompletionResponseChunk) FromPublic(obj any) error {
-	o, ok := obj.(*openai.CreateChatCompletionStreamResponse)
+	o, ok := obj.(*openai.ExtendedCreateChatCompletionStreamResponse)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
 	}
@@ -55,6 +59,8 @@ func (c *ChatCompletionResponseChunk) FromPublic(obj any) error {
 			publicChunkChoices(o.Choices).toDBChoices(),
 			o.Model,
 			o.SystemFingerprint,
+			datatypes.NewJSONType(o.Usage),
+			"",
 			JobResponse{},
 			0,
 		}
@@ -66,14 +72,14 @@ func (c *ChatCompletionResponseChunk) FromPublic(obj any) error {
 type ChunkChoice struct {
 	FinishReason string                                                       `json:"finish_reason"`
 	Index        int                                                          `json:"index"`
-	Logprobs     datatypes.JSONType[Lobprob]                                  `json:"logprobs"`
+	Logprobs     datatypes.JSONType[Logprob]                                  `json:"logprobs"`
 	Delta        datatypes.JSONType[openai.ChatCompletionStreamResponseDelta] `json:"delta"`
 }
 
 func (c *ChunkChoice) toPublic() publicChunkChoice {
-	var finishReason *openai.CreateChatCompletionStreamResponseChoicesFinishReason
+	var finishReason *openai.ExtendedCreateChatCompletionStreamResponseChoicesFinishReason
 	if c.FinishReason != "" {
-		finishReason = z.Pointer(openai.CreateChatCompletionStreamResponseChoicesFinishReason(c.FinishReason))
+		finishReason = z.Pointer(openai.ExtendedCreateChatCompletionStreamResponseChoicesFinishReason(c.FinishReason))
 	}
 	return publicChunkChoice{
 		FinishReason: finishReason,
@@ -98,18 +104,18 @@ func (c chunkChoices) toPublic() publicChunkChoices {
 }
 
 type publicChunkChoice struct {
-	Delta        openai.ChatCompletionStreamResponseDelta                      `json:"delta"`
-	FinishReason *openai.CreateChatCompletionStreamResponseChoicesFinishReason `json:"finish_reason"`
-	Index        int                                                           `json:"index"`
+	Delta        openai.ChatCompletionStreamResponseDelta                              `json:"delta"`
+	FinishReason *openai.ExtendedCreateChatCompletionStreamResponseChoicesFinishReason `json:"finish_reason"`
+	Index        int                                                                   `json:"index"`
 	Logprobs     *struct {
 		Content *[]openai.ChatCompletionTokenLogprob `json:"content"`
 	} `json:"logprobs"`
 }
 
 func (pc publicChunkChoice) toDBChoice() ChunkChoice {
-	var lobProbs Lobprob
+	var logProbs Logprob
 	if pc.Logprobs != nil {
-		lobProbs = Lobprob{
+		logProbs = Logprob{
 			Content: z.Dereference(pc.Logprobs.Content),
 		}
 	}
@@ -117,15 +123,15 @@ func (pc publicChunkChoice) toDBChoice() ChunkChoice {
 	return ChunkChoice{
 		FinishReason: z.Dereference((*string)(pc.FinishReason)),
 		Index:        pc.Index,
-		Logprobs:     datatypes.NewJSONType(lobProbs),
+		Logprobs:     datatypes.NewJSONType(logProbs),
 		Delta:        datatypes.NewJSONType(pc.Delta),
 	}
 }
 
 type publicChunkChoices []struct {
-	Delta        openai.ChatCompletionStreamResponseDelta                      `json:"delta"`
-	FinishReason *openai.CreateChatCompletionStreamResponseChoicesFinishReason `json:"finish_reason"`
-	Index        int                                                           `json:"index"`
+	Delta        openai.ChatCompletionStreamResponseDelta                              `json:"delta"`
+	FinishReason *openai.ExtendedCreateChatCompletionStreamResponseChoicesFinishReason `json:"finish_reason"`
+	Index        int                                                                   `json:"index"`
 	Logprobs     *struct {
 		Content *[]openai.ChatCompletionTokenLogprob `json:"content"`
 	} `json:"logprobs"`

@@ -33,7 +33,7 @@ func RunTool(ctx context.Context, l *slog.Logger, caster *broadcaster.Broadcaste
 			}
 
 			runStepEvent := db.FromGPTScriptEvent(e, runID, runStepID, index, false)
-			if err := gdb.Model(runStepEvent).Create(runStepEvent).Error; err != nil {
+			if err := gdb.Create(runStepEvent); err != nil {
 				l.Error("failed to create run step event", "error", err)
 			}
 			index++
@@ -41,7 +41,7 @@ func RunTool(ctx context.Context, l *slog.Logger, caster *broadcaster.Broadcaste
 
 		// Create final event that just says we're done with this run step.
 		runStepEvent := db.FromGPTScriptEvent(server.Event{}, runID, runStepID, index, true)
-		if err := gdb.Model(runStepEvent).Create(runStepEvent).Error; err != nil {
+		if err := gdb.Create(runStepEvent).Error; err != nil {
 			l.Error("failed to create run step event", "error", err)
 		}
 		l.Debug("done receiving events")

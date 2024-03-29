@@ -3863,6 +3863,8 @@ components:
                         This fingerprint represents the backend configuration that the model runs with.
                         Can be used in conjunction with the `seed` request parameter to understand when backend changes have been made that might impact determinism.
                     type: string
+                usage:
+                    $ref: '#/components/schemas/CompletionUsage'
             required:
                 - choices
                 - created

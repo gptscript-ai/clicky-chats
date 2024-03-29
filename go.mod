@@ -7,6 +7,8 @@ replace (
 	github.com/sashabaranov/go-openai => github.com/gptscript-ai/go-openai v0.0.0-20240330064700-d33320ca826f
 )
 
+replace github.com/gptscript-ai/gptscript => github.com/njhale/gptscript v0.0.0-20240402033421-80fc69e9c4a8
+
 require (
 	github.com/acorn-io/broadcaster v0.0.0-20240105011354-bfadd4a7b45d
 	github.com/acorn-io/cmd v0.0.0-20240203032901-e9e631185ddb
@@ -20,6 +22,7 @@ require (
 	github.com/invopop/yaml v0.2.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.1.1
+	github.com/pkoukk/tiktoken-go v0.1.6
 	github.com/spf13/cobra v1.8.0
 	gorm.io/datatypes v1.2.0
 	gorm.io/driver/mysql v1.5.4
@@ -37,6 +40,7 @@ require (
 	github.com/bodgit/windows v1.0.0 // indirect
 	github.com/bombsimon/logrusr/v4 v4.0.0 // indirect
 	github.com/connesc/cipherio v0.2.1 // indirect
+	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
