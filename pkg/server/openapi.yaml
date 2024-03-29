@@ -22027,7 +22027,7 @@ paths:
 security:
     - ApiKeyAuth: []
 servers:
-    - url: https://api.openai.com/v1
+    - url: http://localhost:8080/v1
 tags:
     - description: Build Assistants that can call models and use tools.
       name: Assistants

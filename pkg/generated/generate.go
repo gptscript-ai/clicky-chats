@@ -128,11 +128,11 @@ func main() {
 
 	// This nonsense allows our extended APIs to reference types in the OpenAI API schema.
 	for key, component := range newS.Components.Schemas {
-		component.Ref = strings.TrimPrefix(component.Ref, "../../openapi.yaml")
+		component.Ref = strings.TrimPrefix(component.Ref, "../server/openapi.yaml")
 		for _, item := range component.Value.Properties {
-			item.Ref = strings.TrimPrefix(item.Ref, "../../openapi.yaml")
+			item.Ref = strings.TrimPrefix(item.Ref, "../server/openapi.yaml")
 			if item.Value != nil && item.Value.Items != nil {
-				item.Value.Items.Ref = strings.TrimPrefix(item.Value.Items.Ref, "../../openapi.yaml")
+				item.Value.Items.Ref = strings.TrimPrefix(item.Value.Items.Ref, "../server/openapi.yaml")
 			}
 		}
 		s.Components.Schemas[key] = component
@@ -141,14 +141,14 @@ func main() {
 		if pathItem.Get != nil {
 			if pathItem.Get.RequestBody != nil {
 				for _, val := range pathItem.Get.RequestBody.Value.Content {
-					val.Schema.Ref = strings.TrimPrefix(val.Schema.Ref, "../../openapi.yaml")
+					val.Schema.Ref = strings.TrimPrefix(val.Schema.Ref, "../server/openapi.yaml")
 				}
 			}
 			if pathItem.Get.Responses != nil {
 				newResponses := openapi3.NewResponsesWithCapacity(pathItem.Get.Responses.Len())
 				for key, val := range pathItem.Get.Responses.Map() {
 					for _, mediaType := range val.Value.Content {
-						mediaType.Schema.Ref = strings.TrimPrefix(mediaType.Schema.Ref, "../../openapi.yaml")
+						mediaType.Schema.Ref = strings.TrimPrefix(mediaType.Schema.Ref, "../server/openapi.yaml")
 					}
 					newResponses.Set(key, val)
 				}
@@ -158,6 +158,11 @@ func main() {
 		s.Paths.Set(path, pathItem)
 	}
 
+	s.Servers = openapi3.Servers{
+		&openapi3.Server{
+			URL: "http://localhost:8080/v1",
+		},
+	}
 	b, err := s.MarshalJSON()
 	if err != nil {
 		panic(err)
@@ -168,12 +173,12 @@ func main() {
 		panic(err)
 	}
 
-	err = os.WriteFile("../../openapi.yaml", b, 0o644)
+	err = os.WriteFile("../server/openapi.yaml", b, 0o644)
 	if err != nil {
 		panic(err)
 	}
 
-	s, err = util.LoadSwaggerWithCircularReferenceCount("../../openapi.yaml", 0)
+	s, err = util.LoadSwaggerWithCircularReferenceCount("../server/openapi.yaml", 0)
 	if err != nil {
 		panic(err)
 	}

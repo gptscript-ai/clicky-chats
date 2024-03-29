@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"embed"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -17,6 +18,9 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
 	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
 )
+
+//go:embed openapi.yaml
+var openapiSpec embed.FS
 
 type Triggers struct {
 	ChatCompletion, Run, RunStep, RunTool, Image, Embeddings, Audio trigger.Trigger
@@ -88,6 +92,7 @@ func (s *Server) Start(ctx context.Context, wg *sync.WaitGroup, config Config) e
 
 	mux := http.DefaultServeMux
 	mux.HandleFunc("GET /healthz", s.db.Check)
+	mux.Handle("/v1/openapi.yaml", http.StripPrefix("/v1/", http.FileServerFS(openapiSpec)))
 
 	h := openai.HandlerWithOptions(s, openai.StdHTTPServerOptions{
 		BaseURL:    config.APIBase,

@@ -57,7 +57,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '../../openapi.yaml#/components/schemas/RunObject'
+                $ref: '../server/openapi.yaml#/components/schemas/RunObject'
           description: OK
   /rubra/x/threads/{thread_id}/runs/{run_id}/steps/{step_id}/events:
     get:
@@ -356,7 +356,7 @@ components:
       properties:
         data:
           items:
-            $ref: '../../openapi.yaml#/components/schemas/XRunStepEventObject'
+            $ref: '#/components/schemas/XRunStepEventObject'
           type: array
         object:
           example: list
@@ -416,7 +416,7 @@ components:
       properties:
         data:
           items:
-            $ref: '../../openapi.yaml#/components/schemas/ThreadObject'
+            $ref: '../server/openapi.yaml#/components/schemas/ThreadObject'
           type: array
         first_id:
           example: thread_abc123
