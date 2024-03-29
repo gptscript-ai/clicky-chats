@@ -8,21 +8,21 @@ import (
 )
 
 type RunStepDelta struct {
-	ID    string                                              `json:"id"`
-	Delta datatypes.JSONType[openai.XRunStepDeltaObjectDelta] `json:"delta"`
+	ID    string                                `json:"id"`
+	Delta datatypes.JSONType[RunStepDeltaDelta] `json:"delta"`
 }
 
 func (r *RunStepDelta) ToPublic() any {
 	//nolint:govet
-	return &openai.XRunStepDeltaObject{
+	return &openai.RunStepDeltaObject{
 		r.Delta.Data(),
 		r.ID,
-		openai.ThreadRunStepDelta,
+		openai.RunStepDeltaObjectObjectThreadRunStepDelta,
 	}
 }
 
 func (r *RunStepDelta) FromPublic(obj any) error {
-	o, ok := obj.(*openai.XRunStepDeltaObject)
+	o, ok := obj.(*openai.RunStepDeltaObject)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
 	}
@@ -31,11 +31,15 @@ func (r *RunStepDelta) FromPublic(obj any) error {
 		//nolint:govet
 		*r = RunStepDelta{
 			o.Id,
-			datatypes.NewJSONType(o.Delta),
+			datatypes.NewJSONType[RunStepDeltaDelta](o.Delta),
 		}
 	}
 
 	return nil
+}
+
+type RunStepDeltaDelta struct {
+	StepDetails *openai.RunStepDeltaObject_Delta_StepDetails `json:"step_details,omitempty"`
 }
 
 func EmitRunStepDeltaOutputEvent(gbd *gorm.DB, run *Run, toolCall *openai.RunStepDetailsToolCallsObject_ToolCalls_Item, index int) error {
@@ -44,10 +48,10 @@ func EmitRunStepDeltaOutputEvent(gbd *gorm.DB, run *Run, toolCall *openai.RunSte
 		return err
 	}
 
-	deltaStepDetails := new(openai.XRunStepDeltaObjectDelta_StepDetails)
-	if err := deltaStepDetails.FromXRunStepDeltaObjectDeltaToolCalls(openai.XRunStepDeltaObjectDeltaToolCalls{
-		ToolCalls: []openai.XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item{*deltaToolCalls},
-		Type:      openai.ToolCalls,
+	deltaStepDetails := new(openai.RunStepDeltaObject_Delta_StepDetails)
+	if err := deltaStepDetails.FromRunStepDeltaStepDetailsToolCallsObject(openai.RunStepDeltaStepDetailsToolCallsObject{
+		ToolCalls: z.Pointer([]openai.RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item{*deltaToolCalls}),
+		Type:      openai.RunStepDeltaStepDetailsToolCallsObjectTypeToolCalls,
 	}); err != nil {
 		return err
 	}
@@ -57,10 +61,10 @@ func EmitRunStepDeltaOutputEvent(gbd *gorm.DB, run *Run, toolCall *openai.RunSte
 		JobResponse: JobResponse{
 			RequestID: run.ID,
 		},
-		EventName:   ThreadRunStepDeltaEvent,
+		EventName:   string(openai.RunStepDeltaObjectObjectThreadRunStepDelta),
 		ResponseIdx: run.EventIndex,
 		RunStepDelta: datatypes.NewJSONType(&RunStepDelta{
-			Delta: datatypes.NewJSONType(openai.XRunStepDeltaObjectDelta{
+			Delta: datatypes.NewJSONType(RunStepDeltaDelta{
 				StepDetails: deltaStepDetails,
 			}),
 		}),
@@ -73,56 +77,65 @@ func EmitRunStepDeltaOutputEvent(gbd *gorm.DB, run *Run, toolCall *openai.RunSte
 	return nil
 }
 
-func extractToolCallOutputToDeltaToolCall(toolCall *openai.RunStepDetailsToolCallsObject_ToolCalls_Item, index int) (*openai.XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item, error) {
-	deltaToolCalls := new(openai.XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item)
+func extractToolCallOutputToDeltaToolCall(toolCall *openai.RunStepDetailsToolCallsObject_ToolCalls_Item, index int) (*openai.RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item, error) {
+	deltaToolCalls := new(openai.RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item)
 	info, err := GetOutputForRunStepToolCall(toolCall)
 	if err != nil {
 		return nil, err
 	}
 
 	switch info.Name {
-	case string(openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter):
-		code := openai.XRunStepDeltaObjectDeltaToolCallsObjectCode{
-			CodeInterpreter: openai.XRunStepDetailsToolCallsCodeObject{
-				Outputs: nil,
+	case string(openai.RunStepDeltaStepDetailsToolCallsCodeObjectTypeCodeInterpreter):
+		code := openai.RunStepDeltaStepDetailsToolCallsCodeObject{
+			CodeInterpreter: &struct {
+				Input   *string                                                                           `json:"input,omitempty"`
+				Outputs *[]openai.RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item `json:"outputs,omitempty"`
+			}{
+				Input: &info.Arguments,
 			},
-			Id:    info.ID,
+			Id:    &info.ID,
 			Index: index,
-			Type:  openai.Code,
+			Type:  openai.RunStepDeltaStepDetailsToolCallsCodeObjectTypeCodeInterpreter,
 		}
 
-		outputs := new(openai.XRunStepDetailsToolCallsCodeObject_Outputs_Item)
-		if err = outputs.FromXRunStepDetailsToolCallsCodeObjectLogOutput(openai.XRunStepDetailsToolCallsCodeObjectLogOutput{
-			Index: index,
-			Log:   info.Output,
-			Type:  openai.Log,
+		outputs := new(openai.RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item)
+		//nolint:govet
+		if err = outputs.FromRunStepDeltaStepDetailsToolCallsCodeOutputLogsObject(openai.RunStepDeltaStepDetailsToolCallsCodeOutputLogsObject{
+			index,
+			&info.Output,
+			openai.RunStepDeltaStepDetailsToolCallsCodeOutputLogsObjectTypeLogs,
 		}); err != nil {
 			return nil, err
 		}
-		code.CodeInterpreter.Outputs = z.Pointer([]openai.XRunStepDetailsToolCallsCodeObject_Outputs_Item{*outputs})
+		code.CodeInterpreter.Outputs = z.Pointer([]openai.RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item{*outputs})
 
-		return deltaToolCalls, deltaToolCalls.FromXRunStepDeltaObjectDeltaToolCallsObjectCode(code)
+		return deltaToolCalls, deltaToolCalls.FromRunStepDeltaStepDetailsToolCallsCodeObject(code)
 
-	case string(openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval):
-		retrieval := openai.XRunStepDeltaObjectDeltaToolCallsObjectRetrieval{
-			Id:        info.ID,
+	case string(openai.RunStepDeltaStepDetailsToolCallsRetrievalObjectTypeRetrieval):
+		retrieval := openai.RunStepDeltaStepDetailsToolCallsRetrievalObject{
+			Id:        &info.ID,
 			Index:     index,
-			Type:      openai.Retrieval,
+			Type:      openai.RunStepDeltaStepDetailsToolCallsRetrievalObjectTypeRetrieval,
 			Retrieval: z.Pointer(make(map[string]any)),
 		}
 
-		return deltaToolCalls, deltaToolCalls.FromXRunStepDeltaObjectDeltaToolCallsObjectRetrieval(retrieval)
+		return deltaToolCalls, deltaToolCalls.FromRunStepDeltaStepDetailsToolCallsRetrievalObject(retrieval)
 	default:
-		functionCall := openai.XRunStepDeltaObjectDeltaToolCallsObjectFunction{
-			Id:    info.ID,
+		functionCall := openai.RunStepDeltaStepDetailsToolCallsFunctionObject{
+			Id:    &info.ID,
 			Index: index,
-			Type:  openai.XRunStepDeltaObjectDeltaToolCallsObjectFunctionTypeFunction,
-			Function: &openai.XRunStepDeltaDetailsToolCallsFunctionObject{
-				Name:   info.Name,
-				Output: &info.Output,
+			Type:  openai.RunStepDeltaStepDetailsToolCallsFunctionObjectTypeFunction,
+			Function: &struct {
+				Arguments *string `json:"arguments,omitempty"`
+				Name      *string `json:"name,omitempty"`
+				Output    *string `json:"output"`
+			}{
+				Arguments: &info.Arguments,
+				Name:      &info.Name,
+				Output:    &info.Output,
 			},
 		}
 
-		return deltaToolCalls, deltaToolCalls.FromXRunStepDeltaObjectDeltaToolCallsObjectFunction(functionCall)
+		return deltaToolCalls, deltaToolCalls.FromRunStepDeltaStepDetailsToolCallsFunctionObject(functionCall)
 	}
 }

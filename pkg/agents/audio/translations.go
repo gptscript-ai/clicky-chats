@@ -82,7 +82,7 @@ func (a *agent) runTranslations(ctx context.Context) error {
 		req.Header.Set("Authorization", "Bearer "+a.apiKey)
 	}
 
-	oir, ir := new(openai.CreateTranslationResponse), new(db.CreateTranslationResponse)
+	oir, ir := new(openai.CreateTranslationResponseJson), new(db.CreateTranslationResponse)
 	code, err := cclient.SendRequest(a.client, req, oir)
 
 	// err must be shadowed here.

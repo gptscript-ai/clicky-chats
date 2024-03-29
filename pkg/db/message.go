@@ -14,7 +14,7 @@ type Message struct {
 	ThreadID          string                                                         `json:"thread_id,omitempty"`
 	RunID             *string                                                        `json:"run_id,omitempty"`
 	FileIDs           datatypes.JSONSlice[string]                                    `json:"file_ids,omitempty"`
-	Status            *string                                                        `json:"status,omitempty"`
+	Status            string                                                         `json:"status,omitempty"`
 	CompletedAt       *int                                                           `json:"completed_at,omitempty"`
 	IncompleteAt      *int                                                           `json:"incomplete_at,omitempty"`
 	IncompleteDetails datatypes.JSONType[*struct {
@@ -27,10 +27,6 @@ func (m *Message) IDPrefix() string {
 }
 
 func (m *Message) ToPublic() any {
-	var status *openai.ExtendedMessageObjectStatus
-	if m.Status != nil {
-		status = (*openai.ExtendedMessageObjectStatus)(m.Status)
-	}
 	//nolint:govet
 	return &openai.ExtendedMessageObject{
 		m.AssistantID,
@@ -45,7 +41,7 @@ func (m *Message) ToPublic() any {
 		openai.ExtendedMessageObjectObjectThreadMessage,
 		openai.ExtendedMessageObjectRole(m.Role),
 		m.RunID,
-		status,
+		openai.ExtendedMessageObjectStatus(m.Status),
 		m.ThreadID,
 	}
 }
@@ -57,10 +53,6 @@ func (m *Message) FromPublic(obj any) error {
 	}
 
 	if o != nil && m != nil {
-		var status *string
-		if o.Status != nil {
-			status = (*string)(o.Status)
-		}
 		//nolint:govet
 		*m = Message{
 			Metadata{
@@ -76,7 +68,7 @@ func (m *Message) FromPublic(obj any) error {
 			o.ThreadId,
 			o.RunId,
 			o.FileIds,
-			status,
+			string(o.Status),
 			o.CompletedAt,
 			o.IncompleteAt,
 			datatypes.NewJSONType(o.IncompleteDetails),

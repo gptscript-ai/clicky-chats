@@ -14,7 +14,7 @@ import (
 //go:generate go run generate.go
 
 func main() {
-	s, err := util.LoadSwagger("https://raw.githubusercontent.com/openai/openai-openapi/6b64280c3db0082cbafa34495b9f3a3a58eb960d/openapi.yaml")
+	s, err := util.LoadSwagger("https://raw.githubusercontent.com/openai/openai-openapi/399458ce091927c74893736464d85e4ca3036d59/openapi.yaml")
 	if err != nil {
 		panic(err)
 	}
@@ -53,6 +53,7 @@ func main() {
 			},
 		},
 	}
+
 	extendedAPIs := extendedapi.GetExtendedAPIs()
 
 	newComponents := make(map[string]*openapi3.SchemaRef, len(s.Components.Schemas)*2)

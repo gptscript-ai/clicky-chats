@@ -2,7 +2,7 @@ module github.com/gptscript-ai/clicky-chats
 
 go 1.22.0
 
-replace github.com/deepmap/oapi-codegen/v2 => github.com/deepmap/oapi-codegen/v2 v2.1.1-0.20240304154729-dd082985a9b6
+replace github.com/deepmap/oapi-codegen/v2 => github.com/thedadams/oapi-codegen/v2 v2.0.0-20240328215647-949fe1294bfe
 
 require (
 	github.com/acorn-io/broadcaster v0.0.0-20240105011354-bfadd4a7b45d

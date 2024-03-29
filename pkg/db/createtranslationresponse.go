@@ -23,13 +23,13 @@ func (c *CreateTranslationResponse) ToPublic() any {
 	}
 
 	//nolint:govet
-	return &openai.CreateTranslationResponse{
+	return &openai.CreateTranslationResponseJson{
 		c.Text,
 	}
 }
 
 func (c *CreateTranslationResponse) FromPublic(obj any) error {
-	o, ok := obj.(*openai.CreateTranslationResponse)
+	o, ok := obj.(*openai.CreateTranslationResponseJson)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
 	}

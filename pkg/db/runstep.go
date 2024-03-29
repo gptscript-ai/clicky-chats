@@ -120,12 +120,14 @@ func (r *RunStep) Merge(toolCalls *[]GenericToolCallInfo, chunk ChatCompletionRe
 	var runStepDelta *RunStepDelta
 	if delta.ToolCalls != nil {
 		for _, chunkTC := range *delta.ToolCalls {
+			// Expand the tool calls slice so that the index is valid.
 			*toolCalls = expandSlice(*toolCalls, chunkTC.Index)
 			tc := (*toolCalls)[chunkTC.Index]
 
 			if id := z.Dereference(chunkTC.Id); id != "" {
 				tc.ID = id
 			}
+
 			if chunkFunction := chunkTC.Function; chunkFunction != nil {
 				if name := z.Dereference(chunkFunction.Name); name != "" {
 					tc.Name += name
@@ -135,61 +137,67 @@ func (r *RunStep) Merge(toolCalls *[]GenericToolCallInfo, chunk ChatCompletionRe
 					tc.Arguments += a
 				}
 
-				deltaStepToolCall := new(openai.XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item)
+				deltaStepToolCall := new(openai.RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item)
 
-				trimmedName := strings.TrimPrefix(tc.Name, tools.GPTScriptToolNamePrefix)
-				switch trimmedName {
+				switch strings.TrimPrefix(tc.Name, tools.GPTScriptToolNamePrefix) {
 				case "code_interpreter":
 					//nolint:govet
-					if err := deltaStepToolCall.FromXRunStepDeltaObjectDeltaToolCallsObjectCode(openai.XRunStepDeltaObjectDeltaToolCallsObjectCode{
-						openai.XRunStepDetailsToolCallsCodeObject{
+					if err := deltaStepToolCall.FromRunStepDeltaStepDetailsToolCallsCodeObject(openai.RunStepDeltaStepDetailsToolCallsCodeObject{
+						&struct {
+							Input   *string                                                                           `json:"input,omitempty"`
+							Outputs *[]openai.RunStepDeltaStepDetailsToolCallsCodeObject_CodeInterpreter_Outputs_Item `json:"outputs,omitempty"`
+						}{
 							Input: args,
 						},
-						tc.ID,
+						&tc.ID,
 						chunkTC.Index,
-						openai.Code,
+						openai.RunStepDeltaStepDetailsToolCallsCodeObjectTypeCodeInterpreter,
 					}); err != nil {
 						return nil, err
 					}
 
 				case "retrieval":
 					//nolint:govet
-					if err := deltaStepToolCall.FromXRunStepDeltaObjectDeltaToolCallsObjectRetrieval(openai.XRunStepDeltaObjectDeltaToolCallsObjectRetrieval{
-						tc.ID,
+					if err := deltaStepToolCall.FromRunStepDeltaStepDetailsToolCallsRetrievalObject(openai.RunStepDeltaStepDetailsToolCallsRetrievalObject{
+						&tc.ID,
 						chunkTC.Index,
 						z.Pointer(make(map[string]interface{})),
-						openai.Retrieval,
+						openai.RunStepDeltaStepDetailsToolCallsRetrievalObjectTypeRetrieval,
 					}); err != nil {
 						return nil, err
 					}
 
 				default:
 					//nolint:govet
-					if err := deltaStepToolCall.FromXRunStepDeltaObjectDeltaToolCallsObjectFunction(openai.XRunStepDeltaObjectDeltaToolCallsObjectFunction{
-						&openai.XRunStepDeltaDetailsToolCallsFunctionObject{
+					if err := deltaStepToolCall.FromRunStepDeltaStepDetailsToolCallsFunctionObject(openai.RunStepDeltaStepDetailsToolCallsFunctionObject{
+						&struct {
+							Arguments *string `json:"arguments,omitempty"`
+							Name      *string `json:"name,omitempty"`
+							Output    *string `json:"output"`
+						}{
 							args,
-							trimmedName,
+							&tc.Name,
 							nil,
 						},
-						tc.ID,
+						&tc.ID,
 						chunkTC.Index,
-						openai.XRunStepDeltaObjectDeltaToolCallsObjectFunctionTypeFunction,
+						openai.RunStepDeltaStepDetailsToolCallsFunctionObjectTypeFunction,
 					}); err != nil {
 						return nil, err
 					}
 				}
 
-				stepDetails := new(openai.XRunStepDeltaObjectDelta_StepDetails)
+				stepDetails := new(openai.RunStepDeltaObject_Delta_StepDetails)
 				//nolint:govet
-				if err := stepDetails.FromXRunStepDeltaObjectDeltaToolCalls(openai.XRunStepDeltaObjectDeltaToolCalls{
-					[]openai.XRunStepDeltaObjectDeltaToolCalls_ToolCalls_Item{*deltaStepToolCall},
-					openai.ToolCalls,
+				if err := stepDetails.FromRunStepDeltaStepDetailsToolCallsObject(openai.RunStepDeltaStepDetailsToolCallsObject{
+					&[]openai.RunStepDeltaStepDetailsToolCallsObject_ToolCalls_Item{*deltaStepToolCall},
+					openai.RunStepDeltaStepDetailsToolCallsObjectTypeToolCalls,
 				}); err != nil {
 					return nil, err
 				}
 				runStepDelta = &RunStepDelta{
 					tc.ID,
-					datatypes.NewJSONType(openai.XRunStepDeltaObjectDelta{StepDetails: stepDetails}),
+					datatypes.NewJSONType(RunStepDeltaDelta{StepDetails: stepDetails}),
 				}
 			}
 

@@ -7,15 +7,18 @@ import (
 )
 
 func NewMessageDeltaWithText(index int, id, text string) (*MessageDelta, error) {
-	content := new(openai.XMessageDeltaObjectDeltaContent_Item)
+	content := new(openai.MessageDeltaObject_Delta_Content_Item)
 	//nolint:govet
-	if err := content.FromXMessageDeltaContentTextObject(openai.XMessageDeltaContentTextObject{
-		z.Pointer(index),
-		&openai.XMessageDeltaContentTextObjectText{
+	if err := content.FromMessageDeltaContentTextObject(openai.MessageDeltaContentTextObject{
+		index,
+		(*struct {
+			Annotations *[]openai.MessageDeltaContentTextObject_Text_Annotations_Item `json:"annotations,omitempty"`
+			Value       *string                                                       `json:"value,omitempty"`
+		})(&MessageDeltaContentTextObjectText{
 			nil,
 			&text,
-		},
-		openai.Text,
+		}),
+		openai.MessageDeltaContentTextObjectTypeText,
 	}); err != nil {
 		return nil, err
 	}
@@ -23,8 +26,8 @@ func NewMessageDeltaWithText(index int, id, text string) (*MessageDelta, error) 
 	return &MessageDelta{
 		id,
 		//nolint:govet
-		datatypes.NewJSONType(openai.XMessageDeltaObjectDelta{
-			[]openai.XMessageDeltaObjectDeltaContent_Item{*content},
+		datatypes.NewJSONType(MessageDeltaDelta{
+			z.Pointer([]openai.MessageDeltaObject_Delta_Content_Item{*content}),
 			nil,
 			nil,
 		}),
@@ -32,21 +35,21 @@ func NewMessageDeltaWithText(index int, id, text string) (*MessageDelta, error) 
 }
 
 type MessageDelta struct {
-	ID    string                                              `json:"id"`
-	Delta datatypes.JSONType[openai.XMessageDeltaObjectDelta] `json:"delta"`
+	ID    string                                `json:"id"`
+	Delta datatypes.JSONType[MessageDeltaDelta] `json:"delta"`
 }
 
 func (m *MessageDelta) ToPublic() any {
 	//nolint:govet
-	return &openai.XMessageDeltaObject{
-		z.Pointer(m.Delta.Data()),
+	return &openai.MessageDeltaObject{
+		m.Delta.Data(),
 		m.ID,
-		openai.ThreadMessageDelta,
+		openai.MessageDeltaObjectObjectThreadMessageDelta,
 	}
 }
 
 func (m *MessageDelta) FromPublic(obj any) error {
-	o, ok := obj.(*openai.XMessageDeltaObject)
+	o, ok := obj.(*openai.MessageDeltaObject)
 	if !ok {
 		return InvalidTypeError{Expected: o, Got: obj}
 	}
@@ -55,9 +58,23 @@ func (m *MessageDelta) FromPublic(obj any) error {
 		//nolint:govet
 		*m = MessageDelta{
 			o.Id,
-			datatypes.NewJSONType(z.Dereference(o.Delta)),
+			datatypes.NewJSONType[MessageDeltaDelta](o.Delta),
 		}
 	}
 
 	return nil
+}
+
+type MessageDeltaDelta struct {
+	Content *[]openai.MessageDeltaObject_Delta_Content_Item `json:"content,omitempty"`
+
+	// Keeping this field as FileIds makes the casting to the openai types much easier.
+	//nolint:revive
+	FileIds *[]string                           `json:"file_ids,omitempty"`
+	Role    *openai.MessageDeltaObjectDeltaRole `json:"role,omitempty"`
+}
+
+type MessageDeltaContentTextObjectText struct {
+	Annotations *[]openai.MessageDeltaContentTextObject_Text_Annotations_Item `json:"annotations,omitempty"`
+	Value       *string                                                       `json:"value,omitempty"`
 }

@@ -5,33 +5,6 @@ import (
 	"gorm.io/datatypes"
 )
 
-const (
-	ThreadCreatedEvent           = "thread.created"
-	ThreadRunCreatedEvent        = "thread.run.created"
-	ThreadRunQueuedEvent         = "thread.run.queued"
-	ThreadRunInProgressEvent     = "thread.run.in_progress"
-	ThreadRunRequiresActionEvent = "thread.run.requires_action"
-	ThreadRunCompletedEvent      = "thread.run.completed"
-	ThreadRunFailedEvent         = "thread.run.failed"
-	ThreadRunCancellingEvent     = "thread.run.cancelling"
-	ThreadRunCancelledEvent      = "thread.run.cancelled"
-	ThreadRunExpiredEvent        = "thread.run.expired"
-	ThreadRunStepCreatedEvent    = "thread.run.step.created"
-	ThreadRunStepInProgressEvent = "thread.run.step.in_progress"
-	ThreadRunStepDeltaEvent      = "thread.run.step.delta"
-	ThreadRunStepCompletedEvent  = "thread.run.step.completed"
-	ThreadRunStepFailedEvent     = "thread.run.step.failed"
-	ThreadRunStepCancelledEvent  = "thread.run.step.cancelled"
-	ThreadRunStepExpiredEvent    = "thread.run.step.expired"
-	ThreadMessageCreatedEvent    = "thread.message.created"
-	ThreadMessageInProgressEvent = "thread.message.in_progress"
-	ThreadMessageDeltaEvent      = "thread.message.delta"
-	ThreadMessageCompletedEvent  = "thread.message.completed"
-	ThreadMessageIncompleteEvent = "thread.message.incomplete"
-	ErrorEvent                   = "error"
-	DoneEvent                    = "done"
-)
-
 type RunEvent struct {
 	JobResponse `json:",inline"`
 	Base        `json:",inline"`
@@ -90,13 +63,13 @@ func (r *RunEvent) FromPublic(obj any) error {
 	case *openai.RunStepObject:
 		r.RunStep = datatypes.NewJSONType[*RunStep](new(RunStep))
 		out = r.RunStep.Data()
-	case *openai.XRunStepDeltaObject:
+	case *openai.RunStepDeltaObject:
 		r.RunStepDelta = datatypes.NewJSONType[*RunStepDelta](new(RunStepDelta))
 		out = r.RunStepDelta.Data()
 	case *openai.MessageObject:
 		r.Message = datatypes.NewJSONType[*Message](new(Message))
 		out = r.Message.Data()
-	case *openai.XMessageDeltaObject:
+	case *openai.MessageDeltaObject:
 		r.MessageDelta = datatypes.NewJSONType[*MessageDelta](new(MessageDelta))
 		out = r.MessageDelta.Data()
 	default:
