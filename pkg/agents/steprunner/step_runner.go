@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/acorn-io/broadcaster"
@@ -21,6 +22,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/tools"
 	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
 	"github.com/gptscript-ai/gptscript/pkg/cache"
+	"github.com/gptscript-ai/gptscript/pkg/gptscript"
 	"github.com/gptscript-ai/gptscript/pkg/loader"
 	gptopenai "github.com/gptscript-ai/gptscript/pkg/openai"
 	"github.com/gptscript-ai/gptscript/pkg/repos/runtimes"
@@ -57,7 +59,7 @@ var inputModifiers = map[string]func(*agent, *db.RunStep, []string, string) ([]s
 	},
 }
 
-func Start(ctx context.Context, gdb *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) error {
+func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) error {
 	a, err := newAgent(gdb, kbm, cfg)
 	if err != nil {
 		return err
@@ -68,7 +70,9 @@ func Start(ctx context.Context, gdb *db.DB, kbm *kb.KnowledgeBaseManager, cfg Co
 		return err
 	}
 
-	return a.Start(ctx)
+	a.Start(ctx, wg)
+
+	return nil
 }
 
 type agent struct {
@@ -111,53 +115,34 @@ func newAgent(db *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) (*agent, erro
 	}, nil
 }
 
-func (a *agent) Start(ctx context.Context) error {
-	oaCache, err := cache.New(cache.Options{
-		Cache: z.Pointer(!a.cache),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to initialize step runner client cache: %w", err)
-	}
-
-	oaClient, err := gptopenai.NewClient(gptopenai.Options{
-		APIKey:  a.apiKey,
-		BaseURL: a.url,
-		Cache:   oaCache,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to initialize step runner client: %w", err)
-	}
-
+func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 	caster := broadcaster.New[server.Event]()
-	gsRunner, err := runner.New(oaClient, runner.Options{
-		MonitorFactory: server.NewSessionFactory(caster),
-		RuntimeManager: runtimes.Default(filepath.Join(xdg.CacheHome, version.ProgramName)),
-	})
-	if err != nil {
-		return err
+	opts := &gptscript.Options{
+		Cache: cache.Options{
+			Cache: z.Pointer(!a.cache),
+		},
+		Runner: runner.Options{
+			MonitorFactory: server.NewSessionFactory(caster),
+			RuntimeManager: runtimes.Default(filepath.Join(xdg.CacheHome, version.ProgramName)),
+		},
+		OpenAI: gptopenai.Options{
+			APIKey:  a.apiKey,
+			BaseURL: a.url,
+		},
 	}
 
-	go func() {
-		caster.Start(ctx)
-		defer caster.Shutdown()
-
-		sub := caster.Subscribe()
-		defer sub.Close()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case event := <-sub.C:
-				slog.Info("Got event", "event", event)
-			}
-		}
-	}()
+	go caster.Start(ctx)
 
 	// Start the "job runner"
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
+		defer caster.Shutdown()
+
 		timer := time.NewTimer(a.pollingInterval)
+
 		for {
-			a.run(ctx, gsRunner)
+			a.run(ctx, caster, opts)
 			select {
 			case <-ctx.Done():
 				// Ensure the timer channel is drained
@@ -183,11 +168,9 @@ func (a *agent) Start(ctx context.Context) error {
 			timer.Reset(a.pollingInterval)
 		}
 	}()
-
-	return nil
 }
 
-func (a *agent) run(ctx context.Context, runner *runner.Runner) {
+func (a *agent) run(ctx context.Context, caster *broadcaster.Broadcaster[server.Event], opts *gptscript.Options) {
 	slog.Debug("Checking for a run")
 	// Look for a new run and claim it. Also, query for the other objects we need.
 	run, runStep := new(db.Run), new(db.RunStep)
@@ -230,13 +213,13 @@ func (a *agent) run(ctx context.Context, runner *runner.Runner) {
 	}
 
 	go func() {
-		if err := a.processRunStep(ctx, runner, run, runStep); err != nil {
+		if err := a.processRunStep(ctx, caster, opts, run, runStep); err != nil {
 			slog.Error("failed to process run step", "err", err)
 		}
 	}()
 }
 
-func (a *agent) processRunStep(ctx context.Context, runner *runner.Runner, run *db.Run, runStep *db.RunStep) (err error) {
+func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcaster[server.Event], opts *gptscript.Options, run *db.Run, runStep *db.RunStep) (err error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, toolCallTimeout)
 	defer cancel()
 
@@ -289,8 +272,39 @@ func (a *agent) processRunStep(ctx context.Context, runner *runner.Runner, run *
 			envs = append(envs, tool.EnvVars...)
 		}
 
-		output, err := runToolCall(timeoutCtx, runner, prg, envs, arguments)
-		if err != nil {
+		gdb := a.db.WithContext(ctx)
+		idCtx := server.ContextWithNewID(timeoutCtx)
+		id := server.IDFromContext(idCtx)
+		events := caster.Subscribe()
+		go func() {
+			var index int
+			for e := range events.C {
+				if e.RunID != id {
+					continue
+				}
+
+				runStepEvent := db.FromGPTScriptEvent(e, run.ID, runStep.ID, index, false)
+				if err := gdb.Model(runStepEvent).Create(runStepEvent).Error; err != nil {
+					l.Error("failed to create run step event", "error", err)
+				}
+				index++
+			}
+
+			// Create final event that just says we're done with this run step.
+			runStepEvent := db.FromGPTScriptEvent(server.Event{}, run.ID, runStep.ID, index, true)
+			if err := gdb.Model(runStepEvent).Create(runStepEvent).Error; err != nil {
+				l.Error("failed to create run step event", "error", err)
+			}
+			l.Debug("done receiving events")
+		}()
+
+		output, err := runToolCall(idCtx, opts, prg, envs, arguments)
+		events.Close()
+		if errors.Is(err, context.DeadlineExceeded) {
+			output = fmt.Sprintf("The tool call took more than %s to complete, aborting", toolCallTimeout)
+		} else if execErr := new(exec.ExitError); errors.As(err, &execErr) {
+			output = fmt.Sprintf("The tool call returned an exit code of %d with message %q, aborting", execErr.ExitCode(), execErr.String())
+		} else if err != nil {
 			return fmt.Errorf("failed to run tool call at index %d: %w", i, err)
 		}
 
@@ -298,7 +312,7 @@ func (a *agent) processRunStep(ctx context.Context, runner *runner.Runner, run *
 			return fmt.Errorf("failed to set output for tool call at index %d: %w", i, err)
 		}
 
-		if err = db.EmitRunStepDeltaOutputEvent(a.db.WithContext(ctx), run, tc, i); err != nil {
+		if err = db.EmitRunStepDeltaOutputEvent(gdb, run, tc, i); err != nil {
 			return fmt.Errorf("failed to emit event for tool call at index %d: %w", i, err)
 		}
 
@@ -351,14 +365,14 @@ func (a *agent) processRunStep(ctx context.Context, runner *runner.Runner, run *
 	return nil
 }
 
-func runToolCall(ctx context.Context, runner *runner.Runner, prg types.Program, envs []string, arguments string) (string, error) {
-	output, err := runner.Run(server.ContextWithNewID(ctx), prg, envs, arguments)
-	if errors.Is(err, context.DeadlineExceeded) {
-		return fmt.Sprintf("The tool call took more than %s to complete, aborting", toolCallTimeout), nil
+func runToolCall(ctx context.Context, opts *gptscript.Options, prg types.Program, envs []string, arguments string) (string, error) {
+	gpt, err := gptscript.New(opts)
+	if err != nil {
+		return "", err
 	}
-	if execErr := new(exec.ExitError); errors.As(err, &execErr) {
-		return fmt.Sprintf("The tool call returned an exit code of %d with message %q, aborting", execErr.ExitCode(), execErr.String()), nil
-	}
+	defer gpt.Close()
+
+	output, err := gpt.Run(ctx, prg, envs, arguments)
 	if err != nil {
 		return "", err
 	}

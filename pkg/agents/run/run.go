@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/acorn-io/z"
@@ -29,7 +30,7 @@ type Config struct {
 	Trigger, RunStepTrigger          trigger.Trigger
 }
 
-func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
+func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, cfg Config) error {
 	a, err := newAgent(gdb, cfg)
 	if err != nil {
 		return err
@@ -40,7 +41,7 @@ func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 		return err
 	}
 
-	a.Start(ctx)
+	a.Start(ctx, wg)
 
 	return nil
 }
@@ -84,9 +85,11 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}, nil
 }
 
-func (a *agent) Start(ctx context.Context) {
+func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 	// Start the "job runner"
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		timer := time.NewTimer(a.pollingInterval)
 		for {
 			if err := a.run(ctx); err != nil {
@@ -121,7 +124,9 @@ func (a *agent) Start(ctx context.Context) {
 	}()
 
 	// Start cleanup
+	wg.Add(1)
 	go func() {
+		wg.Done()
 		var (
 			cleanupInterval = a.retentionPeriod / 2
 			jobObjects      = []db.Storer{

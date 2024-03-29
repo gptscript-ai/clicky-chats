@@ -2,7 +2,10 @@ module github.com/gptscript-ai/clicky-chats
 
 go 1.22.0
 
-replace github.com/deepmap/oapi-codegen/v2 => github.com/thedadams/oapi-codegen/v2 v2.0.0-20240328215647-949fe1294bfe
+replace (
+	github.com/deepmap/oapi-codegen/v2 => github.com/thedadams/oapi-codegen/v2 v2.0.0-20240328215647-949fe1294bfe
+	github.com/sashabaranov/go-openai => github.com/gptscript-ai/go-openai v0.0.0-20240330064700-d33320ca826f
+)
 
 require (
 	github.com/acorn-io/broadcaster v0.0.0-20240105011354-bfadd4a7b45d
@@ -12,15 +15,15 @@ require (
 	github.com/deepmap/oapi-codegen/v2 v2.1.0
 	github.com/getkin/kin-openapi v0.123.0
 	github.com/glebarez/sqlite v1.10.0
-	github.com/google/uuid v1.5.0
-	github.com/gptscript-ai/gptscript v0.2.0-rc1.0.20240325185049-eb5e26469173
+	github.com/google/uuid v1.6.0
+	github.com/gptscript-ai/gptscript v0.2.0-rc1.0.20240330065432-cdd70166e3c3
 	github.com/invopop/yaml v0.2.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/spf13/cobra v1.8.0
 	gorm.io/datatypes v1.2.0
 	gorm.io/driver/mysql v1.5.4
-	gorm.io/gorm v1.25.7
+	gorm.io/gorm v1.25.9
 )
 
 require (
@@ -74,11 +77,14 @@ require (
 	github.com/rs/cors v1.10.1 // indirect
 	github.com/samber/lo v1.38.1 // indirect
 	github.com/samber/slog-logrus v1.0.0 // indirect
-	github.com/sashabaranov/go-openai v1.20.1 // indirect
+	github.com/sashabaranov/go-openai v1.20.4 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
+	github.com/tidwall/gjson v1.17.1 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc // indirect

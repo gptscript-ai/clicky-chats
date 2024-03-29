@@ -5,6 +5,7 @@ package openai
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -8123,6 +8124,12 @@ type XDeleteToolResponse struct {
 // XDeleteToolResponseObject defines model for XDeleteToolResponse.Object.
 type XDeleteToolResponseObject string
 
+// XListRunStepEventsResponse defines model for XListRunStepEventsResponse.
+type XListRunStepEventsResponse struct {
+	Data   []XRunStepEventObject `json:"data"`
+	Object string                `json:"object"`
+}
+
 // XListThreadsResponse defines model for XListThreadsResponse.
 type XListThreadsResponse struct {
 	Data    []ThreadObject `json:"data"`
@@ -8157,6 +8164,30 @@ type XModifyToolRequest struct {
 
 	// Url URL of the tool
 	Url *string `json:"url"`
+}
+
+// XRunStepEventObject defines model for XRunStepEventObject.
+type XRunStepEventObject struct {
+	ChatCompletionId   *string `json:"chat_completion_id,omitempty"`
+	ChatRequest        any     `json:"chat_request,omitempty"`
+	ChatResponse       any     `json:"chat_response,omitempty"`
+	ChatResponseCached bool    `json:"chat_response_cached,omitempty"`
+	Content            *string `json:"content,omitempty"`
+	Err                *string `json:"err,omitempty"`
+	Input              *string `json:"input,omitempty"`
+	Output             *string `json:"output,omitempty"`
+	RunId              string  `json:"run_id"`
+
+	// RunStepId The id of the run step
+	RunStepId string `json:"run_step_id"`
+
+	// Time The time of the event
+	Time        time.Time `json:"time"`
+	ToolResults *int      `json:"tool_results,omitempty"`
+
+	// ToolSubCalls The tool sub calls
+	ToolSubCalls map[string]interface{} `json:"tool_sub_calls,omitempty"`
+	Type         *string                `json:"type,omitempty"`
 }
 
 // XToolObject defines model for XToolObject.
@@ -8401,6 +8432,12 @@ type ListThreadsParams struct {
 
 // ListThreadsParamsOrder defines parameters for ListThreads.
 type ListThreadsParamsOrder string
+
+// XListRunStepEventsParams defines parameters for XListRunStepEvents.
+type XListRunStepEventsParams struct {
+	Stream *bool `form:"stream,omitempty" json:"stream,omitempty"`
+	Index  *int  `form:"index,omitempty" json:"index,omitempty"`
+}
 
 // StreamRunParams defines parameters for StreamRun.
 type StreamRunParams struct {

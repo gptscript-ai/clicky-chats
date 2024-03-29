@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
@@ -18,13 +19,13 @@ const (
 	minRequestRetention = 5 * time.Minute
 )
 
-func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
+func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, cfg Config) error {
 	a, err := newAgent(gdb, cfg)
 	if err != nil {
 		return err
 	}
 
-	a.Start(ctx)
+	a.Start(ctx, wg)
 
 	return nil
 }
@@ -71,14 +72,16 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}, nil
 }
 
-func (a *agent) Start(ctx context.Context) {
+func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 	// Start the "job runner"
 	for _, run := range []func(context.Context) error{
 		a.runGenerations,
 		a.runEdits,
 		a.runVariations,
 	} {
+		wg.Add(1)
 		go func(r func(context.Context) error) {
+			defer wg.Done()
 			timer := time.NewTimer(a.pollingInterval)
 			for {
 				if err := r(ctx); err != nil {
@@ -115,7 +118,9 @@ func (a *agent) Start(ctx context.Context) {
 	}
 
 	// Start cleanup
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		var (
 			cleanupInterval = a.requestRetention / 2
 			jobObjects      = []db.Storer{

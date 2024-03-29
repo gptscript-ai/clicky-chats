@@ -178,8 +178,65 @@ func (s *Server) StreamRun(w http.ResponseWriter, r *http.Request, threadID stri
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
 	waitForAndStreamResponse[*db.RunEvent](r.Context(), w, gormDB, runID, z.Dereference(params.Index))
+}
+
+func (s *Server) XListRunStepEvents(w http.ResponseWriter, r *http.Request, threadID string, runID string, stepID string, params openai.XListRunStepEventsParams) {
+	if threadID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
+		return
+	}
+	if runID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("run_id").Error()))
+		return
+	}
+	if stepID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("step_id").Error()))
+		return
+	}
+
+	step := new(db.RunStep)
+	if err := db.Get(s.db.WithContext(r.Context()).Where("run_id = ?", runID).Where("id = ?", stepID), step, stepID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(NewNotFoundError(step).Error()))
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to get step: %v", err), InternalErrorType).Error()))
+		return
+	}
+
+	if z.Dereference(params.Stream) {
+		// Doesn't make sense to stream events for a run step that is in terminal state.
+		if db.IsTerminal(step.Status) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Run step %s is in terminal state: %s", stepID, step.Status), InvalidRequestErrorType).Error()))
+			return
+		}
+
+		waitForAndStreamResponse[*db.RunStepEvent](r.Context(), w, s.db.WithContext(r.Context()), stepID, z.Dereference(params.Index))
+		return
+	}
+
+	var objs []db.RunStepEvent
+	if err := list(s.db.WithContext(r.Context()).Where("run_id = ?", runID).Where("request_id = ?", stepID).Order("response_idx asc"), &objs); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError("Failed to list objects.", InternalErrorType).Error()))
+		return
+	}
+
+	publicObjs := make([]any, 0, len(objs))
+	for _, o := range objs {
+		// Any event that has Done == true is just a marker and doesn't actually contain an event.
+		if !o.Done {
+			o.SetID(stepID)
+			publicObjs = append(publicObjs, o.ToPublic())
+		}
+	}
+
+	respondWithList(w, publicObjs, false, -1, "", "")
 }
