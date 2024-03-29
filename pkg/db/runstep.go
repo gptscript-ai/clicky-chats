@@ -234,7 +234,7 @@ func (r *RunStep) BeforeUpdate(tx *gorm.DB) error {
 		return err
 	}
 
-	if isTerminal(existing.Status) {
+	if IsTerminal(existing.Status) {
 		return fmt.Errorf("cannot update runstep %s in terminal state %s", existing.ID, existing.Status)
 	}
 

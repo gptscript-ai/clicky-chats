@@ -133,7 +133,7 @@ func (r *Run) BeforeUpdate(tx *gorm.DB) error {
 		return err
 	}
 
-	if isTerminal(existing.Status) {
+	if IsTerminal(existing.Status) {
 		return fmt.Errorf("cannot update run %s in terminal state %s", existing.ID, existing.Status)
 	}
 

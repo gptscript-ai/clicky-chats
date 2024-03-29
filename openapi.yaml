@@ -19142,6 +19142,32 @@ paths:
                                 $ref: '#/components/schemas/XListThreadsResponse'
                     description: OK
             summary: List threads
+    /rubra/x/threads/{thread_id}/runs/{run_id}/stream:
+        get:
+            operationId: streamRun
+            parameters:
+                - in: path
+                  name: run_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: thread_id
+                  required: true
+                  schema:
+                    type: string
+                - in: query
+                  name: index
+                  schema:
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RunObject'
+                    description: OK
+            summary: Stream run events when the run is in progress
     /rubra/x/tools:
         get:
             operationId: listTools

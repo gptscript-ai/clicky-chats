@@ -126,8 +126,8 @@ func main() {
 		panic(err)
 	}
 
+	// This nonsense allows our extended APIs to reference types in the OpenAI API schema.
 	for key, component := range newS.Components.Schemas {
-		// This nonsense allows our extended APIs to reference types in the OpenAI API schema.
 		component.Ref = strings.TrimPrefix(component.Ref, "../../openapi.yaml")
 		for _, item := range component.Value.Properties {
 			item.Ref = strings.TrimPrefix(item.Ref, "../../openapi.yaml")
@@ -138,6 +138,23 @@ func main() {
 		s.Components.Schemas[key] = component
 	}
 	for path, pathItem := range newS.Paths.Map() {
+		if pathItem.Get != nil {
+			if pathItem.Get.RequestBody != nil {
+				for _, val := range pathItem.Get.RequestBody.Value.Content {
+					val.Schema.Ref = strings.TrimPrefix(val.Schema.Ref, "../../openapi.yaml")
+				}
+			}
+			if pathItem.Get.Responses != nil {
+				newResponses := openapi3.NewResponsesWithCapacity(pathItem.Get.Responses.Len())
+				for key, val := range pathItem.Get.Responses.Map() {
+					for _, mediaType := range val.Value.Content {
+						mediaType.Schema.Ref = strings.TrimPrefix(mediaType.Schema.Ref, "../../openapi.yaml")
+					}
+					newResponses.Set(key, val)
+				}
+				pathItem.Get.Responses = newResponses
+			}
+		}
 		s.Paths.Set(path, pathItem)
 	}
 

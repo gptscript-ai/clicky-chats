@@ -8402,6 +8402,11 @@ type ListThreadsParams struct {
 // ListThreadsParamsOrder defines parameters for ListThreads.
 type ListThreadsParamsOrder string
 
+// StreamRunParams defines parameters for StreamRun.
+type StreamRunParams struct {
+	Index *int `form:"index,omitempty" json:"index,omitempty"`
+}
+
 // ListToolsParams defines parameters for ListTools.
 type ListToolsParams struct {
 	// Limit A limit on the number of objects to be returned. Limit can range between 1 and 100, and the default is 20.

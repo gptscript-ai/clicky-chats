@@ -1,4 +1,30 @@
 paths:
+  /rubra/x/threads/{thread_id}/runs/{run_id}/stream:
+    get:
+      operationId: streamRun
+      summary: Stream run events when the run is in progress
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: thread_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: index
+          schema:
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '../../openapi.yaml#/components/schemas/RunObject'
+          description: OK
   /rubra/x/threads:
     get:
       operationId: listThreads

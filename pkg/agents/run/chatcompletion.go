@@ -290,8 +290,8 @@ func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *d
 						}); err != nil {
 							return err
 						}
-
 						runStep.StepDetails = datatypes.NewJSONType(*stepDetails)
+
 						// First create the run step.
 						if err := createRunStep(tx, run, runStep); err != nil {
 							return err
