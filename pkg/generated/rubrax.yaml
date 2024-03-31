@@ -1,4 +1,21 @@
 paths:
+  /rubra/x/tools/run:
+    post:
+      operationId: runTool
+      summary: Run tool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/XRunToolRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/XListRunStepEventsResponse'
   /rubra/x/threads/{thread_id}/runs/{run_id}/stream:
     get:
       operationId: streamRun
@@ -218,6 +235,29 @@ paths:
 
 components:
   schemas:
+    XRunToolRequest:
+      additionalProperties: false
+      properties:
+        file:
+          type: string
+          description: The file to run
+        env_vars:
+          x-go-type-skip-optional-pointer: true
+          type: array
+          description: Environment variables
+          items:
+            type: string
+        input:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        subtool:
+          x-go-type-skip-optional-pointer: true
+          type: string
+          description: The name of the sub tool to use rather than the first tool
+          nullable: true
+      type: object
+      required:
+        - file
     XListRunStepEventsResponse:
       properties:
         data:

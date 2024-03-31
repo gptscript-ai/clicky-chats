@@ -26,12 +26,16 @@ const (
 )
 
 type Config struct {
+	Logger                           *slog.Logger
 	PollingInterval, RetentionPeriod time.Duration
 	EmbeddingsURL, APIKey, AgentID   string
 	Trigger                          trigger.Trigger
 }
 
 func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, cfg Config) error {
+	if cfg.Logger == nil {
+		cfg.Logger = slog.Default().With("agent", "embeddings")
+	}
 	a, err := newAgent(gdb, cfg)
 	if err != nil {
 		return err
@@ -44,6 +48,7 @@ func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, cfg Config) erro
 }
 
 type agent struct {
+	logger                            *slog.Logger
 	pollingInterval, requestRetention time.Duration
 	id, apiKey, url                   string
 	client                            *http.Client
@@ -60,11 +65,12 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}
 
 	if cfg.Trigger == nil {
-		slog.Warn("[embeddings] No trigger provided, using noop")
+		cfg.Logger.Warn("[embeddings] No trigger provided, using noop")
 		cfg.Trigger = trigger.NewNoop()
 	}
 
 	return &agent{
+		logger:           cfg.Logger,
 		pollingInterval:  cfg.PollingInterval,
 		requestRetention: cfg.RetentionPeriod,
 		client:           http.DefaultClient,
@@ -87,7 +93,7 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 		for {
 			if err := a.run(ctx); err != nil {
 				if !errors.Is(err, gorm.ErrRecordNotFound) {
-					slog.Error("failed embeddings iteration", "err", err)
+					a.logger.Error("failed embeddings iteration", "err", err)
 				}
 				select {
 				case <-ctx.Done():
@@ -132,10 +138,10 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 			timer = time.NewTimer(cleanupInterval)
 		)
 		for {
-			slog.Debug("Looking for expired create embeddings requests and responses that we can cleanup")
+			a.logger.Debug("Looking for expired create embeddings requests and responses that we can cleanup")
 			expiration := time.Now().Add(-a.requestRetention)
 			if err := db.DeleteExpired(cdb, expiration, jobObjects...); err != nil {
-				slog.Error("failed to delete expired embeddings requests/responses", "err", err)
+				a.logger.Error("failed to delete expired embeddings requests/responses", "err", err)
 			}
 
 			select {
@@ -157,7 +163,7 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func (a *agent) run(ctx context.Context) error {
-	slog.Debug("Checking for an embeddings request to process")
+	a.logger.Debug("Checking for an embeddings request to process")
 	// Look for a new embeddings request and claim it.
 	embedreq := new(db.CreateEmbeddingRequest)
 	if err := a.db.WithContext(ctx).Model(embedreq).Transaction(func(tx *gorm.DB) error {
@@ -181,7 +187,7 @@ func (a *agent) run(ctx context.Context) error {
 	}
 
 	embeddingsID := embedreq.ID
-	l := slog.With("type", "embeddings", "id", embeddingsID)
+	l := a.logger.With("id", embeddingsID)
 	l.Debug("Processing request")
 
 	url := embedreq.ModelAPI

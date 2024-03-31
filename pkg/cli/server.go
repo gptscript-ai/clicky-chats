@@ -44,6 +44,7 @@ func (s *Server) Run(cmd *cobra.Command, _ []string) error {
 		triggers.ChatCompletion = trigger.New()
 		triggers.Run = trigger.New()
 		triggers.RunStep = trigger.New()
+		triggers.RunTool = trigger.New()
 		triggers.Image = trigger.New()
 		triggers.Embeddings = trigger.New()
 		triggers.Audio = trigger.New()

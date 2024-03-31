@@ -240,3 +240,36 @@ func (s *Server) XListRunStepEvents(w http.ResponseWriter, r *http.Request, thre
 
 	respondWithList(w, publicObjs, false, -1, "", "")
 }
+
+func (s *Server) RunTool(w http.ResponseWriter, r *http.Request) {
+	runToolInput := new(openai.XRunToolRequest)
+	if err := readObjectFromRequest(r, runToolInput); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	if err := validateToolEnvVars(runToolInput.EnvVars); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	//nolint:govet
+	runTool := new(db.RunToolObject)
+	if err := runTool.FromPublic(runToolInput); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to create run tool: %v", err), InternalErrorType).Error()))
+		return
+	}
+
+	if err := db.Create(s.db.WithContext(r.Context()), runTool); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to create run tool: %v", err), InternalErrorType).Error()))
+		return
+	}
+
+	s.triggers.RunTool.Kick(runTool.ID)
+
+	waitForAndStreamResponse[*db.RunStepEvent](r.Context(), w, s.db.WithContext(r.Context()), runTool.ID, 0)
+}

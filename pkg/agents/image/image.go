@@ -20,6 +20,9 @@ const (
 )
 
 func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, cfg Config) error {
+	if cfg.Logger == nil {
+		cfg.Logger = slog.Default().With("agent", "image")
+	}
 	a, err := newAgent(gdb, cfg)
 	if err != nil {
 		return err
@@ -31,12 +34,14 @@ func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, cfg Config) erro
 }
 
 type Config struct {
+	Logger                           *slog.Logger
 	PollingInterval, RetentionPeriod time.Duration
 	ImagesBaseURL, APIKey, AgentID   string
 	Trigger                          trigger.Trigger
 }
 
 type agent struct {
+	logger                                  *slog.Logger
 	pollingInterval, requestRetention       time.Duration
 	id, apiKey                              string
 	generationsURL, editsURL, variationsURL string
@@ -54,11 +59,12 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}
 
 	if cfg.Trigger == nil {
-		slog.Warn("[image] No trigger provided, using noop")
+		cfg.Logger.Warn("[image] No trigger provided, using noop")
 		cfg.Trigger = trigger.NewNoop()
 	}
 
 	return &agent{
+		logger:           cfg.Logger,
 		pollingInterval:  cfg.PollingInterval,
 		requestRetention: cfg.RetentionPeriod,
 		generationsURL:   cfg.ImagesBaseURL + "/generations",
@@ -74,19 +80,19 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 
 func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 	// Start the "job runner"
-	for _, run := range []func(context.Context) error{
+	for _, run := range []func(context.Context, *slog.Logger) error{
 		a.runGenerations,
 		a.runEdits,
 		a.runVariations,
 	} {
 		wg.Add(1)
-		go func(r func(context.Context) error) {
+		go func(r func(context.Context, *slog.Logger) error) {
 			defer wg.Done()
 			timer := time.NewTimer(a.pollingInterval)
 			for {
-				if err := r(ctx); err != nil {
+				if err := r(ctx, a.logger); err != nil {
 					if !errors.Is(err, gorm.ErrRecordNotFound) {
-						slog.Error("failed run iteration", "err", err)
+						a.logger.Error("failed run iteration", "err", err)
 					}
 
 					select {
@@ -133,10 +139,10 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 			timer = time.NewTimer(cleanupInterval)
 		)
 		for {
-			slog.Debug("looking for expired image requests and responses")
+			a.logger.Debug("looking for expired image requests and responses")
 			expiration := time.Now().Add(-a.requestRetention)
 			if err := db.DeleteExpired(cdb, expiration, jobObjects...); err != nil {
-				slog.Error("failed to delete expired image requests and responses", "err", err)
+				a.logger.Error("failed to delete expired image requests and responses", "err", err)
 			}
 
 			select {

@@ -17,8 +17,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func (a *agent) runEdits(ctx context.Context) error {
-	slog.Debug("checking for an image edit request to process")
+func (a *agent) runEdits(ctx context.Context, l *slog.Logger) error {
+	l.Debug("checking for an image edit request to process")
 	var (
 		editRequest = new(db.CreateImageEditRequest)
 		gdb         = a.db.WithContext(ctx)
@@ -27,7 +27,7 @@ func (a *agent) runEdits(ctx context.Context) error {
 		return err
 	}
 
-	l := slog.With("type", "imageedit", "id", editRequest.ID)
+	l = slog.With("type", "imageedit", "id", editRequest.ID)
 	l.Debug("Processing image edit request")
 
 	var requestBody bytes.Buffer
