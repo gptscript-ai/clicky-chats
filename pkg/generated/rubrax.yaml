@@ -25,6 +25,42 @@ paths:
               schema:
                 $ref: '../../openapi.yaml#/components/schemas/RunObject'
           description: OK
+  /rubra/x/threads/{thread_id}/runs/{run_id}/steps/{step_id}/events:
+    get:
+      operationId: xListRunStepEvents
+      summary: List run step events
+      parameters:
+        - in: path
+          name: thread_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: step_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          required: false
+          name: stream
+          schema:
+            type: boolean
+        - in: query
+          name: index
+          schema:
+            type: integer
+          required: false
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/XListRunStepEventsResponse'
   /rubra/x/threads:
     get:
       operationId: listThreads
@@ -182,6 +218,66 @@ paths:
 
 components:
   schemas:
+    XListRunStepEventsResponse:
+      properties:
+        data:
+          items:
+            $ref: '../../openapi.yaml#/components/schemas/XRunStepEventObject'
+          type: array
+        object:
+          example: list
+          type: string
+      required:
+        - object
+        - data
+      type: object
+    XRunStepEventObject:
+      additionalProperties: false
+      properties:
+        run_step_id:
+          type: string
+          description: The id of the run step
+        time:
+          description: The time of the event
+          type: string
+          format: date-time
+        tool_sub_calls:
+          type: object
+          description: The tool sub calls
+          x-go-type-skip-optional-pointer: true
+        tool_results:
+          type: integer
+        type:
+          type: string
+        chat_completion_id:
+          type: string
+        chat_request:
+          type: object
+          x-go-type: any
+          x-go-type-skip-optional-pointer: true
+        chat_response:
+          type: object
+          x-go-type: any
+          x-go-type-skip-optional-pointer: true
+        chat_response_cached:
+          type: boolean
+          x-go-type-skip-optional-pointer: true
+        content:
+          type: string
+        run_id:
+          type: string
+        input:
+          type: string
+        output:
+          type: string
+        err:
+          type: string
+      type: object
+      required:
+        - run_step_id
+        - run_id
+        - time
+
     XListThreadsResponse:
       properties:
         data:

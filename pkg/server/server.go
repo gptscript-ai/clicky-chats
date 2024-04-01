@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -61,7 +62,7 @@ func NewServer(db *db.DB, kbm *kb.KnowledgeBaseManager) *Server {
 	}
 }
 
-func (s *Server) Start(ctx context.Context, config Config) error {
+func (s *Server) Start(ctx context.Context, wg *sync.WaitGroup, config Config) error {
 	// Setup triggers
 	config.Triggers.Complete()
 	s.triggers = config.Triggers
@@ -111,22 +112,25 @@ func (s *Server) Start(ctx context.Context, config Config) error {
 		Handler: h,
 	}
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		slog.Info("Starting server", "addr", server.Addr)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("Server failed", "err", err)
 		}
 	}()
 
-	go func() {
-		<-ctx.Done()
-
+	wg.Add(1)
+	context.AfterFunc(ctx, func() {
+		defer wg.Done()
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		if err := server.Shutdown(timeoutCtx); err != nil {
 			slog.Error("Server shutdown failed", "err", err)
 		}
-	}()
+		slog.Info("Server shutdown")
+	})
 
 	return nil
 }

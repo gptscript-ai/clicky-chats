@@ -10042,6 +10042,19 @@ components:
                 - object
                 - deleted
             type: object
+        XListRunStepEventsResponse:
+            properties:
+                data:
+                    items:
+                        $ref: '#/components/schemas/XRunStepEventObject'
+                    type: array
+                object:
+                    example: list
+                    type: string
+            required:
+                - object
+                - data
+            type: object
         XListThreadsResponse:
             properties:
                 data:
@@ -10116,6 +10129,52 @@ components:
                     description: URL of the tool
                     nullable: true
                     type: string
+            type: object
+        XRunStepEventObject:
+            additionalProperties: false
+            properties:
+                chat_completion_id:
+                    type: string
+                chat_request:
+                    type: object
+                    x-go-type: any
+                    x-go-type-skip-optional-pointer: true
+                chat_response:
+                    type: object
+                    x-go-type: any
+                    x-go-type-skip-optional-pointer: true
+                chat_response_cached:
+                    type: boolean
+                    x-go-type-skip-optional-pointer: true
+                content:
+                    type: string
+                err:
+                    type: string
+                input:
+                    type: string
+                output:
+                    type: string
+                run_id:
+                    type: string
+                run_step_id:
+                    description: The id of the run step
+                    type: string
+                time:
+                    description: The time of the event
+                    format: date-time
+                    type: string
+                tool_results:
+                    type: integer
+                tool_sub_calls:
+                    description: The tool sub calls
+                    type: object
+                    x-go-type-skip-optional-pointer: true
+                type:
+                    type: string
+            required:
+                - run_step_id
+                - run_id
+                - time
             type: object
         XToolObject:
             additionalProperties: false
@@ -19142,6 +19201,40 @@ paths:
                                 $ref: '#/components/schemas/XListThreadsResponse'
                     description: OK
             summary: List threads
+    /rubra/x/threads/{thread_id}/runs/{run_id}/steps/{step_id}/events:
+        get:
+            operationId: xListRunStepEvents
+            parameters:
+                - in: path
+                  name: thread_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: run_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: step_id
+                  required: true
+                  schema:
+                    type: string
+                - in: query
+                  name: stream
+                  schema:
+                    type: boolean
+                - in: query
+                  name: index
+                  schema:
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/XListRunStepEventsResponse'
+            summary: List run step events
     /rubra/x/threads/{thread_id}/runs/{run_id}/stream:
         get:
             operationId: streamRun

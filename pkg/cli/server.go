@@ -2,6 +2,9 @@ package cli
 
 import (
 	"log/slog"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
@@ -23,6 +26,7 @@ type Server struct {
 }
 
 func (s *Server) Run(cmd *cobra.Command, _ []string) error {
+	wg := new(sync.WaitGroup)
 	gormDB, err := db.New(s.DSN, s.AutoMigrate == "true")
 	if err != nil {
 		return err
@@ -46,7 +50,9 @@ func (s *Server) Run(cmd *cobra.Command, _ []string) error {
 	}
 	triggers.Complete()
 
-	if err = server.NewServer(gormDB, kbManager).Start(cmd.Context(), server.Config{
+	ctx, cancel := signal.NotifyContext(cmd.Context(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
+	defer cancel()
+	if err = server.NewServer(gormDB, kbManager).Start(ctx, wg, server.Config{
 		ServerURL: s.ServerURL,
 		Port:      s.ServerPort,
 		APIBase:   s.ServerAPIBase,
@@ -56,11 +62,11 @@ func (s *Server) Run(cmd *cobra.Command, _ []string) error {
 	}
 
 	if s.WithAgents {
-		if err = runAgents(cmd.Context(), gormDB, kbManager, &s.Agent, triggers); err != nil {
+		if err = runAgents(cmd.Context(), wg, gormDB, kbManager, &s.Agent, triggers); err != nil {
 			return err
 		}
 	}
 
-	<-cmd.Context().Done()
+	wg.Wait()
 	return nil
 }

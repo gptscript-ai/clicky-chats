@@ -717,9 +717,6 @@ func (s *Server) ExtendedCreateChatCompletion(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
 	waitForAndStreamResponse[*db.ChatCompletionResponseChunk](r.Context(), w, gormDB, ccr.ID, 0)
 }
 
@@ -1569,9 +1566,6 @@ func (s *Server) ExtendedCreateRun(w http.ResponseWriter, r *http.Request, threa
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
 	waitForAndStreamResponse[*db.RunEvent](r.Context(), w, gormDB, run.ID, 0)
 }
 
@@ -1944,7 +1938,7 @@ func processAssistantsAPIListParams[O ~string](gormDB *gorm.DB, obj Transformer,
 	return gormDBInstance, *limit, nil
 }
 
-func list[T Transformer](gormDB *gorm.DB, objs *[]T) error {
+func list[T any](gormDB *gorm.DB, objs *[]T) error {
 	return db.List(gormDB, objs)
 }
 
@@ -2142,6 +2136,9 @@ func waitForAndWriteResponse(ctx context.Context, readyIndicator <-chan struct{}
 }
 
 func waitForAndStreamResponse[T JobRespondStreamer](ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string, index int) {
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
 	var printDoneEvent bool
 	for {
 		select {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/acorn-io/z"
@@ -37,7 +38,7 @@ type Config struct {
 	Trigger                                       trigger.Trigger
 }
 
-func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
+func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, cfg Config) error {
 	a, err := newAgent(gdb, cfg)
 	if err != nil {
 		return err
@@ -47,7 +48,7 @@ func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 		return err
 	}
 
-	a.Start(ctx)
+	a.Start(ctx, wg)
 
 	return nil
 }
@@ -159,9 +160,11 @@ func (a *agent) listAndStoreModels(ctx context.Context, modelsURL string) error 
 	})
 }
 
-func (a *agent) Start(ctx context.Context) {
+func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 	// Start the "job runner"
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		timer := time.NewTimer(a.pollingInterval)
 		for {
 			if err := a.run(ctx); err != nil {
@@ -197,7 +200,9 @@ func (a *agent) Start(ctx context.Context) {
 	}()
 
 	// Start cleanup
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		cleanupInterval := a.retentionPeriod / 2
 		timer := time.NewTimer(cleanupInterval)
 

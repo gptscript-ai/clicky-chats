@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	cclient "github.com/gptscript-ai/clicky-chats/pkg/client"
@@ -30,7 +31,7 @@ type Config struct {
 	Trigger                          trigger.Trigger
 }
 
-func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
+func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, cfg Config) error {
 	a, err := newAgent(gdb, cfg)
 	if err != nil {
 		return err
@@ -38,7 +39,7 @@ func Start(ctx context.Context, gdb *db.DB, cfg Config) error {
 
 	// Models are listed and stored by the chat completion agent - this includes embedding models
 
-	a.Start(ctx)
+	a.Start(ctx, wg)
 	return nil
 }
 
@@ -75,12 +76,13 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}, nil
 }
 
-func (a *agent) Start(ctx context.Context) {
+func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 	/*
 	 * Embeddings Runner
 	 */
-
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		timer := time.NewTimer(a.pollingInterval)
 		for {
 			if err := a.run(ctx); err != nil {
@@ -117,7 +119,9 @@ func (a *agent) Start(ctx context.Context) {
 	/*
 	 * Cleanup Job
 	 */
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		var (
 			cleanupInterval = a.requestRetention / 2
 			jobObjects      = []db.Storer{
