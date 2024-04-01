@@ -8124,6 +8124,30 @@ type XDeleteToolResponse struct {
 // XDeleteToolResponseObject defines model for XDeleteToolResponse.Object.
 type XDeleteToolResponseObject string
 
+// XInspectToolRequest defines model for XInspectToolRequest.
+type XInspectToolRequest struct {
+	// Subtool The name of the sub tool to use rather than the first tool
+	Subtool string `json:"subtool,omitempty"`
+
+	// Url URL of the tool to inspect
+	Url string `json:"url"`
+}
+
+// XInspectToolResponse defines model for XInspectToolResponse.
+type XInspectToolResponse struct {
+	// EntryToolId The id of the tool that is the entry point
+	EntryToolId string `json:"entry_tool_id"`
+
+	// Exports The exports of the tool
+	Exports map[string]interface{} `json:"exports,omitempty"`
+
+	// Name The name of the tool
+	Name string `json:"name"`
+
+	// ToolSet The set of tools in the tool
+	ToolSet map[string]XToolSetTool `json:"tool_set"`
+}
+
 // XListRunStepEventsResponse defines model for XListRunStepEventsResponse.
 type XListRunStepEventsResponse struct {
 	Data   []XRunStepEventObject `json:"data"`
@@ -8235,6 +8259,37 @@ type XToolObject struct {
 
 // XToolObjectObject The object type, which is always `tool`.
 type XToolObjectObject string
+
+// XToolSetTool defines model for XToolSetTool.
+type XToolSetTool struct {
+	Id *string `json:"id,omitempty"`
+
+	// Instructions The instructions for the tool
+	Instructions *string            `json:"instructions,omitempty"`
+	LocalTools   *map[string]string `json:"local_tools,omitempty"`
+	Source       *struct {
+		LineNo   *int    `json:"line_no,omitempty"`
+		Location *string `json:"location,omitempty"`
+		Repo     *struct {
+			// Name The filename of the source in the repo, relative to Path
+			Name *string `json:"name,omitempty"`
+
+			// Path The path in the repo of this source. This should refer to a directory and not the actual file
+			Path *string `json:"path,omitempty"`
+
+			// Revision The revision of this source
+			Revision *string `json:"revision,omitempty"`
+
+			// Root The URL where the VCS repo can be found
+			Root *string `json:"root,omitempty"`
+
+			// Vcs VCS The VCS type, such as "git"
+			Vcs *string `json:"vcs,omitempty"`
+		} `json:"repo,omitempty"`
+	} `json:"source,omitempty"`
+	ToolMapping *map[string]string `json:"tool_mapping,omitempty"`
+	WorkingDir  *string            `json:"working_dir,omitempty"`
+}
 
 // ListAssistantsParams defines parameters for ListAssistants.
 type ListAssistantsParams struct {
@@ -8663,6 +8718,9 @@ type ExtendedSubmitToolOuputsToRunJSONRequestBody = ExtendedSubmitToolOutputsRun
 
 // CreateToolJSONRequestBody defines body for CreateTool for application/json ContentType.
 type CreateToolJSONRequestBody = XCreateToolRequest
+
+// InspectToolJSONRequestBody defines body for InspectTool for application/json ContentType.
+type InspectToolJSONRequestBody = XInspectToolRequest
 
 // RunToolJSONRequestBody defines body for RunTool for application/json ContentType.
 type RunToolJSONRequestBody = XRunToolRequest
