@@ -17,8 +17,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func (a *agent) runTranscriptions(ctx context.Context) error {
-	slog.Debug("checking for an transcription request to process")
+func (a *agent) runTranscriptions(ctx context.Context, l *slog.Logger) error {
+	l.Debug("checking for an transcription request to process")
 	var (
 		transcriptionRequest = new(db.CreateTranscriptionRequest)
 		gdb                  = a.db.WithContext(ctx)
@@ -27,7 +27,7 @@ func (a *agent) runTranscriptions(ctx context.Context) error {
 		return err
 	}
 
-	l := slog.With("type", "transcription", "id", transcriptionRequest.ID)
+	l = slog.With("type", "transcription", "id", transcriptionRequest.ID)
 	l.Debug("processing request")
 
 	var requestBody bytes.Buffer

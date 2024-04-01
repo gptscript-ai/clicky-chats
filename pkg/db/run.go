@@ -140,6 +140,10 @@ func (r *Run) BeforeUpdate(tx *gorm.DB) error {
 	return nil
 }
 
+func (r *Run) GetStatus() string {
+	return r.Status
+}
+
 type RunLastError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -20,7 +19,7 @@ import (
 )
 
 type Triggers struct {
-	ChatCompletion, Run, RunStep, Image, Embeddings, Audio trigger.Trigger
+	ChatCompletion, Run, RunStep, RunTool, Image, Embeddings, Audio trigger.Trigger
 }
 
 func (t *Triggers) Complete() {
@@ -32,6 +31,9 @@ func (t *Triggers) Complete() {
 	}
 	if t.RunStep == nil {
 		t.RunStep = trigger.NewNoop()
+	}
+	if t.RunTool == nil {
+		t.RunTool = trigger.NewNoop()
 	}
 	if t.Image == nil {
 		t.Image = trigger.NewNoop()
@@ -105,10 +107,7 @@ func (s *Server) Start(ctx context.Context, wg *sync.WaitGroup, config Config) e
 	})
 
 	server := http.Server{
-		Addr: ":" + config.Port,
-		BaseContext: func(net.Listener) context.Context {
-			return ctx
-		},
+		Addr:    ":" + config.Port,
 		Handler: h,
 	}
 

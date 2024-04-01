@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -16,6 +15,7 @@ import (
 	"github.com/acorn-io/broadcaster"
 	"github.com/acorn-io/z"
 	"github.com/adrg/xdg"
+	"github.com/gptscript-ai/clicky-chats/pkg/agents"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
@@ -41,6 +41,7 @@ const (
 )
 
 type Config struct {
+	Logger                  *slog.Logger
 	PollingInterval         time.Duration
 	APIURL, APIKey, AgentID string
 	Cache                   bool
@@ -60,12 +61,15 @@ var inputModifiers = map[string]func(*agent, *db.RunStep, []string, string) ([]s
 }
 
 func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) error {
+	if cfg.Logger == nil {
+		cfg.Logger = slog.Default().With("agent", "step runner")
+	}
 	a, err := newAgent(gdb, kbm, cfg)
 	if err != nil {
 		return err
 	}
 
-	a.builtInToolDefinitions, err = populateTools(ctx, gdb.WithContext(ctx))
+	a.builtInToolDefinitions, err = populateTools(ctx, cfg.Logger, gdb.WithContext(ctx))
 	if err != nil {
 		return err
 	}
@@ -76,6 +80,7 @@ func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, kbm *kb.Knowledg
 }
 
 type agent struct {
+	logger              *slog.Logger
 	pollingInterval     time.Duration
 	id, apiKey, url     string
 	cache               bool
@@ -93,15 +98,16 @@ func newAgent(db *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) (*agent, erro
 	}
 
 	if cfg.Trigger == nil {
-		slog.Warn("[step runner] No trigger provided, using noop")
+		cfg.Logger.Warn("[step runner] No trigger provided, using noop")
 		cfg.Trigger = trigger.NewNoop()
 	}
 	if cfg.RunTrigger == nil {
-		slog.Warn("[step runner] No run trigger provided, using noop")
+		cfg.Logger.Warn("[step runner] No run trigger provided, using noop")
 		cfg.RunTrigger = trigger.NewNoop()
 	}
 
 	return &agent{
+		logger:          cfg.Logger,
 		pollingInterval: cfg.PollingInterval,
 		cache:           cfg.Cache,
 		client:          http.DefaultClient,
@@ -171,7 +177,7 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func (a *agent) run(ctx context.Context, caster *broadcaster.Broadcaster[server.Event], opts *gptscript.Options) {
-	slog.Debug("Checking for a run")
+	a.logger.Debug("Checking for a run")
 	// Look for a new run and claim it. Also, query for the other objects we need.
 	run, runStep := new(db.Run), new(db.RunStep)
 	if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -207,14 +213,14 @@ func (a *agent) run(ctx context.Context, caster *broadcaster.Broadcaster[server.
 		return tx.Model(run).Clauses(clause.Returning{}).Where("id = ?", run.ID).Updates(updates).Error
 	}); err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			slog.Error("failed to get run", "error", err)
+			a.logger.Error("failed to get run", "error", err)
 		}
 		return
 	}
 
 	go func() {
 		if err := a.processRunStep(ctx, caster, opts, run, runStep); err != nil {
-			slog.Error("failed to process run step", "err", err)
+			a.logger.Error("failed to process run step", "err", err)
 		}
 	}()
 }
@@ -223,9 +229,9 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 	timeoutCtx, cancel := context.WithTimeout(ctx, toolCallTimeout)
 	defer cancel()
 
-	go pollForCancellation(timeoutCtx, cancel, a.db.WithContext(timeoutCtx), runStep.ID, a.pollingInterval)
+	go agents.PollForCancellation(timeoutCtx, cancel, a.db.WithContext(timeoutCtx), runStep, runStep.ID, a.pollingInterval)
 
-	l := slog.With("run_id", run.ID, "run_step_id", runStep.ID, "type", "system_run_step")
+	l := a.logger.With("run_id", run.ID, "run_step_id", runStep.ID)
 
 	defer func() {
 		if err != nil && !errors.Is(err, context.Canceled) {
@@ -273,38 +279,8 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 		}
 
 		gdb := a.db.WithContext(ctx)
-		idCtx := server.ContextWithNewID(timeoutCtx)
-		id := server.IDFromContext(idCtx)
-		events := caster.Subscribe()
-		go func() {
-			var index int
-			for e := range events.C {
-				if e.RunID != id {
-					continue
-				}
-
-				runStepEvent := db.FromGPTScriptEvent(e, run.ID, runStep.ID, index, false)
-				if err := gdb.Model(runStepEvent).Create(runStepEvent).Error; err != nil {
-					l.Error("failed to create run step event", "error", err)
-				}
-				index++
-			}
-
-			// Create final event that just says we're done with this run step.
-			runStepEvent := db.FromGPTScriptEvent(server.Event{}, run.ID, runStep.ID, index, true)
-			if err := gdb.Model(runStepEvent).Create(runStepEvent).Error; err != nil {
-				l.Error("failed to create run step event", "error", err)
-			}
-			l.Debug("done receiving events")
-		}()
-
-		output, err := runToolCall(idCtx, opts, prg, envs, arguments)
-		events.Close()
-		if errors.Is(err, context.DeadlineExceeded) {
-			output = fmt.Sprintf("The tool call took more than %s to complete, aborting", toolCallTimeout)
-		} else if execErr := new(exec.ExitError); errors.As(err, &execErr) {
-			output = fmt.Sprintf("The tool call returned an exit code of %d with message %q, aborting", execErr.ExitCode(), execErr.String())
-		} else if err != nil {
+		output, err := agents.RunTool(timeoutCtx, l, caster, gdb, opts, prg, envs, arguments, run.ID, runStep.ID)
+		if err != nil {
 			return fmt.Errorf("failed to run tool call at index %d: %w", i, err)
 		}
 
@@ -327,7 +303,7 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 	}
 
 	if err = a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Update the run step with a fake output
+		// Update the run step with the output
 		if err = tx.Model(runStep).Clauses(clause.Returning{}).Where("id = ?", runStep.ID).Updates(
 			map[string]any{
 				"status":       openai.RunObjectStatusCompleted,
@@ -365,58 +341,15 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 	return nil
 }
 
-func runToolCall(ctx context.Context, opts *gptscript.Options, prg types.Program, envs []string, arguments string) (string, error) {
-	gpt, err := gptscript.New(opts)
-	if err != nil {
-		return "", err
-	}
-	defer gpt.Close()
-
-	output, err := gpt.Run(ctx, prg, envs, arguments)
-	if err != nil {
-		return "", err
-	}
-
-	return output, nil
-}
-
-// pollForCancellation will poll for the run step with the given id. If the run step
-// has been canceled, then the corresponding context will be canceled.
-func pollForCancellation(ctx context.Context, cancel func(), gdb *gorm.DB, id string, pollingInterval time.Duration) {
-	timer := time.NewTimer(pollingInterval)
-	rs := new(db.RunStep)
-	for {
-		select {
-		case <-ctx.Done():
-			// Ensure that the timer channel is drained.
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
-			return
-		case <-timer.C:
-		}
-
-		if err := gdb.Model(rs).Where("id = ?", id).First(rs).Error; err == nil && rs.Status != string(openai.RunStepObjectStatusInProgress) {
-			cancel()
-			return
-		}
-
-		timer.Reset(pollingInterval)
-	}
-}
-
 // populateTools loads the gptscript program from the provided link and subtool. The database is checked first to see if
 // the tool has already been loaded, it will be loaded from the URL again if necessary. The run_step agent will use this
 // program definition to run the tool with the gptscript engine.
-func populateTools(ctx context.Context, gdb *gorm.DB) (map[string]types.Program, error) {
+func populateTools(ctx context.Context, l *slog.Logger, gdb *gorm.DB) (map[string]types.Program, error) {
 	var err error
 	builtInToolDefinitions := make(map[string]types.Program, len(tools.GPTScriptDefinitions()))
 	for toolName, toolDef := range tools.GPTScriptDefinitions() {
 		if toolDef.Link == "" || toolDef.Link == tools.SkipLoadingTool {
-			slog.Info("Skipping tool", "name", toolName)
+			l.Info("Skipping tool", "name", toolName)
 			continue
 		}
 

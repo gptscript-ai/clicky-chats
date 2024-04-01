@@ -17,8 +17,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func (a *agent) runVariations(ctx context.Context) error {
-	slog.Debug("checking for an image variation request to process")
+func (a *agent) runVariations(ctx context.Context, l *slog.Logger) error {
+	l.Debug("checking for an image variation request to process")
 	var (
 		variationRequest = new(db.CreateImageVariationRequest)
 		gdb              = a.db.WithContext(ctx)
@@ -27,7 +27,7 @@ func (a *agent) runVariations(ctx context.Context) error {
 		return err
 	}
 
-	l := slog.With("type", "imagevariation", "id", variationRequest.ID)
+	l = slog.With("type", "imagevariation", "id", variationRequest.ID)
 	l.Debug("processing request")
 
 	var requestBody bytes.Buffer

@@ -14,8 +14,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func (a *agent) runSpeech(ctx context.Context) error {
-	slog.Debug("checking for an transcription request to process")
+func (a *agent) runSpeech(ctx context.Context, l *slog.Logger) error {
+	l.Debug("checking for an transcription request to process")
 	var (
 		speechRequest = new(db.CreateSpeechRequest)
 		gdb           = a.db.WithContext(ctx)
@@ -24,7 +24,7 @@ func (a *agent) runSpeech(ctx context.Context) error {
 		return err
 	}
 
-	l := slog.With("type", "speech", "id", speechRequest.ID)
+	l = slog.With("type", "speech", "id", speechRequest.ID)
 	l.Debug("processing request")
 
 	data, err := json.Marshal(speechRequest.ToPublic())

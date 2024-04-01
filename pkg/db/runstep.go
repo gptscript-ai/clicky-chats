@@ -112,6 +112,10 @@ func (r *RunStep) FromPublic(obj any) error {
 	return nil
 }
 
+func (r *RunStep) GetStatus() string {
+	return r.Status
+}
+
 // Merge will merge the given chunk into the current run step.
 func (r *RunStep) Merge(toolCalls *[]GenericToolCallInfo, chunk ChatCompletionResponseChunk) (*RunStepDelta, error) {
 	chunkChoice := chunk.Choices[0]

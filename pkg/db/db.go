@@ -96,6 +96,7 @@ func (db *DB) AutoMigrate() error {
 		BuiltInTool{},
 		RunEvent{},
 		RunStepEvent{},
+		RunToolObject{},
 	)
 }
 

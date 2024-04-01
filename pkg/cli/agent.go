@@ -14,6 +14,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/image"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/run"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents/steprunner"
+	"github.com/gptscript-ai/clicky-chats/pkg/agents/toolrunner"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/gptscript-ai/clicky-chats/pkg/server"
@@ -156,6 +157,19 @@ func runAgents(ctx context.Context, wg *sync.WaitGroup, gormDB *db.DB, kbm *kb.K
 		Trigger:         triggers.Audio,
 	}
 	if err = audio.Start(ctx, wg, gormDB, audioCfg); err != nil {
+		return err
+	}
+
+	toolRunnerCfg := toolrunner.Config{
+		PollingInterval: pollingInterval,
+		RetentionPeriod: retentionPeriod,
+		APIURL:          s.ToolRunnerBaseURL,
+		APIKey:          apiKey,
+		AgentID:         s.AgentID,
+		Cache:           s.Cache,
+		Trigger:         triggers.RunTool,
+	}
+	if err = toolrunner.Start(ctx, wg, gormDB, toolRunnerCfg); err != nil {
 		return err
 	}
 

@@ -10176,6 +10176,29 @@ components:
                 - run_id
                 - time
             type: object
+        XRunToolRequest:
+            additionalProperties: false
+            properties:
+                env_vars:
+                    description: Environment variables
+                    items:
+                        type: string
+                    type: array
+                    x-go-type-skip-optional-pointer: true
+                file:
+                    description: The file to run
+                    type: string
+                input:
+                    type: string
+                    x-go-type-skip-optional-pointer: true
+                subtool:
+                    description: The name of the sub tool to use rather than the first tool
+                    nullable: true
+                    type: string
+                    x-go-type-skip-optional-pointer: true
+            required:
+                - file
+            type: object
         XToolObject:
             additionalProperties: false
             properties:
@@ -19373,6 +19396,23 @@ paths:
                                 $ref: '#/components/schemas/XToolObject'
                     description: OK
             summary: Modify tool
+    /rubra/x/tools/run:
+        post:
+            operationId: runTool
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/XRunToolRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/XListRunStepEventsResponse'
+                    description: OK
+            summary: Run tool
     /threads:
         post:
             operationId: createThread

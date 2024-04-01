@@ -8190,6 +8190,19 @@ type XRunStepEventObject struct {
 	Type         *string                `json:"type,omitempty"`
 }
 
+// XRunToolRequest defines model for XRunToolRequest.
+type XRunToolRequest struct {
+	// EnvVars Environment variables
+	EnvVars []string `json:"env_vars,omitempty"`
+
+	// File The file to run
+	File  string `json:"file"`
+	Input string `json:"input,omitempty"`
+
+	// Subtool The name of the sub tool to use rather than the first tool
+	Subtool string `json:"subtool"`
+}
+
 // XToolObject defines model for XToolObject.
 type XToolObject struct {
 	// Contents Contents of the tool
@@ -8650,6 +8663,9 @@ type ExtendedSubmitToolOuputsToRunJSONRequestBody = ExtendedSubmitToolOutputsRun
 
 // CreateToolJSONRequestBody defines body for CreateTool for application/json ContentType.
 type CreateToolJSONRequestBody = XCreateToolRequest
+
+// RunToolJSONRequestBody defines body for RunTool for application/json ContentType.
+type RunToolJSONRequestBody = XRunToolRequest
 
 // ModifyToolJSONRequestBody defines body for ModifyTool for application/json ContentType.
 type ModifyToolJSONRequestBody = XModifyToolRequest

@@ -33,12 +33,16 @@ var (
 )
 
 type Config struct {
+	Logger                                        *slog.Logger
 	PollingInterval, RetentionPeriod              time.Duration
 	ModelsURL, ChatCompletionURL, APIKey, AgentID string
 	Trigger                                       trigger.Trigger
 }
 
 func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, cfg Config) error {
+	if cfg.Logger == nil {
+		cfg.Logger = slog.Default().With("agent", "chat completion")
+	}
 	a, err := newAgent(gdb, cfg)
 	if err != nil {
 		return err
@@ -54,6 +58,7 @@ func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, cfg Config) erro
 }
 
 type agent struct {
+	logger                           *slog.Logger
 	pollingInterval, retentionPeriod time.Duration
 	id, apiKey, url                  string
 	client                           *http.Client
@@ -70,11 +75,12 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}
 
 	if cfg.Trigger == nil {
-		slog.Warn("[chat completion] No trigger provided, using noop")
+		cfg.Logger.Warn("[chat completion] No trigger provided, using noop")
 		cfg.Trigger = trigger.NewNoop()
 	}
 
 	return &agent{
+		logger:          cfg.Logger,
 		pollingInterval: cfg.PollingInterval,
 		retentionPeriod: cfg.RetentionPeriod,
 		client:          http.DefaultClient,
@@ -169,7 +175,7 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 		for {
 			if err := a.run(ctx); err != nil {
 				if !errors.Is(err, gorm.ErrRecordNotFound) {
-					slog.Error("failed run iteration", "err", err)
+					a.logger.Error("failed run iteration", "err", err)
 				}
 
 				select {
@@ -207,54 +213,29 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 		timer := time.NewTimer(cleanupInterval)
 
 		for {
-			slog.Debug("Looking for completed chat completions")
-			// Look for a new chat completion request and claim it.
-			var (
-				ccs  []db.CreateChatCompletionResponse
-				cccs []db.ChatCompletionResponseChunk
-			)
+			a.logger.Debug("Looking for completed chat completions")
+			var runToolObjects []db.RunToolObject
+
 			if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-				if err := tx.Model(new(db.CreateChatCompletionResponse)).Find(&ccs).Error; err != nil {
+				if err := tx.Model(new(db.RunToolObject)).Where("created_at < ? AND done = true", int(time.Now().Add(-a.retentionPeriod).Unix())).Find(&runToolObjects).Error; err != nil {
 					return err
 				}
-				if err := tx.Model(new(db.ChatCompletionResponseChunk)).Find(&cccs).Error; err != nil {
-					return err
-				}
-				if len(ccs)+len(cccs) == 0 {
+				if len(runToolObjects) == 0 {
 					return nil
 				}
 
-				requestIDs := make([]string, 0, len(ccs)+len(cccs))
-				for _, cc := range ccs {
-					if id := cc.RequestID; id != "" {
-						requestIDs = append(requestIDs, id)
-					}
-				}
-				for _, ccc := range cccs {
-					if id := ccc.RequestID; id != "" {
-						requestIDs = append(requestIDs, id)
-					}
+				requestIDs := make([]string, 0, len(runToolObjects))
+				for _, rt := range runToolObjects {
+					requestIDs = append(requestIDs, rt.ID)
 				}
 
-				if err := tx.Delete(new(db.CreateChatCompletionRequest), "id IN ? AND done = true", requestIDs).Error; err != nil {
+				if err := tx.Delete(new(db.RunStepEvent), "request_id IN ?", requestIDs).Error; err != nil {
 					return err
 				}
 
-				if len(ccs) != 0 {
-					if err := tx.Delete(ccs).Error; err != nil {
-						return err
-					}
-				}
-
-				if len(cccs) != 0 {
-					if err := tx.Delete(cccs).Error; err != nil {
-						return err
-					}
-				}
-
-				return nil
+				return tx.Delete(runToolObjects).Error
 			}); err != nil {
-				slog.Error("Failed to cleanup chat completions", "err", err)
+				a.logger.Error("Failed to cleanup chat completions", "err", err)
 			}
 
 			select {
@@ -276,7 +257,7 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func (a *agent) run(ctx context.Context) error {
-	slog.Debug("Checking for a chat completion request")
+	a.logger.Debug("Checking for a chat completion request")
 	// Look for a new chat completion request and claim it.
 	cc := new(db.CreateChatCompletionRequest)
 	if err := a.db.WithContext(ctx).Model(cc).Transaction(func(tx *gorm.DB) error {
@@ -291,14 +272,14 @@ func (a *agent) run(ctx context.Context) error {
 		return nil
 	}); err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			slog.Error("Failed to get chat completion", "err", err)
+			a.logger.Error("Failed to get chat completion", "err", err)
 		}
 
 		return err
 	}
 
 	chatCompletionID := cc.ID
-	l := slog.With("type", "chatcompletion", "id", chatCompletionID)
+	l := a.logger.With("id", chatCompletionID)
 
 	url := cc.ModelAPI
 	if url == "" {
@@ -314,7 +295,7 @@ func (a *agent) run(ctx context.Context) error {
 			return err
 		}
 
-		if err = streamResponses(a.db.WithContext(ctx), chatCompletionID, stream); err != nil {
+		if err = streamResponses(l, a.db.WithContext(ctx), chatCompletionID, stream); err != nil {
 			l.Error("Failed to stream chat completion responses", "err", err)
 		}
 
@@ -343,7 +324,7 @@ func (a *agent) run(ctx context.Context) error {
 	return nil
 }
 
-func streamResponses(gdb *gorm.DB, chatCompletionID string, stream <-chan db.ChatCompletionResponseChunk) error {
+func streamResponses(l *slog.Logger, gdb *gorm.DB, chatCompletionID string, stream <-chan db.ChatCompletionResponseChunk) error {
 	var (
 		index int
 		errs  []error
@@ -353,7 +334,7 @@ func streamResponses(gdb *gorm.DB, chatCompletionID string, stream <-chan db.Cha
 		chunk.ResponseIdx = index
 		index++
 		if err := db.Create(gdb, &chunk); err != nil {
-			slog.Error("Failed to create chat completion response chunk", "err", err)
+			l.Error("Failed to create chat completion response chunk", "err", err)
 			errs = append(errs, err)
 		}
 	}
@@ -372,7 +353,7 @@ func streamResponses(gdb *gorm.DB, chatCompletionID string, stream <-chan db.Cha
 
 		return tx.Model(new(db.CreateChatCompletionRequest)).Where("id = ?", chatCompletionID).Update("done", true).Error
 	}); err != nil {
-		slog.Error("Failed to create final chat completion response chunk", "err", err)
+		l.Error("Failed to create final chat completion response chunk", "err", err)
 		errs = append(errs, err)
 	}
 

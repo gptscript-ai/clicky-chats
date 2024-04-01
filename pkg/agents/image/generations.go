@@ -15,8 +15,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func (a *agent) runGenerations(ctx context.Context) error {
-	slog.Debug("checking for an image create request to process")
+func (a *agent) runGenerations(ctx context.Context, l *slog.Logger) error {
+	l.Debug("checking for an image create request to process")
 	var (
 		createRequest = new(db.CreateImageRequest)
 		gdb           = a.db.WithContext(ctx)
@@ -25,7 +25,7 @@ func (a *agent) runGenerations(ctx context.Context) error {
 		return err
 	}
 
-	l := slog.With("type", "createimage", "id", createRequest.ID)
+	l = slog.With("type", "createimage", "id", createRequest.ID)
 	l.Debug("processing request")
 
 	data, err := json.Marshal(createRequest.ToPublic())

@@ -16,8 +16,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func (a *agent) runTranslations(ctx context.Context) error {
-	slog.Debug("checking for an translation request to process")
+func (a *agent) runTranslations(ctx context.Context, l *slog.Logger) error {
+	l.Debug("checking for an translation request to process")
 	var (
 		translationRequest = new(db.CreateTranslationRequest)
 		gdb                = a.db.WithContext(ctx)
@@ -26,7 +26,7 @@ func (a *agent) runTranslations(ctx context.Context) error {
 		return err
 	}
 
-	l := slog.With("type", "translation", "id", translationRequest.ID)
+	l = slog.With("type", "translation", "id", translationRequest.ID)
 	l.Debug("processing request")
 
 	var requestBody bytes.Buffer

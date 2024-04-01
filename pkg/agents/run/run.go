@@ -25,18 +25,22 @@ const (
 )
 
 type Config struct {
+	Logger                           *slog.Logger
 	PollingInterval, RetentionPeriod time.Duration
 	APIURL, APIKey, AgentID          string
 	Trigger, RunStepTrigger          trigger.Trigger
 }
 
 func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, cfg Config) error {
+	if cfg.Logger == nil {
+		cfg.Logger = slog.Default().With("agent", "run")
+	}
 	a, err := newAgent(gdb, cfg)
 	if err != nil {
 		return err
 	}
 
-	a.builtInToolDefinitions, err = populateTools(ctx, gdb.WithContext(ctx))
+	a.builtInToolDefinitions, err = populateTools(ctx, cfg.Logger, gdb.WithContext(ctx))
 	if err != nil {
 		return err
 	}
@@ -47,6 +51,7 @@ func Start(ctx context.Context, wg *sync.WaitGroup, gdb *db.DB, cfg Config) erro
 }
 
 type agent struct {
+	logger                           *slog.Logger
 	pollingInterval, retentionPeriod time.Duration
 	id, apiKey, url                  string
 	client                           *http.Client
@@ -64,15 +69,16 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}
 
 	if cfg.Trigger == nil {
-		slog.Warn("[run] No trigger provided, using noop")
+		cfg.Logger.Warn("[run] No trigger provided, using noop")
 		cfg.Trigger = trigger.NewNoop()
 	}
 	if cfg.RunStepTrigger == nil {
-		slog.Warn("[run] No run step trigger provided, using noop")
+		cfg.Logger.Warn("[run] No run step trigger provided, using noop")
 		cfg.RunStepTrigger = trigger.NewNoop()
 	}
 
 	return &agent{
+		logger:          cfg.Logger,
 		pollingInterval: cfg.PollingInterval,
 		retentionPeriod: cfg.RetentionPeriod,
 		client:          http.DefaultClient,
@@ -94,7 +100,7 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 		for {
 			if err := a.run(ctx); err != nil {
 				if !errors.Is(err, gorm.ErrRecordNotFound) {
-					slog.Error("failed run iteration", "err", err)
+					a.logger.Error("failed run iteration", "err", err)
 				}
 				select {
 				case <-ctx.Done():
@@ -137,7 +143,7 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 			timer = time.NewTimer(cleanupInterval)
 		)
 		for {
-			slog.Debug("Looking for completed runs")
+			a.logger.Debug("Looking for completed runs")
 
 			// Look for a runs, runSteps, and runEvents to clean-up.
 			var runs []db.Run
@@ -165,7 +171,7 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 
 				return tx.Delete(runs).Error
 			}); err != nil {
-				slog.Error("Failed to cleanup run completions", "err", err)
+				a.logger.Error("Failed to cleanup run completions", "err", err)
 			}
 
 			select {
@@ -187,7 +193,7 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func (a *agent) run(ctx context.Context) error {
-	slog.Debug("Checking for a run")
+	a.logger.Debug("Checking for a run")
 	// Look for a new run and claim it. Also, query for the other objects we need.
 	var (
 		run       = new(db.Run)
@@ -271,7 +277,7 @@ func (a *agent) run(ctx context.Context) error {
 	}
 
 	runID := run.ID
-	l := slog.With("type", "run", "id", runID)
+	l := a.logger.With("id", runID)
 
 	defer func() {
 		if err != nil {
