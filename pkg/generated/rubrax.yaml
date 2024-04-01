@@ -1,4 +1,21 @@
 paths:
+  /rubra/x/tools/inspect:
+    post:
+      operationId: inspectTool
+      summary: Inspect tool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/XInspectToolRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/XInspectToolResponse'
   /rubra/x/tools/run:
     post:
       operationId: runTool
@@ -235,6 +252,83 @@ paths:
 
 components:
   schemas:
+    XInspectToolRequest:
+      additionalProperties: false
+      properties:
+        url:
+          type: string
+          description: URL of the tool to inspect
+        subtool:
+          x-go-type-skip-optional-pointer: true
+          type: string
+          description: The name of the sub tool to use rather than the first tool
+      type: object
+      required:
+        - url
+    XInspectToolResponse:
+      properties:
+        name:
+          type: string
+          description: The name of the tool
+        entry_tool_id:
+          type: string
+          description: The id of the tool that is the entry point
+        tool_set:
+          type: object
+          description: The set of tools in the tool
+          additionalProperties:
+            $ref: '#/components/schemas/XToolSetTool'
+        exports:
+          type: object
+          description: The exports of the tool
+          x-go-type-skip-optional-pointer: true
+      type: object
+      required:
+        - name
+        - entry_tool_id
+        - tool_set
+    XToolSetTool:
+      properties:
+        instructions:
+          type: string
+          description: The instructions for the tool
+        id:
+          type: string
+        tool_mapping:
+          type: object
+          additionalProperties:
+            type: string
+        local_tools:
+          type: object
+          additionalProperties:
+            type: string
+        source:
+          type: object
+          properties:
+            location:
+              type: string
+            line_no:
+              type: integer
+            repo:
+              type: object
+              properties:
+                vcs:
+                  type: string
+                  description: VCS The VCS type, such as "git"
+                root:
+                  type: string
+                  description: The URL where the VCS repo can be found
+                path:
+                  type: string
+                  description: The path in the repo of this source. This should refer to a directory and not the actual file
+                name:
+                  type: string
+                  description: The filename of the source in the repo, relative to Path
+                revision:
+                  type: string
+                  description: The revision of this source
+        working_dir:
+          type: string
     XRunToolRequest:
       additionalProperties: false
       properties:

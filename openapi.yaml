@@ -10042,6 +10042,41 @@ components:
                 - object
                 - deleted
             type: object
+        XInspectToolRequest:
+            additionalProperties: false
+            properties:
+                subtool:
+                    description: The name of the sub tool to use rather than the first tool
+                    type: string
+                    x-go-type-skip-optional-pointer: true
+                url:
+                    description: URL of the tool to inspect
+                    type: string
+            required:
+                - url
+            type: object
+        XInspectToolResponse:
+            properties:
+                entry_tool_id:
+                    description: The id of the tool that is the entry point
+                    type: string
+                exports:
+                    description: The exports of the tool
+                    type: object
+                    x-go-type-skip-optional-pointer: true
+                name:
+                    description: The name of the tool
+                    type: string
+                tool_set:
+                    additionalProperties:
+                        $ref: '#/components/schemas/XToolSetTool'
+                    description: The set of tools in the tool
+                    type: object
+            required:
+                - name
+                - entry_tool_id
+                - tool_set
+            type: object
         XListRunStepEventsResponse:
             properties:
                 data:
@@ -10241,6 +10276,48 @@ components:
                 - created_at
                 - object
             type: object
+        XToolSetTool:
+            properties:
+                id:
+                    type: string
+                instructions:
+                    description: The instructions for the tool
+                    type: string
+                local_tools:
+                    additionalProperties:
+                        type: string
+                    type: object
+                source:
+                    properties:
+                        line_no:
+                            type: integer
+                        location:
+                            type: string
+                        repo:
+                            properties:
+                                name:
+                                    description: The filename of the source in the repo, relative to Path
+                                    type: string
+                                path:
+                                    description: The path in the repo of this source. This should refer to a directory and not the actual file
+                                    type: string
+                                revision:
+                                    description: The revision of this source
+                                    type: string
+                                root:
+                                    description: The URL where the VCS repo can be found
+                                    type: string
+                                vcs:
+                                    description: VCS The VCS type, such as "git"
+                                    type: string
+                            type: object
+                    type: object
+                tool_mapping:
+                    additionalProperties:
+                        type: string
+                    type: object
+                working_dir:
+                    type: string
     securitySchemes:
         ApiKeyAuth:
             scheme: bearer
@@ -19396,6 +19473,23 @@ paths:
                                 $ref: '#/components/schemas/XToolObject'
                     description: OK
             summary: Modify tool
+    /rubra/x/tools/inspect:
+        post:
+            operationId: inspectTool
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/XInspectToolRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/XInspectToolResponse'
+                    description: OK
+            summary: Inspect tool
     /rubra/x/tools/run:
         post:
             operationId: runTool

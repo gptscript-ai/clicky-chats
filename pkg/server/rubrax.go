@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/acorn-io/z"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
+	"github.com/gptscript-ai/gptscript/pkg/loader"
 	"gorm.io/gorm"
 )
 
@@ -272,4 +274,26 @@ func (s *Server) RunTool(w http.ResponseWriter, r *http.Request) {
 	s.triggers.RunTool.Kick(runTool.ID)
 
 	waitForAndStreamResponse[*db.RunStepEvent](r.Context(), w, s.db.WithContext(r.Context()), runTool.ID, 0)
+}
+
+func (s *Server) InspectTool(w http.ResponseWriter, r *http.Request) {
+	inspectToolInput := new(openai.XInspectToolRequest)
+	if err := readObjectFromRequest(r, inspectToolInput); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	if !strings.HasSuffix(inspectToolInput.Url, ".gpt") {
+		inspectToolInput.Url = strings.TrimPrefix(strings.TrimPrefix(inspectToolInput.Url, "https://"), "http://")
+	}
+
+	prg, err := loader.Program(r.Context(), inspectToolInput.Url, inspectToolInput.Subtool)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to load program: %v", err), InternalErrorType).Error()))
+		return
+	}
+
+	writeObjectToResponse(w, prg)
 }
