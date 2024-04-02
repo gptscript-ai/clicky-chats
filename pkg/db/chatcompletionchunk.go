@@ -35,7 +35,7 @@ func (c *ChatCompletionResponseChunk) ToPublic() any {
 		c.CreatedAt,
 		c.ID,
 		c.Model,
-		openai.CreateChatCompletionStreamResponseObjectChatCompletionChunk,
+		openai.ChatCompletionChunk,
 		c.SystemFingerprint,
 	}
 }

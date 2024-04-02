@@ -15,7 +15,6 @@ import (
 
 	"github.com/acorn-io/z"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
-	"github.com/gptscript-ai/clicky-chats/pkg/extendedapi"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/oapi-codegen/runtime"
@@ -24,29 +23,25 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func (s *Server) ExtendedListAssistants(w http.ResponseWriter, r *http.Request, params openai.ExtendedListAssistantsParams) {
+func (s *Server) ListAssistants(w http.ResponseWriter, r *http.Request, params openai.ListAssistantsParams) {
 	gormDB, limit, err := processAssistantsAPIListParams(s.db.WithContext(r.Context()), new(db.Assistant), params.Limit, params.Before, params.After, params.Order)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
 	}
 
-	if extendedapi.IsExtendedAPIKey(r.Context()) {
-		listAndRespond[*db.Assistant](gormDB, w, limit)
-		return
-	}
-	listAndRespondOpenAI[*db.Assistant](gormDB, w, limit)
+	listAndRespond[*db.Assistant](gormDB, w, limit)
 }
 
-func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request) {
-	createAssistantRequest := new(openai.ExtendedCreateAssistantRequest)
+func (s *Server) CreateAssistant(w http.ResponseWriter, r *http.Request) {
+	createAssistantRequest := new(openai.CreateAssistantRequest)
 	if err := readObjectFromRequest(r, createAssistantRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 
-	model, err := createAssistantRequest.Model.AsExtendedCreateAssistantRequestModel0()
+	model, err := createAssistantRequest.Model.AsCreateAssistantRequestModel0()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewAPIError("Failed to process model.", InvalidRequestErrorType).Error()))
@@ -54,9 +49,9 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 	}
 
 	var retrievalEnabled bool
-	tools := make([]openai.ExtendedAssistantObject_Tools_Item, 0, len(z.Dereference(createAssistantRequest.Tools)))
+	tools := make([]openai.AssistantObject_Tools_Item, 0, len(z.Dereference(createAssistantRequest.Tools)))
 	for _, tool := range z.Dereference(createAssistantRequest.Tools) {
-		t := new(openai.ExtendedAssistantObject_Tools_Item)
+		t := new(openai.AssistantObject_Tools_Item)
 		if err := transposeObject(tool, t); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			_, _ = w.Write([]byte(NewAPIError("Failed to process tool.", InvalidRequestErrorType).Error()))
@@ -79,7 +74,7 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 
 	if len(z.Dereference(createAssistantRequest.FileIds)) != 0 && !retrievalEnabled {
 		// Turn on retrieval automatically if we have files
-		retrievalTool := new(openai.ExtendedAssistantObject_Tools_Item)
+		retrievalTool := new(openai.AssistantObject_Tools_Item)
 		//nolint:govet
 		if err = retrievalTool.FromAssistantToolsRetrieval(openai.AssistantToolsRetrieval{
 			openai.AssistantToolsRetrievalTypeRetrieval,
@@ -92,17 +87,16 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 	}
 
 	//nolint:govet
-	publicAssistant := &openai.ExtendedAssistantObject{
+	publicAssistant := &openai.AssistantObject{
 		0,
 		createAssistantRequest.Description,
 		z.Dereference(createAssistantRequest.FileIds),
-		createAssistantRequest.GptscriptTools,
 		"",
 		createAssistantRequest.Instructions,
 		createAssistantRequest.Metadata,
 		model,
 		createAssistantRequest.Name,
-		openai.ExtendedAssistantObjectObjectAssistant,
+		openai.AssistantObjectObjectAssistant,
 		tools,
 	}
 
@@ -151,14 +145,10 @@ func (s *Server) ExtendedCreateAssistant(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Now return the assistant in the response
-	if extendedapi.IsExtendedAPIKey(r.Context()) {
-		writeObjectToResponse(w, a.ToPublic())
-	} else {
-		writeObjectToResponse(w, a.ToPublicOpenAI())
-	}
+	writeObjectToResponse(w, a.ToPublic())
 }
 
-func (s *Server) ExtendedDeleteAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
+func (s *Server) DeleteAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
 	if s.kbm != nil {
 		err := s.kbm.DeleteKnowledgeBase(r.Context(), assistantID)
 		if err != nil {
@@ -170,27 +160,22 @@ func (s *Server) ExtendedDeleteAssistant(w http.ResponseWriter, r *http.Request,
 	deleteAndRespond[*db.Assistant](s.db.WithContext(r.Context()), w, assistantID, openai.DeleteAssistantResponse{
 		true,
 		assistantID,
-		openai.DeleteAssistantResponseObjectAssistantDeleted,
+		openai.AssistantDeleted,
 	})
 }
 
-func (s *Server) ExtendedGetAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
-	ctx := r.Context()
-	if extendedapi.IsExtendedAPIKey(ctx) {
-		getAndRespond(s.db.WithContext(ctx), w, new(db.Assistant), assistantID)
-		return
-	}
-	getAndRespondOpenAI(s.db.WithContext(ctx), w, new(db.Assistant), assistantID)
+func (s *Server) GetAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
+	getAndRespond(s.db.WithContext(r.Context()), w, new(db.Assistant), assistantID)
 }
 
-func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
+func (s *Server) ModifyAssistant(w http.ResponseWriter, r *http.Request, assistantID string) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("assistant_id").Error()))
 		return
 	}
 
-	modifyAssistantRequest := new(openai.ExtendedModifyAssistantRequest)
+	modifyAssistantRequest := new(openai.ModifyAssistantRequest)
 	if err := readObjectFromRequest(r, modifyAssistantRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -204,9 +189,9 @@ func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	var model openai.ExtendedModifyAssistantRequestModel0
+	var model openai.ModifyAssistantRequestModel0
 	if modifyAssistantRequest.Model != nil {
-		model, err = modifyAssistantRequest.Model.AsExtendedModifyAssistantRequestModel0()
+		model, err = modifyAssistantRequest.Model.AsModifyAssistantRequestModel0()
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			_, _ = w.Write([]byte(NewAPIError("Failed to process model.", InvalidRequestErrorType).Error()))
@@ -214,11 +199,11 @@ func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request,
 		}
 	}
 
-	var tools []openai.ExtendedAssistantObject_Tools_Item
+	var tools []openai.AssistantObject_Tools_Item
 	if modifyAssistantRequest.Tools != nil {
-		tools = make([]openai.ExtendedAssistantObject_Tools_Item, 0, len(*modifyAssistantRequest.Tools))
+		tools = make([]openai.AssistantObject_Tools_Item, 0, len(*modifyAssistantRequest.Tools))
 		for _, tool := range *modifyAssistantRequest.Tools {
-			t := new(openai.ExtendedAssistantObject_Tools_Item)
+			t := new(openai.AssistantObject_Tools_Item)
 			if err = transposeObject(tool, t); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				_, _ = w.Write([]byte(NewAPIError("Failed to process tool.", InvalidRequestErrorType).Error()))
@@ -302,7 +287,7 @@ func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request,
 
 	if len(targetFileIDs) > 0 && retrievalIndex == -1 {
 		// Ensure the assistant has the retrieval tool
-		retrievalTool := new(openai.ExtendedAssistantObject_Tools_Item)
+		retrievalTool := new(openai.AssistantObject_Tools_Item)
 		//nolint:govet
 		if err = retrievalTool.FromAssistantToolsRetrieval(openai.AssistantToolsRetrieval{
 			openai.AssistantToolsRetrievalTypeRetrieval,
@@ -323,23 +308,18 @@ func (s *Server) ExtendedModifyAssistant(w http.ResponseWriter, r *http.Request,
 			Base:     db.Base{ID: assistantID},
 			Metadata: z.Dereference(modifyAssistantRequest.Metadata),
 		},
-		Description:    modifyAssistantRequest.Description,
-		FileIDs:        targetFileIDs,
-		GPTScriptTools: z.Dereference(modifyAssistantRequest.GptscriptTools),
-		Instructions:   modifyAssistantRequest.Instructions,
-		Model:          model,
-		Name:           modifyAssistantRequest.Name,
-		Tools:          datatypes.NewJSONSlice(tools),
+		Description:  modifyAssistantRequest.Description,
+		FileIDs:      targetFileIDs,
+		Instructions: modifyAssistantRequest.Instructions,
+		Model:        model,
+		Name:         modifyAssistantRequest.Name,
+		Tools:        datatypes.NewJSONSlice(tools),
 	}
 
-	if extendedapi.IsExtendedAPIKey(r.Context()) {
-		modifyAndRespond(s.db.WithContext(r.Context()), w, assistant, assistant)
-		return
-	}
-	modifyAndRespondOpenAI(s.db.WithContext(r.Context()), w, assistant, assistant)
+	modifyAndRespond(s.db.WithContext(r.Context()), w, assistant, assistant)
 }
 
-func (s *Server) ExtendedListAssistantFiles(w http.ResponseWriter, r *http.Request, assistantID string, params openai.ExtendedListAssistantFilesParams) {
+func (s *Server) ListAssistantFiles(w http.ResponseWriter, r *http.Request, assistantID string, params openai.ListAssistantFilesParams) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("assistant_id").Error()))
@@ -358,7 +338,7 @@ func (s *Server) ExtendedListAssistantFiles(w http.ResponseWriter, r *http.Reque
 	listAndRespond[*db.AssistantFile](gormDB.Where("assistant_id = ?", assistantID), w, limit)
 }
 
-func (s *Server) ExtendedCreateAssistantFile(w http.ResponseWriter, r *http.Request, assistantID string) {
+func (s *Server) CreateAssistantFile(w http.ResponseWriter, r *http.Request, assistantID string) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("assistant_id").Error()))
@@ -377,11 +357,11 @@ func (s *Server) ExtendedCreateAssistantFile(w http.ResponseWriter, r *http.Requ
 		assistantID,
 		0,
 		"",
-		openai.AssistantFileObjectObjectAssistantFile,
+		openai.AssistantFile,
 	})
 }
 
-func (s *Server) ExtendedDeleteAssistantFile(w http.ResponseWriter, r *http.Request, assistantID string, fileID string) {
+func (s *Server) DeleteAssistantFile(w http.ResponseWriter, r *http.Request, assistantID string, fileID string) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("assistant_id").Error()))
@@ -392,11 +372,11 @@ func (s *Server) ExtendedDeleteAssistantFile(w http.ResponseWriter, r *http.Requ
 	deleteAndRespond[*db.AssistantFile](s.db.WithContext(r.Context()).Where("assistant_id = ?", assistantID), w, fileID, openai.DeleteAssistantFileResponse{
 		true,
 		fileID,
-		openai.DeleteAssistantFileResponseObjectAssistantFileDeleted,
+		openai.AssistantFileDeleted,
 	})
 }
 
-func (s *Server) ExtendedGetAssistantFile(w http.ResponseWriter, r *http.Request, assistantID string, fileID string) {
+func (s *Server) GetAssistantFile(w http.ResponseWriter, r *http.Request, assistantID string, fileID string) {
 	if assistantID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("assistant_id").Error()))
@@ -406,7 +386,7 @@ func (s *Server) ExtendedGetAssistantFile(w http.ResponseWriter, r *http.Request
 	getAndRespond(s.db.WithContext(r.Context()).Where("assistant_id = ?", assistantID), w, new(db.AssistantFile), fileID)
 }
 
-func (s *Server) ExtendedCreateSpeech(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CreateSpeech(w http.ResponseWriter, r *http.Request) {
 	createSpeechRequest := new(openai.CreateSpeechRequest)
 	if err := readObjectFromRequest(r, createSpeechRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -460,7 +440,7 @@ func (s *Server) ExtendedCreateSpeech(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) ExtendedCreateTranscription(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CreateTranscription(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB max
 		w.WriteHeader(http.StatusNotAcceptable)
 		_, _ = w.Write([]byte(NewAPIError("Failed to parse multipart form.", InvalidRequestErrorType).Error()))
@@ -587,7 +567,7 @@ func (s *Server) ExtendedCreateTranscription(w http.ResponseWriter, r *http.Requ
 	waitForAndWriteResponse(ctx, ready, w, gormDB, agentReq.ID, new(db.CreateTranscriptionResponse))
 }
 
-func (s *Server) ExtendedCreateTranslation(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CreateTranslation(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB max
 		w.WriteHeader(http.StatusNotAcceptable)
 		_, _ = w.Write([]byte(NewAPIError("Failed to parse multipart form.", InvalidRequestErrorType).Error()))
@@ -687,7 +667,7 @@ func (s *Server) ExtendedCreateTranslation(w http.ResponseWriter, r *http.Reques
 	waitForAndWriteResponse(ctx, ready, w, gormDB, agentReq.ID, new(db.CreateTranslationResponse))
 }
 
-func (s *Server) ExtendedCreateChatCompletion(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CreateChatCompletion(w http.ResponseWriter, r *http.Request) {
 	createCompletionRequest := new(openai.CreateChatCompletionRequest)
 	if err := readObjectFromRequest(r, createCompletionRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -720,12 +700,12 @@ func (s *Server) ExtendedCreateChatCompletion(w http.ResponseWriter, r *http.Req
 	waitForAndStreamResponse[*db.ChatCompletionResponseChunk](r.Context(), w, gormDB, ccr.ID, 0)
 }
 
-func (s *Server) ExtendedCreateCompletion(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) CreateCompletion(w http.ResponseWriter, _ *http.Request) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ExtendedCreateEmbedding(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CreateEmbedding(w http.ResponseWriter, r *http.Request) {
 	createEmbeddingRequest := new(openai.CreateEmbeddingRequest)
 	if err := readObjectFromRequest(r, createEmbeddingRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -753,7 +733,7 @@ func (s *Server) ExtendedCreateEmbedding(w http.ResponseWriter, r *http.Request)
 	waitForAndWriteResponse(r.Context(), ready, w, gormDB, cer.ID, new(db.CreateEmbeddingResponse))
 }
 
-func (s *Server) ExtendedListFiles(w http.ResponseWriter, r *http.Request, params openai.ExtendedListFilesParams) {
+func (s *Server) ListFiles(w http.ResponseWriter, r *http.Request, params openai.ListFilesParams) {
 	gormDB := s.db.WithContext(r.Context())
 	if z.Dereference(params.Purpose) != "" {
 		gormDB = gormDB.Where("purpose = ?", *params.Purpose)
@@ -761,7 +741,7 @@ func (s *Server) ExtendedListFiles(w http.ResponseWriter, r *http.Request, param
 	listAndRespond[*db.File](gormDB, w, -1)
 }
 
-func (s *Server) ExtendedCreateFile(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CreateFile(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("purpose") == "" {
 		w.WriteHeader(http.StatusNotAcceptable)
 		_, _ = w.Write([]byte(NewAPIError("No purpose provided.", InvalidRequestErrorType).Error()))
@@ -825,7 +805,7 @@ func (s *Server) ExtendedCreateFile(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Server) ExtendedDeleteFile(w http.ResponseWriter, r *http.Request, fileID string) {
+func (s *Server) DeleteFile(w http.ResponseWriter, r *http.Request, fileID string) {
 	//nolint:govet
 	deleteAndRespond[*db.File](s.db.WithContext(r.Context()), w, fileID, openai.DeleteFileResponse{
 		true,
@@ -834,40 +814,40 @@ func (s *Server) ExtendedDeleteFile(w http.ResponseWriter, r *http.Request, file
 	})
 }
 
-func (s *Server) ExtendedRetrieveFile(w http.ResponseWriter, r *http.Request, fileID string) {
+func (s *Server) RetrieveFile(w http.ResponseWriter, r *http.Request, fileID string) {
 	getAndRespond(s.db.WithContext(r.Context()), w, new(db.File), fileID)
 }
 
-func (s *Server) ExtendedDownloadFile(w http.ResponseWriter, _ *http.Request, _ string) {
+func (s *Server) DownloadFile(w http.ResponseWriter, _ *http.Request, _ string) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ExtendedListPaginatedFineTuningJobs(w http.ResponseWriter, _ *http.Request, _ openai.ExtendedListPaginatedFineTuningJobsParams) {
+func (s *Server) ListPaginatedFineTuningJobs(w http.ResponseWriter, _ *http.Request, _ openai.ListPaginatedFineTuningJobsParams) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ExtendedCreateFineTuningJob(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) CreateFineTuningJob(w http.ResponseWriter, _ *http.Request) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ExtendedRetrieveFineTuningJob(w http.ResponseWriter, r *http.Request, fineTuningJobID string) {
+func (s *Server) RetrieveFineTuningJob(w http.ResponseWriter, r *http.Request, fineTuningJobID string) {
 	getAndRespond(s.db.WithContext(r.Context()), w, new(db.FineTuningJob), fineTuningJobID)
 }
 
-func (s *Server) ExtendedCancelFineTuningJob(w http.ResponseWriter, _ *http.Request, _ string) {
+func (s *Server) CancelFineTuningJob(w http.ResponseWriter, _ *http.Request, _ string) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ExtendedListFineTuningEvents(w http.ResponseWriter, _ *http.Request, _ string, _ openai.ExtendedListFineTuningEventsParams) {
+func (s *Server) ListFineTuningEvents(w http.ResponseWriter, _ *http.Request, _ string, _ openai.ListFineTuningEventsParams) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ExtendedCreateImageEdit(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CreateImageEdit(w http.ResponseWriter, r *http.Request) {
 	reader, err := r.MultipartReader()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -905,7 +885,7 @@ func (s *Server) ExtendedCreateImageEdit(w http.ResponseWriter, r *http.Request)
 	waitForAndWriteResponse(ctx, ready, w, gormDB, agentReq.ID, new(db.ImagesResponse))
 }
 
-func (s *Server) ExtendedCreateImage(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CreateImage(w http.ResponseWriter, r *http.Request) {
 	publicReq := new(openai.CreateImageRequest)
 	if err := readObjectFromRequest(r, publicReq); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -936,7 +916,7 @@ func (s *Server) ExtendedCreateImage(w http.ResponseWriter, r *http.Request) {
 	waitForAndWriteResponse(ctx, ready, w, gormDB, agentReq.ID, new(db.ImagesResponse))
 }
 
-func (s *Server) ExtendedCreateImageVariation(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CreateImageVariation(w http.ResponseWriter, r *http.Request) {
 	reader, err := r.MultipartReader()
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -974,11 +954,11 @@ func (s *Server) ExtendedCreateImageVariation(w http.ResponseWriter, r *http.Req
 	waitForAndWriteResponse(ctx, ready, w, gormDB, agentReq.ID, new(db.ImagesResponse))
 }
 
-func (s *Server) ExtendedListModels(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ListModels(w http.ResponseWriter, r *http.Request) {
 	listAndRespond[*db.Model](s.db.WithContext(r.Context()), w, -1)
 }
 
-func (s *Server) ExtendedDeleteModel(w http.ResponseWriter, r *http.Request, modelID string) {
+func (s *Server) DeleteModel(w http.ResponseWriter, r *http.Request, modelID string) {
 	//nolint:govet
 	deleteAndRespond[*db.Model](s.db.WithContext(r.Context()), w, modelID, openai.DeleteModelResponse{
 		true,
@@ -987,27 +967,17 @@ func (s *Server) ExtendedDeleteModel(w http.ResponseWriter, r *http.Request, mod
 	})
 }
 
-func (s *Server) ExtendedRetrieveModel(w http.ResponseWriter, r *http.Request, modelID string) {
+func (s *Server) RetrieveModel(w http.ResponseWriter, r *http.Request, modelID string) {
 	getAndRespond(s.db.WithContext(r.Context()), w, new(db.Model), modelID)
 }
 
-func (s *Server) ExtendedCreateModeration(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) CreateModeration(w http.ResponseWriter, _ *http.Request) {
 	//TODO implement me
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-func (s *Server) ListThreads(w http.ResponseWriter, r *http.Request, params openai.ListThreadsParams) {
-	gormDB, limit, err := processAssistantsAPIListParams(s.db.WithContext(r.Context()), new(db.Thread), params.Limit, params.Before, params.After, params.Order)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(err.Error()))
-	}
-
-	listAndRespond[*db.Thread](gormDB, w, limit)
-}
-
-func (s *Server) ExtendedCreateThread(w http.ResponseWriter, r *http.Request) {
-	createThreadRequest := new(openai.ExtendedCreateThreadRequest)
+func (s *Server) CreateThread(w http.ResponseWriter, r *http.Request) {
+	createThreadRequest := new(openai.CreateThreadRequest)
 	if err := readObjectFromRequest(r, createThreadRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -1026,7 +996,7 @@ func (s *Server) ExtendedCreateThread(w http.ResponseWriter, r *http.Request) {
 		0,
 		"",
 		createThreadRequest.Metadata,
-		openai.ThreadObjectObjectThread,
+		openai.Thread,
 	}
 
 	thread := new(db.Thread)
@@ -1051,18 +1021,18 @@ func (s *Server) ExtendedCreateThread(w http.ResponseWriter, r *http.Request) {
 			}
 
 			//nolint:govet
-			publicMessage := &openai.ExtendedMessageObject{
+			publicMessage := &openai.MessageObject{
 				nil,
 				nil,
-				[]openai.ExtendedMessageObject_Content_Item{*content},
+				[]openai.MessageObject_Content_Item{*content},
 				0,
 				z.Dereference(message.FileIds),
 				"",
 				nil,
 				nil,
 				message.Metadata,
-				openai.ExtendedMessageObjectObjectThreadMessage,
-				openai.ExtendedMessageObjectRole(message.Role),
+				openai.ThreadMessage,
+				openai.MessageObjectRole(message.Role),
 				nil,
 				"",
 				thread.ID,
@@ -1084,8 +1054,8 @@ func (s *Server) ExtendedCreateThread(w http.ResponseWriter, r *http.Request) {
 	writeObjectToResponse(w, thread.ToPublic())
 }
 
-func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, r *http.Request) {
-	createThreadAndRunRequest := new(openai.ExtendedCreateThreadAndRunRequest)
+func (s *Server) CreateThreadAndRun(w http.ResponseWriter, r *http.Request) {
+	createThreadAndRunRequest := new(openai.CreateThreadAndRunRequest)
 	if err := readObjectFromRequest(r, createThreadAndRunRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -1104,7 +1074,7 @@ func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, r *http.Reque
 		0,
 		"",
 		createThreadAndRunRequest.Metadata,
-		openai.ThreadObjectObjectThread,
+		openai.Thread,
 	}
 
 	var (
@@ -1128,18 +1098,18 @@ func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, r *http.Reque
 				}
 
 				//nolint:govet
-				publicMessage := &openai.ExtendedMessageObject{
+				publicMessage := &openai.MessageObject{
 					nil,
 					nil,
-					[]openai.ExtendedMessageObject_Content_Item{*content},
+					[]openai.MessageObject_Content_Item{*content},
 					0,
 					z.Dereference(message.FileIds),
 					"",
 					nil,
 					nil,
 					message.Metadata,
-					openai.ExtendedMessageObjectObjectThreadMessage,
-					openai.ExtendedMessageObjectRole(message.Role),
+					openai.ThreadMessage,
+					openai.MessageObjectRole(message.Role),
 					nil,
 					"",
 					thread.ID,
@@ -1184,7 +1154,7 @@ func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, r *http.Reque
 		nil,
 		createThreadAndRunRequest.Metadata,
 		z.Dereference(createThreadAndRunRequest.Model),
-		openai.RunObjectObjectThreadRun,
+		openai.ThreadRun,
 		nil,
 		nil,
 		openai.RunObjectStatusQueued,
@@ -1201,11 +1171,11 @@ func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, r *http.Reque
 	}
 
 	runCreatedEvent := &db.RunEvent{
-		EventName: string(openai.RunStreamEvent0EventThreadRunCreated),
+		EventName: string(openai.ThreadRunCreated),
 		Run:       datatypes.NewJSONType(run),
 	}
 	runQueuedEvent := &db.RunEvent{
-		EventName:   string(openai.RunStreamEvent1EventThreadRunQueued),
+		EventName:   string(openai.ThreadRunQueued),
 		Run:         datatypes.NewJSONType(run),
 		ResponseIdx: 1,
 	}
@@ -1242,20 +1212,20 @@ func (s *Server) ExtendedCreateThreadAndRun(w http.ResponseWriter, r *http.Reque
 	writeObjectToResponse(w, run.ToPublic())
 }
 
-func (s *Server) ExtendedDeleteThread(w http.ResponseWriter, r *http.Request, threadID string) {
+func (s *Server) DeleteThread(w http.ResponseWriter, r *http.Request, threadID string) {
 	//nolint:govet
 	deleteAndRespond[*db.Thread](s.db.WithContext(r.Context()), w, threadID, openai.DeleteThreadResponse{
 		true,
 		threadID,
-		openai.DeleteThreadResponseObjectThreadDeleted,
+		openai.ThreadDeleted,
 	})
 }
 
-func (s *Server) ExtendedGetThread(w http.ResponseWriter, r *http.Request, threadID string) {
+func (s *Server) GetThread(w http.ResponseWriter, r *http.Request, threadID string) {
 	getAndRespond(s.db.WithContext(r.Context()), w, new(db.Thread), threadID)
 }
 
-func (s *Server) ExtendedModifyThread(w http.ResponseWriter, r *http.Request, threadID string) {
+func (s *Server) ModifyThread(w http.ResponseWriter, r *http.Request, threadID string) {
 	reqBody := new(openai.ModifyThreadRequest)
 	if err := readObjectFromRequest(r, reqBody); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -1272,7 +1242,7 @@ func (s *Server) ExtendedModifyThread(w http.ResponseWriter, r *http.Request, th
 	modifyAndRespond(s.db.WithContext(r.Context()), w, &db.Thread{Metadata: db.Metadata{Base: db.Base{ID: threadID}}}, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
-func (s *Server) ExtendedListMessages(w http.ResponseWriter, r *http.Request, threadID string, params openai.ExtendedListMessagesParams) {
+func (s *Server) ListMessages(w http.ResponseWriter, r *http.Request, threadID string, params openai.ListMessagesParams) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
@@ -1292,14 +1262,14 @@ func (s *Server) ExtendedListMessages(w http.ResponseWriter, r *http.Request, th
 	listAndRespond[*db.Message](gormDB.Where("thread_id = ?", threadID), w, limit)
 }
 
-func (s *Server) ExtendedCreateMessage(w http.ResponseWriter, r *http.Request, threadID string) {
+func (s *Server) CreateMessage(w http.ResponseWriter, r *http.Request, threadID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 
-	createMessageRequest := new(openai.ExtendedCreateMessageRequest)
+	createMessageRequest := new(openai.CreateMessageRequest)
 	if err := readObjectFromRequest(r, createMessageRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -1314,18 +1284,18 @@ func (s *Server) ExtendedCreateMessage(w http.ResponseWriter, r *http.Request, t
 	}
 
 	//nolint:govet
-	publicMessage := &openai.ExtendedMessageObject{
+	publicMessage := &openai.MessageObject{
 		nil,
 		nil,
-		[]openai.ExtendedMessageObject_Content_Item{*content},
+		[]openai.MessageObject_Content_Item{*content},
 		0,
 		z.Dereference(createMessageRequest.FileIds),
 		"",
 		nil,
 		nil,
 		createMessageRequest.Metadata,
-		openai.ExtendedMessageObjectObjectThreadMessage,
-		openai.ExtendedMessageObjectRole(createMessageRequest.Role),
+		openai.ThreadMessage,
+		openai.MessageObjectRole(createMessageRequest.Role),
 		nil,
 		"",
 		threadID,
@@ -1334,7 +1304,7 @@ func (s *Server) ExtendedCreateMessage(w http.ResponseWriter, r *http.Request, t
 	createAndRespond(s.db.WithContext(r.Context()), w, new(db.Message), publicMessage)
 }
 
-func (s *Server) ExtendedGetMessage(w http.ResponseWriter, r *http.Request, threadID string, messageID string) {
+func (s *Server) GetMessage(w http.ResponseWriter, r *http.Request, threadID string, messageID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
@@ -1344,7 +1314,7 @@ func (s *Server) ExtendedGetMessage(w http.ResponseWriter, r *http.Request, thre
 	getAndRespond(s.db.WithContext(r.Context()).Where("thread_id = ?", threadID), w, new(db.Message), messageID)
 }
 
-func (s *Server) ExtendedModifyMessage(w http.ResponseWriter, r *http.Request, threadID string, messageID string) {
+func (s *Server) ModifyMessage(w http.ResponseWriter, r *http.Request, threadID string, messageID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
@@ -1367,7 +1337,7 @@ func (s *Server) ExtendedModifyMessage(w http.ResponseWriter, r *http.Request, t
 	modifyAndRespond(s.db.WithContext(r.Context()), w, &db.Message{Metadata: db.Metadata{Base: db.Base{ID: messageID}}}, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
-func (s *Server) ExtendedListMessageFiles(w http.ResponseWriter, r *http.Request, threadID string, messageID string, params openai.ExtendedListMessageFilesParams) {
+func (s *Server) ListMessageFiles(w http.ResponseWriter, r *http.Request, threadID string, messageID string, params openai.ListMessageFilesParams) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
@@ -1393,7 +1363,7 @@ func (s *Server) ExtendedListMessageFiles(w http.ResponseWriter, r *http.Request
 	listAndRespond[*db.MessageFile](gormDB.Where("thread_id = ? AND message_id = ?", threadID, messageID), w, limit)
 }
 
-func (s *Server) ExtendedGetMessageFile(w http.ResponseWriter, r *http.Request, threadID string, messageID string, fileID string) {
+func (s *Server) GetMessageFile(w http.ResponseWriter, r *http.Request, threadID string, messageID string, fileID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
@@ -1408,7 +1378,7 @@ func (s *Server) ExtendedGetMessageFile(w http.ResponseWriter, r *http.Request, 
 	getAndRespond(s.db.WithContext(r.Context()).Where("thread_id = ? AND message_id = ?", threadID, messageID), w, new(db.MessageFile), fileID)
 }
 
-func (s *Server) ExtendedListRuns(w http.ResponseWriter, r *http.Request, threadID string, params openai.ExtendedListRunsParams) {
+func (s *Server) ListRuns(w http.ResponseWriter, r *http.Request, threadID string, params openai.ListRunsParams) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
@@ -1428,14 +1398,14 @@ func (s *Server) ExtendedListRuns(w http.ResponseWriter, r *http.Request, thread
 	listAndRespond[*db.Run](gormDB.Where("thread_id = ?", threadID), w, limit)
 }
 
-func (s *Server) ExtendedCreateRun(w http.ResponseWriter, r *http.Request, threadID string) {
+func (s *Server) CreateRun(w http.ResponseWriter, r *http.Request, threadID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
 		return
 	}
 
-	createRunRequest := new(openai.ExtendedCreateRunRequest)
+	createRunRequest := new(openai.CreateRunRequest)
 	if err := readObjectFromRequest(r, createRunRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -1502,7 +1472,7 @@ func (s *Server) ExtendedCreateRun(w http.ResponseWriter, r *http.Request, threa
 		nil,
 		createRunRequest.Metadata,
 		z.Dereference(createRunRequest.Model),
-		openai.RunObjectObjectThreadRun,
+		openai.ThreadRun,
 		nil,
 		nil,
 		openai.RunObjectStatusQueued,
@@ -1519,11 +1489,11 @@ func (s *Server) ExtendedCreateRun(w http.ResponseWriter, r *http.Request, threa
 	}
 
 	runCreatedEvent := &db.RunEvent{
-		EventName: string(openai.RunStreamEvent0EventThreadRunCreated),
+		EventName: string(openai.ThreadRunCreated),
 		Run:       datatypes.NewJSONType(run),
 	}
 	runQueuedEvent := &db.RunEvent{
-		EventName:   string(openai.RunStreamEvent1EventThreadRunQueued),
+		EventName:   string(openai.ThreadRunQueued),
 		Run:         datatypes.NewJSONType(run),
 		ResponseIdx: 1,
 	}
@@ -1569,7 +1539,7 @@ func (s *Server) ExtendedCreateRun(w http.ResponseWriter, r *http.Request, threa
 	waitForAndStreamResponse[*db.RunEvent](r.Context(), w, gormDB, run.ID, 0)
 }
 
-func (s *Server) ExtendedGetRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
+func (s *Server) GetRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
@@ -1579,7 +1549,7 @@ func (s *Server) ExtendedGetRun(w http.ResponseWriter, r *http.Request, threadID
 	getAndRespond(s.db.WithContext(r.Context()).Where("thread_id = ?", threadID), w, new(db.Run), runID)
 }
 
-func (s *Server) ExtendedModifyRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
+func (s *Server) ModifyRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
@@ -1602,7 +1572,7 @@ func (s *Server) ExtendedModifyRun(w http.ResponseWriter, r *http.Request, threa
 	modifyAndRespond(s.db.WithContext(r.Context()), w, &db.Run{Metadata: db.Metadata{Base: db.Base{ID: runID}}}, map[string]interface{}{"metadata": reqBody.Metadata})
 }
 
-func (s *Server) ExtendedCancelRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
+func (s *Server) CancelRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
@@ -1631,7 +1601,7 @@ func (s *Server) ExtendedCancelRun(w http.ResponseWriter, r *http.Request, threa
 	writeObjectToResponse(w, publicRun)
 }
 
-func (s *Server) ExtendedListRunSteps(w http.ResponseWriter, r *http.Request, threadID string, runID string, params openai.ExtendedListRunStepsParams) {
+func (s *Server) ListRunSteps(w http.ResponseWriter, r *http.Request, threadID string, runID string, params openai.ListRunStepsParams) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
@@ -1657,7 +1627,7 @@ func (s *Server) ExtendedListRunSteps(w http.ResponseWriter, r *http.Request, th
 	listAndRespond[*db.RunStep](gormDB.Where("run_id = ?", runID), w, limit)
 }
 
-func (s *Server) ExtendedGetRunStep(w http.ResponseWriter, r *http.Request, threadID string, runID string, stepID string) {
+func (s *Server) GetRunStep(w http.ResponseWriter, r *http.Request, threadID string, runID string, stepID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
@@ -1672,7 +1642,7 @@ func (s *Server) ExtendedGetRunStep(w http.ResponseWriter, r *http.Request, thre
 	getAndRespond(s.db.WithContext(r.Context()).Where("run_id = ?", runID), w, new(db.RunStep), stepID)
 }
 
-func (s *Server) ExtendedSubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
+func (s *Server) SubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
 	if threadID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
@@ -1684,7 +1654,7 @@ func (s *Server) ExtendedSubmitToolOuputsToRun(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	outputs := new(openai.ExtendedSubmitToolOutputsRunRequest)
+	outputs := new(openai.SubmitToolOutputsRunRequest)
 	if err := readObjectFromRequest(r, outputs); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(err.Error()))
@@ -1742,7 +1712,7 @@ func (s *Server) ExtendedSubmitToolOuputsToRun(w http.ResponseWriter, r *http.Re
 	var eventIndexStart int
 	stepDetailsHack := map[string]any{
 		"tool_calls": runStepFunctionCalls,
-		"type":       openai.RunStepObjectTypeToolCalls,
+		"type":       openai.RunStepDetailsToolCallsObjectTypeToolCalls,
 	}
 	if err = s.db.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
 		run := new(db.Run)
@@ -1756,7 +1726,7 @@ func (s *Server) ExtendedSubmitToolOuputsToRun(w http.ResponseWriter, r *http.Re
 
 		run.EventIndex++
 		runEvent := &db.RunEvent{
-			EventName: string(openai.RunStepStreamEvent3EventThreadRunStepCompleted),
+			EventName: string(openai.ThreadRunStepCompleted),
 			JobResponse: db.JobResponse{
 				RequestID: run.ID,
 			},
@@ -1830,22 +1800,6 @@ func getAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj Transformer, id s
 	writeObjectToResponse(w, obj.ToPublic())
 }
 
-func getAndRespondOpenAI(gormDB *gorm.DB, w http.ResponseWriter, obj ExtendedTransformer, id string) {
-	if err := get(gormDB, obj, id); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("No %s found with id '%s'.", strings.ToLower(strings.Split(fmt.Sprintf("%T", obj), ".")[1]), id), InvalidRequestErrorType).Error()))
-			return
-		}
-
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to get %s: %v", strings.ToLower(strings.Split(fmt.Sprintf("%T", obj), ".")[1]), err), InternalErrorType).Error()))
-		return
-	}
-
-	writeObjectToResponse(w, obj.ToPublicOpenAI())
-}
-
 func create(gormDB *gorm.DB, obj Transformer, publicObj any) error {
 	if err := obj.FromPublic(publicObj); err != nil {
 		return NewAPIError("Failed parsing request object.", InvalidRequestErrorType)
@@ -1869,17 +1823,6 @@ func createAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj Transformer, p
 	}
 
 	writeObjectToResponse(w, obj.ToPublic())
-}
-
-// nolint:revive,unused
-func createAndRespondOpenAI(gormDB *gorm.DB, w http.ResponseWriter, obj ExtendedTransformer, publicObj any) {
-	if err := create(gormDB, obj, publicObj); err != nil {
-		w.WriteHeader(http.StatusConflict)
-		_, _ = w.Write([]byte(err.Error()))
-		return
-	}
-
-	writeObjectToResponse(w, obj.ToPublicOpenAI())
 }
 
 func processAssistantsAPIListParams[O ~string](gormDB *gorm.DB, obj Transformer, limit *int, before, after *string, order *O, ensureExists ...db.Storer) (*gorm.DB, int, error) {
@@ -1971,35 +1914,6 @@ func listAndRespond[T Transformer](gormDB *gorm.DB, w http.ResponseWriter, limit
 	respondWithList(w, publicObjs, hasMore, limit, firstID, lastID)
 }
 
-func listAndRespondOpenAI[T ExtendedTransformer](gormDB *gorm.DB, w http.ResponseWriter, limit int) {
-	var objs []T
-	if err := list(gormDB, &objs); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(NewAPIError("Failed to list objects.", InternalErrorType).Error()))
-		return
-	}
-
-	var (
-		firstID, lastID string
-		hasMore         bool
-	)
-	if len(objs) > 0 && limit > 0 {
-		hasMore = len(objs) >= limit
-		if hasMore {
-			objs = objs[:len(objs)-1]
-		}
-		firstID = objs[0].GetID()
-		lastID = objs[len(objs)-1].GetID()
-	}
-
-	publicObjs := make([]any, 0, len(objs))
-	for _, o := range objs {
-		publicObjs = append(publicObjs, o.ToPublicOpenAI())
-	}
-
-	respondWithList(w, publicObjs, hasMore, limit, firstID, lastID)
-}
-
 func respondWithList(w http.ResponseWriter, publicObjs []any, hasMore bool, limit int, firstID, lastID string) {
 	result := map[string]any{"object": "list", "data": publicObjs}
 
@@ -2030,22 +1944,6 @@ func modifyAndRespond(gormDB *gorm.DB, w http.ResponseWriter, obj Transformer, u
 	}
 
 	writeObjectToResponse(w, obj.ToPublic())
-}
-
-func modifyAndRespondOpenAI(gormDB *gorm.DB, w http.ResponseWriter, obj ExtendedTransformer, updates any) {
-	if err := modify(gormDB, obj, updates); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte(NewNotFoundError(obj).Error()))
-			return
-		}
-
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to modify object: %v", err), InternalErrorType).Error()))
-		return
-	}
-
-	writeObjectToResponse(w, obj.ToPublicOpenAI())
 }
 
 func deleteAndRespond[T Transformer](gormDB *gorm.DB, w http.ResponseWriter, id string, resp any) {

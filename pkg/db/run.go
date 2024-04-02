@@ -53,7 +53,7 @@ func (r *Run) ToPublic() any {
 		r.LastError.Data().toPublic(),
 		z.Pointer[map[string]interface{}](r.Metadata.Metadata),
 		r.Model,
-		openai.RunObjectObjectThreadRun,
+		openai.ThreadRun,
 		r.RequiredAction.Data().toPublic(),
 		r.StartedAt,
 		openai.RunObjectStatus(r.Status),

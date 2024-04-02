@@ -198,7 +198,7 @@ func (a *agent) run(ctx context.Context, caster *broadcaster.Broadcaster[server.
 		if err := tx.Model(runStep).
 			Where("run_id = ?", run.ID).
 			Where("status = ?", openai.RunObjectStatusInProgress).
-			Where("type = ?", openai.RunStepObjectTypeToolCalls).
+			Where("type = ?", openai.RunStepDetailsToolCallsObjectTypeToolCalls).
 			Where("runner_type = ?", tools.GPTScriptRunnerType).
 			Order("created_at asc").
 			First(runStep).Error; err != nil {
@@ -315,7 +315,7 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 
 		run.EventIndex++
 		runEvent := &db.RunEvent{
-			EventName: string(openai.RunStepStreamEvent3EventThreadRunStepCompleted),
+			EventName: string(openai.ThreadRunStepCompleted),
 			JobResponse: db.JobResponse{
 				RequestID: run.ID,
 			},
@@ -381,7 +381,7 @@ func failRunStep(l *slog.Logger, gdb *gorm.DB, run *db.Run, runStep *db.RunStep,
 
 		run.EventIndex++
 		runEvent := &db.RunEvent{
-			EventName: string(openai.ExtendedRunStepStreamEvent4EventThreadRunStepFailed),
+			EventName: string(openai.ThreadRunStepFailed),
 			JobResponse: db.JobResponse{
 				RequestID: run.ID,
 			},
@@ -401,7 +401,7 @@ func failRunStep(l *slog.Logger, gdb *gorm.DB, run *db.Run, runStep *db.RunStep,
 		}
 
 		runEvent = &db.RunEvent{
-			EventName: string(openai.RunStreamEvent5EventThreadRunFailed),
+			EventName: string(openai.ThreadRunFailed),
 			JobResponse: db.JobResponse{
 				RequestID: run.ID,
 				Done:      true,

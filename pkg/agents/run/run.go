@@ -221,7 +221,12 @@ func (a *agent) run(ctx context.Context) error {
 			return err
 		}
 
-		if err := tx.Model(new(db.Tool)).Where("id IN ?", []string(assistant.GPTScriptTools)).Find(&tools).Error; err != nil {
+		toolIDs, err := assistant.ExtractGPTScriptTools(a.builtInToolDefinitions)
+		if err != nil {
+			return err
+		}
+
+		if err := tx.Model(new(db.Tool)).Where("id IN ?", toolIDs).Find(&tools).Error; err != nil {
 			return err
 		}
 
@@ -229,7 +234,7 @@ func (a *agent) run(ctx context.Context) error {
 			return err
 		}
 
-		if err := tx.Model(new(db.RunStep)).Where("run_id = ?", run.ID).Where("type = ?", openai.RunStepObjectTypeToolCalls).Where("created_at >= ?", run.CreatedAt).Order("created_at asc").Find(&runSteps).Error; err != nil {
+		if err := tx.Model(new(db.RunStep)).Where("run_id = ?", run.ID).Where("type = ?", openai.RunStepDetailsToolCallsObjectTypeToolCalls).Where("created_at >= ?", run.CreatedAt).Order("created_at asc").Find(&runSteps).Error; err != nil {
 			return err
 		}
 
@@ -244,7 +249,7 @@ func (a *agent) run(ctx context.Context) error {
 			run.EventIndex++
 
 			runEvent = &db.RunEvent{
-				EventName: string(openai.RunStreamEvent2EventThreadRunInProgress),
+				EventName: string(openai.ThreadRunInProgress),
 				JobResponse: db.JobResponse{
 					RequestID: run.ID,
 				},
@@ -330,7 +335,7 @@ func failRun(gdb *gorm.DB, run *db.Run, err error, errorCode openai.RunObjectLas
 	}
 
 	failRunEvent := &db.RunEvent{
-		EventName: string(openai.RunStreamEvent5EventThreadRunFailed),
+		EventName: string(openai.ThreadRunFailed),
 		JobResponse: db.JobResponse{
 			RequestID: run.ID,
 			Done:      true,

@@ -43,7 +43,7 @@ func (t *Tool) ToPublic() any {
 		z.Pointer[[]string](t.EnvVars),
 		t.ID,
 		&t.Name,
-		openai.Tool,
+		openai.XToolObjectObjectTool,
 		t.Subtool,
 		t.URL,
 	}

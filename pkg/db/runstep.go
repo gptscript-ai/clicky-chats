@@ -56,7 +56,7 @@ func (r *RunStep) ToPublic() any {
 			Message: lastError.Message,
 		},
 		z.Pointer[map[string]interface{}](r.Metadata.Metadata),
-		openai.RunStepObjectObjectThreadRunStep,
+		openai.ThreadRunStep,
 		r.RunID,
 		openai.RunStepObjectStatus(r.Status),
 		r.StepDetails.Data(),
@@ -291,10 +291,10 @@ func extractRunStepToolCallItem(item openai.RunStepDetailsToolCallsObject_ToolCa
 	if tc, err := item.AsRunStepDetailsToolCallsFunctionObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsFunctionObjectTypeFunction {
 		return tc, nil
 	}
-	if tc, err := item.AsRunStepDetailsToolCallsCodeObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter {
+	if tc, err := item.AsRunStepDetailsToolCallsCodeObject(); err == nil && tc.Type == openai.CodeInterpreter {
 		return tc, nil
 	}
-	if tc, err := item.AsRunStepDetailsToolCallsRetrievalObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval {
+	if tc, err := item.AsRunStepDetailsToolCallsRetrievalObject(); err == nil && tc.Type == openai.Retrieval {
 		return tc, nil
 	}
 
@@ -306,13 +306,13 @@ func SetOutputForRunStepToolCall(item *openai.RunStepDetailsToolCallsObject_Tool
 		tc.Function.Output = z.Pointer(output)
 		return item.FromRunStepDetailsToolCallsFunctionObject(tc)
 	}
-	if tc, err := item.AsRunStepDetailsToolCallsCodeObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter {
+	if tc, err := item.AsRunStepDetailsToolCallsCodeObject(); err == nil && tc.Type == openai.CodeInterpreter {
 		if err = json.Unmarshal([]byte(fmt.Sprintf(`[{"logs":%q,"type":"logs"}]`, output)), &tc.CodeInterpreter.Outputs); err != nil {
 			return err
 		}
 		return item.FromRunStepDetailsToolCallsCodeObject(tc)
 	}
-	if tc, err := item.AsRunStepDetailsToolCallsRetrievalObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval {
+	if tc, err := item.AsRunStepDetailsToolCallsRetrievalObject(); err == nil && tc.Type == openai.Retrieval {
 		if err = json.Unmarshal([]byte(output), &tc.Retrieval); err != nil {
 			return err
 		}
@@ -332,21 +332,21 @@ func GetOutputForRunStepToolCall(item *openai.RunStepDetailsToolCallsObject_Tool
 		info.Output = z.Dereference(tc.Function.Output)
 		return info, nil
 	}
-	if tc, err := item.AsRunStepDetailsToolCallsCodeObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter {
+	if tc, err := item.AsRunStepDetailsToolCallsCodeObject(); err == nil && tc.Type == openai.CodeInterpreter {
 		var logs openai.RunStepDetailsToolCallsCodeOutputLogsObject
 		if len(tc.CodeInterpreter.Outputs) != 0 {
 			logs, err = tc.CodeInterpreter.Outputs[0].AsRunStepDetailsToolCallsCodeOutputLogsObject()
 		}
 		info.ID = tc.Id
-		info.Name = tools.GPTScriptToolNamePrefix + string(openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter)
+		info.Name = tools.GPTScriptToolNamePrefix + string(openai.CodeInterpreter)
 		info.Arguments = tc.CodeInterpreter.Input
 		info.Output = logs.Logs
 		return info, err
 	}
-	if tc, err := item.AsRunStepDetailsToolCallsRetrievalObject(); err == nil && tc.Type == openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval {
+	if tc, err := item.AsRunStepDetailsToolCallsRetrievalObject(); err == nil && tc.Type == openai.Retrieval {
 		b, err := json.Marshal(tc.Retrieval)
 		info.ID = tc.Id
-		info.Name = tools.GPTScriptToolNamePrefix + string(openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval)
+		info.Name = tools.GPTScriptToolNamePrefix + string(openai.Retrieval)
 		info.Arguments = string(b)
 		info.Output = ""
 		return info, err
@@ -358,7 +358,7 @@ func GetOutputForRunStepToolCall(item *openai.RunStepDetailsToolCallsObject_Tool
 func runStepFromGenericToolCallInfo(info GenericToolCallInfo) (*openai.RunStepDetailsToolCallsObject_ToolCalls_Item, error) {
 	item := new(openai.RunStepDetailsToolCallsObject_ToolCalls_Item)
 	name := strings.TrimPrefix(info.Name, tools.GPTScriptToolNamePrefix)
-	if name == string(openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter) {
+	if name == string(openai.CodeInterpreter) {
 		//nolint:govet
 		return item, item.FromRunStepDetailsToolCallsCodeObject(openai.RunStepDetailsToolCallsCodeObject{
 			struct {
@@ -368,14 +368,14 @@ func runStepFromGenericToolCallInfo(info GenericToolCallInfo) (*openai.RunStepDe
 				Input: info.Arguments,
 			},
 			info.ID,
-			openai.RunStepDetailsToolCallsCodeObjectTypeCodeInterpreter,
+			openai.CodeInterpreter,
 		})
-	} else if name == string(openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval) {
+	} else if name == string(openai.Retrieval) {
 		//nolint:govet
 		return item, item.FromRunStepDetailsToolCallsRetrievalObject(openai.RunStepDetailsToolCallsRetrievalObject{
 			info.ID,
 			make(map[string]any),
-			openai.RunStepDetailsToolCallsRetrievalObjectTypeRetrieval,
+			openai.Retrieval,
 		})
 	}
 

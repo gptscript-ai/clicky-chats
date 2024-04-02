@@ -1,41 +1,7 @@
 paths:
-  /rubra/x/tools/inspect:
-    post:
-      operationId: inspectTool
-      summary: Inspect tool
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/XInspectToolRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/XInspectToolResponse'
-  /rubra/x/tools/run:
-    post:
-      operationId: runTool
-      summary: Run tool
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/XRunToolRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/XListRunStepEventsResponse'
-  /rubra/x/threads/{thread_id}/runs/{run_id}/stream:
+  /threads/{thread_id}/runs/{run_id}/x-stream:
     get:
-      operationId: streamRun
+      operationId: xStreamRun
       summary: Stream run events when the run is in progress
       parameters:
         - in: path
@@ -59,7 +25,7 @@ paths:
               schema:
                 $ref: '../server/openapi.yaml#/components/schemas/RunObject'
           description: OK
-  /rubra/x/threads/{thread_id}/runs/{run_id}/steps/{step_id}/events:
+  /threads/{thread_id}/runs/{run_id}/steps/{step_id}/x-events:
     get:
       operationId: xListRunStepEvents
       summary: List run step events
@@ -95,9 +61,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/XListRunStepEventsResponse'
-  /rubra/x/threads:
+  /x-threads:
     get:
-      operationId: listThreads
+      operationId: xListThreads
       summary: List threads
       parameters:
         - description: |
@@ -136,9 +102,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/XListThreadsResponse"
-  /rubra/x/tools:
+  /x-tools:
     post:
-      operationId: createTool
+      operationId: xCreateTool
       summary: Creates a tool for use with gptscript engine.
       requestBody:
         required: true
@@ -154,7 +120,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/XToolObject"
     get:
-      operationId: listTools
+      operationId: xListTools
       summary: List tools
       parameters:
         - description: |
@@ -194,9 +160,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/XListToolsResponse"
 
-  /rubra/x/tools/{id}:
+  /x-tools/{id}:
     get:
-      operationId: getTool
+      operationId: xGetTool
       summary: Get tool
       parameters:
         - in: path
@@ -212,7 +178,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/XToolObject"
     post:
-      operationId: modifyTool
+      operationId: xModifyTool
       summary: Modify tool
       parameters:
         - in: path
@@ -234,7 +200,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/XToolObject"
     delete:
-      operationId: deleteTool
+      operationId: xDeleteTool
       summary: Delete tool
       parameters:
         - in: path
@@ -249,6 +215,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/XDeleteToolResponse"
+  /x-tools/inspect:
+    post:
+      operationId: xInspectTool
+      summary: Inspect tool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/XInspectToolRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/XInspectToolResponse'
+  /x-tools/run:
+    post:
+      operationId: xRunTool
+      summary: Run tool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/XRunToolRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/XListRunStepEventsResponse'
 
 components:
   schemas:
@@ -564,3 +564,17 @@ components:
         - id
         - object
         - deleted
+    XAssistantToolsGPTScript:
+      properties:
+        x-tool:
+          type: string
+        type:
+          description: 'The type of tool being defined: `gptscript`'
+          enum:
+            - gptscript
+          type: string
+      required:
+        - type
+        - x-tool
+      title: GPTScript tool
+      type: object
