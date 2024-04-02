@@ -73,7 +73,7 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}
 
 	if cfg.Trigger == nil {
-		cfg.Logger.Warn("[step runner] No trigger provided, using noop")
+		cfg.Logger.Warn("No trigger provided, using noop")
 		cfg.Trigger = trigger.NewNoop()
 	}
 
@@ -154,50 +154,25 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 
 		for {
 			a.logger.Debug("Looking for completed tool runs")
-			var (
-				ccs  []db.CreateChatCompletionResponse
-				cccs []db.ChatCompletionResponseChunk
-			)
+			var runToolObjects []db.RunToolObject
 			if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-				if err := tx.Model(new(db.CreateChatCompletionResponse)).Find(&ccs).Error; err != nil {
+				if err := tx.Model(new(db.RunToolObject)).Where("done = true").Find(&runToolObjects).Error; err != nil {
 					return err
 				}
-				if err := tx.Model(new(db.ChatCompletionResponseChunk)).Find(&cccs).Error; err != nil {
-					return err
-				}
-				if len(ccs)+len(cccs) == 0 {
+				if len(runToolObjects) == 0 {
 					return nil
 				}
 
-				requestIDs := make([]string, 0, len(ccs)+len(cccs))
-				for _, cc := range ccs {
-					if id := cc.RequestID; id != "" {
-						requestIDs = append(requestIDs, id)
-					}
-				}
-				for _, ccc := range cccs {
-					if id := ccc.RequestID; id != "" {
-						requestIDs = append(requestIDs, id)
-					}
+				requestIDs := make([]string, 0, len(runToolObjects))
+				for _, rt := range runToolObjects {
+					requestIDs = append(requestIDs, rt.ID)
 				}
 
-				if err := tx.Delete(new(db.CreateChatCompletionRequest), "id IN ? AND done = true", requestIDs).Error; err != nil {
+				if err := tx.Delete(new(db.RunStepEvent), "request_id IN ?", requestIDs).Error; err != nil {
 					return err
 				}
 
-				if len(ccs) != 0 {
-					if err := tx.Delete(ccs).Error; err != nil {
-						return err
-					}
-				}
-
-				if len(cccs) != 0 {
-					if err := tx.Delete(cccs).Error; err != nil {
-						return err
-					}
-				}
-
-				return nil
+				return tx.Delete(runToolObjects).Error
 			}); err != nil {
 				a.logger.Error("Failed to cleanup chat completions", "err", err)
 			}
@@ -242,13 +217,13 @@ func (a *agent) run(ctx context.Context, caster *broadcaster.Broadcaster[server.
 	}
 
 	go func() {
-		if err := a.processRunStep(ctx, caster, opts, runTool); err != nil {
-			a.logger.Error("failed to process run step", "err", err)
+		if err := a.processToolRun(ctx, caster, opts, runTool); err != nil {
+			a.logger.Error("failed to process tool run", "err", err)
 		}
 	}()
 }
 
-func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcaster[server.Event], opts *gptscript.Options, runTool *db.RunToolObject) error {
+func (a *agent) processToolRun(ctx context.Context, caster *broadcaster.Broadcaster[server.Event], opts *gptscript.Options, runTool *db.RunToolObject) error {
 	timeoutCtx, cancel := context.WithTimeout(ctx, toolCallTimeout)
 	defer cancel()
 
