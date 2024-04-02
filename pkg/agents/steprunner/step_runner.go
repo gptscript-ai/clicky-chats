@@ -245,6 +245,7 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 		return fmt.Errorf("failed to get run step function calls: %w", err)
 	}
 
+	var usages []agents.Usage
 	for i := range toolCalls {
 		tc := &toolCalls[i]
 		functionName, arguments, err := determineFunctionAndArguments(tc)
@@ -279,10 +280,11 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 		}
 
 		gdb := a.db.WithContext(ctx)
-		output, err := agents.RunTool(timeoutCtx, l, caster, gdb, opts, prg, envs, arguments, run.ID, runStep.ID)
+		output, toolUsage, err := agents.RunTool(timeoutCtx, l, caster, gdb, opts, prg, envs, arguments, run.ID, runStep.ID)
 		if err != nil {
 			return fmt.Errorf("failed to run tool call at index %d: %w", i, err)
 		}
+		usages = append(usages, toolUsage)
 
 		if err = db.SetOutputForRunStepToolCall(tc, output); err != nil {
 			return fmt.Errorf("failed to set output for tool call at index %d: %w", i, err)
@@ -309,6 +311,7 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 				"status":       openai.RunObjectStatusCompleted,
 				"completed_at": z.Pointer(int(time.Now().Unix())),
 				"step_details": datatypes.NewJSONType(stepDetails),
+				"usage":        datatypes.NewJSONType(agents.SumUsage(usages)),
 			}).Error; err != nil {
 			return err
 		}

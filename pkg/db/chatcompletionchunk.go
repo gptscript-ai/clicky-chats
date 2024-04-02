@@ -11,9 +11,14 @@ type ChatCompletionResponseChunk struct {
 	Choices           datatypes.JSONSlice[ChunkChoice] `json:"choices"`
 	Model             string                           `json:"model"`
 	SystemFingerprint *string                          `json:"system_fingerprint,omitempty"`
+
 	// Not part of the public API
 	JobResponse `json:",inline"`
-	ResponseIdx int `json:"response_idx"`
+	ResponseIdx int                                         `json:"response_idx"`
+	Usage       datatypes.JSONType[*openai.CompletionUsage] `json:"usage,omitempty"`
+
+	// RunID is only set when the chunk is related to the run
+	RunID *string `json:"run_id,omitempty"`
 }
 
 func (c *ChatCompletionResponseChunk) IDPrefix() string {
@@ -47,6 +52,7 @@ func (c *ChatCompletionResponseChunk) FromPublic(obj any) error {
 	}
 
 	if o != nil && c != nil {
+		var usage datatypes.JSONType[*openai.CompletionUsage]
 		*c = ChatCompletionResponseChunk{
 			Base{
 				CreatedAt: o.Created,
@@ -57,6 +63,8 @@ func (c *ChatCompletionResponseChunk) FromPublic(obj any) error {
 			o.SystemFingerprint,
 			JobResponse{},
 			0,
+			usage,
+			nil,
 		}
 	}
 

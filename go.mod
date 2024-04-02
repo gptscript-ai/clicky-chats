@@ -20,6 +20,8 @@ require (
 	github.com/invopop/yaml v0.2.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.1.1
+	github.com/pkoukk/tiktoken-go v0.1.6
+	github.com/sashabaranov/go-openai v1.20.4
 	github.com/spf13/cobra v1.8.0
 	gorm.io/datatypes v1.2.0
 	gorm.io/driver/mysql v1.5.4
@@ -37,6 +39,7 @@ require (
 	github.com/bodgit/windows v1.0.0 // indirect
 	github.com/bombsimon/logrusr/v4 v4.0.0 // indirect
 	github.com/connesc/cipherio v0.2.1 // indirect
+	github.com/dlclark/regexp2 v1.10.0 // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
@@ -77,7 +80,6 @@ require (
 	github.com/rs/cors v1.10.1 // indirect
 	github.com/samber/lo v1.38.1 // indirect
 	github.com/samber/slog-logrus v1.0.0 // indirect
-	github.com/sashabaranov/go-openai v1.20.4 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect

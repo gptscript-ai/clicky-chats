@@ -15,6 +15,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -288,14 +289,26 @@ func (a *agent) run(ctx context.Context) error {
 
 	l.Debug("Found chat completion", "cc", cc)
 	if z.Dereference(cc.Stream) {
+		l.Debug("Counting prompt tokens...")
+		var promptTokens int
+		if treq, err := agents.Transform[agents.TokenRequest](cc.ToPublic()); err != nil {
+			l.Error("failed to transform chat completion to token request, prompt token usage omitted", "err", err)
+		} else {
+			promptTokens, err = agents.PromptTokens(cc.Model, &treq)
+			if err != nil {
+				l.Error("failed to count prompt tokens", "err", err)
+			}
+		}
+
 		l.Debug("Streaming chat completion...")
+
 		stream, err := agents.StreamChatCompletionRequest(ctx, l, a.client, url, a.apiKey, cc)
 		if err != nil {
 			l.Error("Failed to stream chat completion request", "err", err)
 			return err
 		}
 
-		if err = streamResponses(l, a.db.WithContext(ctx), chatCompletionID, stream); err != nil {
+		if err = streamResponses(l, a.db.WithContext(ctx), chatCompletionID, promptTokens, stream); err != nil {
 			l.Error("Failed to stream chat completion responses", "err", err)
 		}
 
@@ -324,7 +337,7 @@ func (a *agent) run(ctx context.Context) error {
 	return nil
 }
 
-func streamResponses(l *slog.Logger, gdb *gorm.DB, chatCompletionID string, stream <-chan db.ChatCompletionResponseChunk) error {
+func streamResponses(l *slog.Logger, gdb *gorm.DB, chatCompletionID string, promptTokens int, stream <-chan db.ChatCompletionResponseChunk) error {
 	var (
 		index int
 		errs  []error
@@ -339,12 +352,18 @@ func streamResponses(l *slog.Logger, gdb *gorm.DB, chatCompletionID string, stre
 		}
 	}
 
+	completionTokens := index - 1
 	chunk := &db.ChatCompletionResponseChunk{
 		JobResponse: db.JobResponse{
 			RequestID: chatCompletionID,
 			Done:      true,
 		},
 		ResponseIdx: index,
+		Usage: datatypes.NewJSONType(&openai.CompletionUsage{
+			CompletionTokens: completionTokens,
+			PromptTokens:     promptTokens,
+			TotalTokens:      completionTokens + promptTokens,
+		}),
 	}
 	if err := gdb.Transaction(func(tx *gorm.DB) error {
 		if err := db.Create(tx, chunk); err != nil {

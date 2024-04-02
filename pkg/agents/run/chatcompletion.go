@@ -185,11 +185,11 @@ func compileChunksAndApplyStatuses(ctx context.Context, l *slog.Logger, gdb *gor
 		}
 	)
 
-	statusCode, toolCalls, err := processAllChunks(ctx, gdb, run, runStep, message, stream)
-	return finalizeStatuses(gdb, l, run, runStep, toolCalls, message, statusCode, err)
+	statusCode, requestID, toolCalls, err := processAllChunks(ctx, gdb, run, runStep, message, stream)
+	return finalizeStatuses(gdb, l, run, runStep, toolCalls, message, statusCode, requestID, err)
 }
 
-func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *db.RunStep, message *db.Message, stream <-chan db.ChatCompletionResponseChunk) (int, []db.GenericToolCallInfo, error) {
+func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *db.RunStep, message *db.Message, stream <-chan db.ChatCompletionResponseChunk) (int, string, []db.GenericToolCallInfo, error) {
 	defer func() {
 		go func() {
 			//nolint:revive
@@ -199,6 +199,7 @@ func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *d
 	}()
 
 	var (
+		requestID         string
 		messageContent    string
 		responseIsMessage bool
 		toolCalls         []db.GenericToolCallInfo
@@ -206,10 +207,15 @@ func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *d
 	for {
 		select {
 		case <-ctx.Done():
-			return 0, toolCalls, ctx.Err()
+			return 0, requestID, toolCalls, ctx.Err()
 		case chunk, ok := <-stream:
 			if !ok {
-				return http.StatusOK, toolCalls, nil
+				return http.StatusOK, requestID, toolCalls, nil
+			}
+
+			if requestID != "" {
+				// Chunks streamed back via the API have their id's set to request_id.
+				requestID = chunk.ID
 			}
 
 			if chunk.Error != nil {
@@ -218,7 +224,7 @@ func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *d
 					statusCode = http.StatusInternalServerError
 				}
 
-				return statusCode, toolCalls, fmt.Errorf("unexpected chat completion response: %s", z.Dereference(chunk.Error))
+				return statusCode, requestID, toolCalls, fmt.Errorf("unexpected chat completion response: %s", z.Dereference(chunk.Error))
 			}
 
 			// These chat completions should only have one choice.
@@ -228,7 +234,7 @@ func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *d
 				// Merge the chunk into the run step.
 				runStepDelta, err := runStep.Merge(&toolCalls, chunk)
 				if err != nil {
-					return http.StatusInternalServerError, toolCalls, err
+					return http.StatusInternalServerError, requestID, toolCalls, err
 				}
 
 				if runStepDelta != nil {
@@ -265,7 +271,7 @@ func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *d
 
 						return tx.Model(run).Clauses(clause.Returning{}).Where("id = ?", run.ID).Update("event_index", run.EventIndex).Error
 					}); err != nil {
-						return http.StatusInternalServerError, toolCalls, err
+						return http.StatusInternalServerError, requestID, toolCalls, err
 					}
 				}
 			} else if newContent := z.Dereference(chunk.Choices[0].Delta.Data().Content); newContent != "" {
@@ -333,7 +339,7 @@ func processAllChunks(ctx context.Context, gdb *gorm.DB, run *db.Run, runStep *d
 
 					return tx.Model(run).Clauses(clause.Returning{}).Where("id = ?", run.ID).Update("event_index", run.EventIndex).Error
 				}); err != nil {
-					return http.StatusInternalServerError, toolCalls, err
+					return http.StatusInternalServerError, requestID, toolCalls, err
 				}
 			}
 		}
@@ -424,7 +430,7 @@ func createMessageObject(gdb *gorm.DB, run *db.Run, message *db.Message) error {
 // If the chat completion response just has a message, then the message should be completed and the run should be put in the completed status.
 // If anything errors, then the run and run step should be put in a failed state. The message should be put in the incomplete status.
 // If the run reaches a terminal state, then unlock the thread.
-func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.RunStep, toolCalls []db.GenericToolCallInfo, message *db.Message, statusCode int, err error) error {
+func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.RunStep, toolCalls []db.GenericToolCallInfo, message *db.Message, statusCode int, requestID string, err error) error {
 	l.Debug("Made chat completion request")
 	// If the chat completion request failed, then we should put the run in a failed state.
 	// If both of these IDs ar blank, then they were never created, which means we took no action on this run.
@@ -440,6 +446,16 @@ func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.Run
 		return gdb.Transaction(func(tx *gorm.DB) error {
 			return failRun(tx, run, errStr, errType)
 		})
+	}
+
+	// Set the run_id on the final response chunk so we can query for usage when the run is completed.
+	// Note: There can be more than one chat completion, out-of-band from gptscript tool calls, per run before it's completed.
+	if requestID != "" {
+		if err := gdb.Model(new(db.ChatCompletionResponseChunk)).
+			Where("done = true AND request_id = ?", requestID).
+			Update("run_id", run.ID).Error; err != nil {
+			l.Error("failed to update final chat completion response chunk with run id", "request_id", requestID, "run_id", run.ID)
+		}
 	}
 
 	newPublicStatus, newSystemStatus, statusErr := determineNewStatuses(gdb, run, runStep, toolCalls, message)
@@ -545,9 +561,49 @@ func finalizeStatuses(gdb *gorm.DB, l *slog.Logger, run *db.Run, runStep *db.Run
 				ResponseIdx: run.EventIndex,
 			})
 
+			// Sum usage from all related run steps (tool calls)
+			var steps []db.RunStep
+			if err := tx.Model(new(db.RunStep)).
+				Where("run_id = ?", run.ID).
+				Find(&steps).Error; err != nil {
+				l.Error("failed to query run steps to calculate usage for run, run step usage will be omitted", "err", err)
+			}
+
+			var usage openai.RunCompletionUsage
+			for _, step := range steps {
+				u := step.Usage.Data()
+				if u == nil {
+					continue
+				}
+
+				usage.CompletionTokens += u.CompletionTokens
+				usage.PromptTokens += u.PromptTokens
+				usage.TotalTokens += u.CompletionTokens + u.PromptTokens
+			}
+
+			// Sum usage from chat completions created directly by the run agent
+			var chunks []db.ChatCompletionResponseChunk
+			if err := tx.Model(new(db.ChatCompletionResponseChunk)).
+				Where("run_id = ?", run.ID).
+				Find(&chunks).Error; err != nil {
+				l.Error("failed to query direct chat completion response chunks to calculate usage for run, chunk usage will be omitted", "err", err)
+			}
+
+			for _, chunk := range chunks {
+				u := chunk.Usage.Data()
+				if u == nil {
+					continue
+				}
+
+				usage.CompletionTokens += u.CompletionTokens
+				usage.PromptTokens += u.PromptTokens
+				usage.TotalTokens += u.CompletionTokens + u.PromptTokens
+			}
+
 			if err := tx.Model(runStep).Where("id = ?", runStep.ID).Updates(map[string]any{
 				"status":       string(openai.RunObjectStatusCompleted),
 				"completed_at": completedAt,
+				"usage":        datatypes.NewJSONType(usage),
 			}).Error; err != nil {
 				return err
 			}

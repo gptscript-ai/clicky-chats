@@ -2,6 +2,7 @@ package agents
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -21,15 +22,22 @@ type Statuser interface {
 	GetStatus() string
 }
 
-func RunTool(ctx context.Context, l *slog.Logger, caster *broadcaster.Broadcaster[server.Event], gdb *gorm.DB, opts *gptscript.Options, prg types.Program, envs []string, arguments, runID, runStepID string) (string, error) {
-	idCtx := server.ContextWithNewID(ctx)
-	id := server.IDFromContext(idCtx)
-	events := caster.Subscribe()
+func RunTool(ctx context.Context, l *slog.Logger, caster *broadcaster.Broadcaster[server.Event], gdb *gorm.DB, opts *gptscript.Options, prg types.Program, envs []string, arguments, runID, runStepID string) (string, Usage, error) {
+	var (
+		usage  = make(usageSet)
+		idCtx  = server.ContextWithNewID(ctx)
+		id     = server.IDFromContext(idCtx)
+		events = caster.Subscribe()
+	)
 	go func() {
 		var index int
 		for e := range events.C {
 			if e.RunID != id {
 				continue
+			}
+
+			if err := usage.addTokens(e); err != nil {
+				l.Error("failed to count usage for event", "gptscript-completion-id", e.ChatCompletionID)
 			}
 
 			runStepEvent := db.FromGPTScriptEvent(e, runID, runStepID, index, false)
@@ -54,10 +62,20 @@ func RunTool(ctx context.Context, l *slog.Logger, caster *broadcaster.Broadcaste
 	} else if execErr := new(exec.ExitError); errors.As(err, &execErr) {
 		output = fmt.Sprintf("The tool call returned an exit code of %d with message %q, aborting", execErr.ExitCode(), execErr.String())
 	} else if err != nil {
-		return "", err
+		return "", SumUsage(usage.asSlice()), err
 	}
 
-	return output, nil
+	return output, SumUsage(usage.asSlice()), nil
+}
+
+// Transform marshals in into JSON then unmarshalls it into out
+func Transform[O any](in any) (out O, err error) {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return out, err
+	}
+
+	return out, json.Unmarshal(data, &out)
 }
 
 func runToolCall(ctx context.Context, opts *gptscript.Options, prg types.Program, envs []string, arguments string) (string, error) {

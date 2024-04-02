@@ -237,7 +237,7 @@ func (a *agent) processToolRun(ctx context.Context, caster *broadcaster.Broadcas
 	envs := append(os.Environ(), runTool.EnvVars...)
 
 	gdb := a.db.WithContext(ctx)
-	runTool.Output, err = agents.RunTool(timeoutCtx, l, caster, gdb, opts, prg, envs, runTool.Input, "", runTool.ID)
+	runTool.Output, _, err = agents.RunTool(timeoutCtx, l, caster, gdb, opts, prg, envs, runTool.Input, "", runTool.ID)
 	if err != nil {
 		return fmt.Errorf("failed to run tool: %w", err)
 	}
