@@ -54,72 +54,6 @@ func main() {
 		},
 	}
 
-	extendedAPIs := extendedapi.GetExtendedAPIs()
-
-	newComponents := make(map[string]*openapi3.SchemaRef, len(s.Components.Schemas)*2)
-	for key, existingSchema := range s.Components.Schemas {
-		newComponents[key] = existingSchema
-
-		b, err := existingSchema.MarshalJSON()
-		if err != nil {
-			panic(err)
-		}
-
-		newSchema := new(openapi3.Schema)
-		err = newSchema.UnmarshalJSON(b)
-		if err != nil {
-			panic(err)
-		}
-
-		for k, v := range extendedAPIs[key] {
-			newSchema.Properties[k] = v
-		}
-
-		newComponents["Extended"+key] = openapi3.NewSchemaRef("", newSchema)
-	}
-
-	s.Components.Schemas = newComponents
-
-	newPaths := openapi3.NewPathsWithCapacity(s.Paths.Len() * 3)
-	for path, existingPath := range s.Paths.Map() {
-		newPaths.Set(path, existingPath)
-		b, err := existingPath.MarshalJSON()
-		if err != nil {
-			panic(err)
-		}
-
-		pathValue := new(openapi3.PathItem)
-		err = pathValue.UnmarshalJSON(b)
-		if err != nil {
-			panic(err)
-		}
-
-		for _, op := range pathValue.Operations() {
-			for _, resp := range op.Responses.Map() {
-				for t, mediaType := range resp.Value.Content {
-					if strings.HasPrefix(mediaType.Schema.Ref, "#/components/schemas/") {
-						mediaType.Schema.Ref = "#/components/schemas/Extended" + strings.TrimPrefix(mediaType.Schema.Ref, "#/components/schemas/")
-						resp.Value.Content[t] = mediaType
-					}
-				}
-			}
-
-			if reqBody := op.RequestBody; reqBody != nil {
-				for t, mediaType := range reqBody.Value.Content {
-					if strings.HasPrefix(mediaType.Schema.Ref, "#/components/schemas/") {
-						mediaType.Schema.Ref = "#/components/schemas/Extended" + strings.TrimPrefix(mediaType.Schema.Ref, "#/components/schemas/")
-						reqBody.Value.Content[t] = mediaType
-					}
-				}
-			}
-
-			op.OperationID = "extended" + strings.ToTitle(op.OperationID[:1]) + op.OperationID[1:]
-		}
-
-		newPaths.Set("/rubra"+path, pathValue)
-	}
-	s.Paths = newPaths
-
 	// Finished with OpenAI API and extensions, move on to new APIs
 	newS, err := util.LoadSwagger("rubrax.yaml")
 	if err != nil {
@@ -163,6 +97,14 @@ func main() {
 			URL: "http://localhost:8080/v1",
 		},
 	}
+
+	extendedAPIs := extendedapi.GetExtendedAPIs()
+	for key, existingSchema := range s.Components.Schemas {
+		for k, v := range extendedAPIs[key] {
+			existingSchema.Value.Properties[k] = v
+		}
+	}
+
 	b, err := s.MarshalJSON()
 	if err != nil {
 		panic(err)

@@ -107,7 +107,6 @@ func (s *Server) Start(ctx context.Context, wg *sync.WaitGroup, config Config) e
 			}),
 			LogRequest(slog.Default()),
 			SetContentType("application/json"),
-			SetExtendedContext(config.APIBase + "/rubra"),
 		},
 	})
 

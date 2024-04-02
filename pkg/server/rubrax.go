@@ -13,7 +13,17 @@ import (
 	"gorm.io/gorm"
 )
 
-func (s *Server) ListTools(w http.ResponseWriter, r *http.Request, params openai.ListToolsParams) {
+func (s *Server) XListThreads(w http.ResponseWriter, r *http.Request, params openai.XListThreadsParams) {
+	gormDB, limit, err := processAssistantsAPIListParams(s.db.WithContext(r.Context()), new(db.Thread), params.Limit, params.Before, params.After, params.Order)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+	}
+
+	listAndRespond[*db.Thread](gormDB, w, limit)
+}
+
+func (s *Server) XListTools(w http.ResponseWriter, r *http.Request, params openai.XListToolsParams) {
 	gormDB, limit, err := processAssistantsAPIListParams(s.db.WithContext(r.Context()), new(db.Tool), params.Limit, params.Before, params.After, params.Order)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -23,7 +33,7 @@ func (s *Server) ListTools(w http.ResponseWriter, r *http.Request, params openai
 	listAndRespond[*db.Tool](gormDB, w, limit)
 }
 
-func (s *Server) CreateTool(w http.ResponseWriter, r *http.Request) {
+func (s *Server) XCreateTool(w http.ResponseWriter, r *http.Request) {
 	createToolRequest := new(openai.XCreateToolRequest)
 	err := readObjectFromRequest(r, createToolRequest)
 	if err != nil {
@@ -69,7 +79,7 @@ func (s *Server) CreateTool(w http.ResponseWriter, r *http.Request) {
 	writeObjectToResponse(w, tool.ToPublic())
 }
 
-func (s *Server) DeleteTool(w http.ResponseWriter, r *http.Request, toolID string) {
+func (s *Server) XDeleteTool(w http.ResponseWriter, r *http.Request, toolID string) {
 	//nolint:govet
 	deleteAndRespond[*db.Tool](s.db.WithContext(r.Context()), w, toolID, openai.XDeleteToolResponse{
 		true,
@@ -78,11 +88,11 @@ func (s *Server) DeleteTool(w http.ResponseWriter, r *http.Request, toolID strin
 	})
 }
 
-func (s *Server) GetTool(w http.ResponseWriter, r *http.Request, toolID string) {
+func (s *Server) XGetTool(w http.ResponseWriter, r *http.Request, toolID string) {
 	getAndRespond(s.db.WithContext(r.Context()), w, new(db.Tool), toolID)
 }
 
-func (s *Server) ModifyTool(w http.ResponseWriter, r *http.Request, toolID string) {
+func (s *Server) XModifyTool(w http.ResponseWriter, r *http.Request, toolID string) {
 	modifyToolRequest := new(openai.XModifyToolRequest)
 	err := readObjectFromRequest(r, modifyToolRequest)
 	if err != nil {
@@ -142,7 +152,7 @@ func (s *Server) ModifyTool(w http.ResponseWriter, r *http.Request, toolID strin
 	writeObjectToResponse(w, existingTool.ToPublic())
 }
 
-func (s *Server) StreamRun(w http.ResponseWriter, r *http.Request, threadID string, runID string, params openai.StreamRunParams) {
+func (s *Server) XStreamRun(w http.ResponseWriter, r *http.Request, threadID string, runID string, params openai.XStreamRunParams) {
 	if runID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(NewMustNotBeEmptyError("run_id").Error()))
@@ -243,7 +253,7 @@ func (s *Server) XListRunStepEvents(w http.ResponseWriter, r *http.Request, thre
 	respondWithList(w, publicObjs, false, -1, "", "")
 }
 
-func (s *Server) RunTool(w http.ResponseWriter, r *http.Request) {
+func (s *Server) XRunTool(w http.ResponseWriter, r *http.Request) {
 	runToolInput := new(openai.XRunToolRequest)
 	if err := readObjectFromRequest(r, runToolInput); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -276,7 +286,7 @@ func (s *Server) RunTool(w http.ResponseWriter, r *http.Request) {
 	waitForAndStreamResponse[*db.RunStepEvent](r.Context(), w, s.db.WithContext(r.Context()), runTool.ID, 0)
 }
 
-func (s *Server) InspectTool(w http.ResponseWriter, r *http.Request) {
+func (s *Server) XInspectTool(w http.ResponseWriter, r *http.Request) {
 	inspectToolInput := new(openai.XInspectToolRequest)
 	if err := readObjectFromRequest(r, inspectToolInput); err != nil {
 		w.WriteHeader(http.StatusBadRequest)

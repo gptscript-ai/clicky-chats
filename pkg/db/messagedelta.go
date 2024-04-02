@@ -18,7 +18,7 @@ func NewMessageDeltaWithText(index int, id, text string) (*MessageDelta, error) 
 			nil,
 			&text,
 		}),
-		openai.MessageDeltaContentTextObjectTypeText,
+		openai.Text,
 	}); err != nil {
 		return nil, err
 	}

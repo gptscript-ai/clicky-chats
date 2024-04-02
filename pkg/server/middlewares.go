@@ -4,9 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
-	"strings"
 
-	"github.com/gptscript-ai/clicky-chats/pkg/extendedapi"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 )
 
@@ -32,17 +30,6 @@ func SetContentType(ct string) openai.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", ct)
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func SetExtendedContext(pathPrefix string) openai.MiddlewareFunc {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasPrefix(r.URL.Path, pathPrefix) {
-				r = r.WithContext(extendedapi.NewExtendedContext(r.Context()))
-			}
 			next.ServeHTTP(w, r)
 		})
 	}

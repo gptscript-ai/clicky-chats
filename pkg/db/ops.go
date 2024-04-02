@@ -124,7 +124,7 @@ func CancelRun(db *gdb.DB, id string) (*Run, error) {
 
 			run.EventIndex++
 			runEvent := &RunEvent{
-				EventName: string(openai.RunStepStreamEvent5EventThreadRunStepCancelled),
+				EventName: string(openai.ThreadRunStepCancelled),
 				JobResponse: JobResponse{
 					RequestID: run.ID,
 				},
@@ -144,7 +144,7 @@ func CancelRun(db *gdb.DB, id string) (*Run, error) {
 
 		run.EventIndex++
 		runEvent := &RunEvent{
-			EventName: string(openai.RunStreamEvent7EventThreadRunCancelled),
+			EventName: string(openai.ThreadRunCancelled),
 			JobResponse: JobResponse{
 				RequestID: run.ID,
 				Done:      true,
