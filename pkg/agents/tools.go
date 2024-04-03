@@ -21,17 +21,10 @@ type Statuser interface {
 	GetStatus() string
 }
 
-func RunTool(ctx context.Context, l *slog.Logger, caster *broadcaster.Broadcaster[server.Event], gdb *gorm.DB, opts *gptscript.Options, prg types.Program, envs []string, arguments, runID, runStepID string) (string, error) {
-	idCtx := server.ContextWithNewID(ctx)
-	id := server.IDFromContext(idCtx)
-	events := caster.Subscribe()
+func RunTool(ctx context.Context, l *slog.Logger, events *broadcaster.Subscription[server.Event], gdb *gorm.DB, opts *gptscript.Options, prg types.Program, envs []string, arguments, runID, runStepID string) (string, error) {
 	go func() {
 		var index int
 		for e := range events.C {
-			if e.RunID != id {
-				continue
-			}
-
 			runStepEvent := db.FromGPTScriptEvent(e, runID, runStepID, index, false)
 			if err := db.Create(gdb, runStepEvent); err != nil {
 				l.Error("failed to create run step event", "error", err)
@@ -47,7 +40,7 @@ func RunTool(ctx context.Context, l *slog.Logger, caster *broadcaster.Broadcaste
 		l.Debug("done receiving events")
 	}()
 
-	output, err := runToolCall(idCtx, opts, prg, envs, arguments)
+	output, err := runToolCall(server.ContextWithNewID(ctx), opts, prg, envs, arguments)
 	events.Close()
 	if errors.Is(err, context.DeadlineExceeded) {
 		output = "The tool call took too long to complete, aborting"
