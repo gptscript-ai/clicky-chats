@@ -20,6 +20,7 @@ require (
 	github.com/invopop/yaml v0.2.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.1.1
+	github.com/rs/cors v1.10.1
 	github.com/spf13/cobra v1.8.0
 	gorm.io/datatypes v1.2.0
 	gorm.io/driver/mysql v1.5.4
@@ -74,7 +75,6 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/rs/cors v1.10.1 // indirect
 	github.com/samber/lo v1.38.1 // indirect
 	github.com/samber/slog-logrus v1.0.0 // indirect
 	github.com/sashabaranov/go-openai v1.20.4 // indirect

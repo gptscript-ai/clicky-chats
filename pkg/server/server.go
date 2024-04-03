@@ -17,6 +17,7 @@ import (
 	kb "github.com/gptscript-ai/clicky-chats/pkg/knowledgebases"
 	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
 	nethttpmiddleware "github.com/oapi-codegen/nethttp-middleware"
+	"github.com/rs/cors"
 )
 
 //go:embed openapi.yaml
@@ -112,7 +113,7 @@ func (s *Server) Start(ctx context.Context, wg *sync.WaitGroup, config Config) e
 
 	server := http.Server{
 		Addr:    ":" + config.Port,
-		Handler: h,
+		Handler: cors.Default().Handler(h),
 	}
 
 	wg.Add(1)
