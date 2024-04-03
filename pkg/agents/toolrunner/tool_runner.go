@@ -91,9 +91,8 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}, nil
 }
 
-func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
-	caster := broadcaster.New[server.Event]()
-	opts := &gptscript.Options{
+func (a *agent) newOpts(caster *broadcaster.Broadcaster[server.Event]) *gptscript.Options {
+	return &gptscript.Options{
 		Cache: cache.Options{
 			Cache: z.Pointer(!a.cache),
 		},
@@ -106,19 +105,17 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 			BaseURL: a.url,
 		},
 	}
+}
 
-	go caster.Start(ctx)
-
+func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 	// Start the "job runner"
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		defer caster.Shutdown()
 
 		timer := time.NewTimer(a.pollingInterval)
-
 		for {
-			a.run(ctx, caster, opts)
+			a.run(ctx)
 			select {
 			case <-ctx.Done():
 				// Ensure the timer channel is drained
@@ -195,7 +192,7 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 	}()
 }
 
-func (a *agent) run(ctx context.Context, caster *broadcaster.Broadcaster[server.Event], opts *gptscript.Options) {
+func (a *agent) run(ctx context.Context) {
 	a.logger.Debug("Checking for a tool to run")
 	// Look for a new run tool and claim it.
 	runTool := new(db.RunToolObject)
@@ -216,8 +213,12 @@ func (a *agent) run(ctx context.Context, caster *broadcaster.Broadcaster[server.
 		return
 	}
 
+	caster := broadcaster.New[server.Event]()
+	go caster.Start(ctx)
+
 	go func() {
-		if err := a.processToolRun(ctx, caster, opts, runTool); err != nil {
+		defer caster.Shutdown()
+		if err := a.processToolRun(ctx, caster, a.newOpts(caster), runTool); err != nil {
 			a.logger.Error("failed to process tool run", "err", err)
 		}
 	}()
@@ -237,7 +238,7 @@ func (a *agent) processToolRun(ctx context.Context, caster *broadcaster.Broadcas
 	envs := append(os.Environ(), runTool.EnvVars...)
 
 	gdb := a.db.WithContext(ctx)
-	runTool.Output, err = agents.RunTool(timeoutCtx, l, caster, gdb, opts, prg, envs, runTool.Input, "", runTool.ID)
+	runTool.Output, err = agents.RunTool(timeoutCtx, l, caster.Subscribe(), gdb, opts, prg, envs, runTool.Input, "", runTool.ID)
 	if err != nil {
 		return fmt.Errorf("failed to run tool: %w", err)
 	}

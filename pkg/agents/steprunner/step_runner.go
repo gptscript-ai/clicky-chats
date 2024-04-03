@@ -121,9 +121,8 @@ func newAgent(db *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) (*agent, erro
 	}, nil
 }
 
-func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
-	caster := broadcaster.New[server.Event]()
-	opts := &gptscript.Options{
+func (a *agent) newOpts(caster *broadcaster.Broadcaster[server.Event]) *gptscript.Options {
+	return &gptscript.Options{
 		Cache: cache.Options{
 			Cache: z.Pointer(!a.cache),
 		},
@@ -136,19 +135,17 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 			BaseURL: a.url,
 		},
 	}
+}
 
-	go caster.Start(ctx)
-
+func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 	// Start the "job runner"
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		defer caster.Shutdown()
 
 		timer := time.NewTimer(a.pollingInterval)
-
 		for {
-			a.run(ctx, caster, opts)
+			a.run(ctx)
 			select {
 			case <-ctx.Done():
 				// Ensure the timer channel is drained
@@ -176,7 +173,7 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 	}()
 }
 
-func (a *agent) run(ctx context.Context, caster *broadcaster.Broadcaster[server.Event], opts *gptscript.Options) {
+func (a *agent) run(ctx context.Context) {
 	a.logger.Debug("Checking for a run")
 	// Look for a new run and claim it. Also, query for the other objects we need.
 	run, runStep := new(db.Run), new(db.RunStep)
@@ -218,8 +215,12 @@ func (a *agent) run(ctx context.Context, caster *broadcaster.Broadcaster[server.
 		return
 	}
 
+	caster := broadcaster.New[server.Event]()
+	go caster.Start(ctx)
+
 	go func() {
-		if err := a.processRunStep(ctx, caster, opts, run, runStep); err != nil {
+		defer caster.Shutdown()
+		if err := a.processRunStep(ctx, caster, a.newOpts(caster), run, runStep); err != nil {
 			a.logger.Error("failed to process run step", "err", err)
 		}
 	}()
@@ -279,7 +280,7 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 		}
 
 		gdb := a.db.WithContext(ctx)
-		output, err := agents.RunTool(timeoutCtx, l, caster, gdb, opts, prg, envs, arguments, run.ID, runStep.ID)
+		output, err := agents.RunTool(timeoutCtx, l, caster.Subscribe(), gdb, opts, prg, envs, arguments, run.ID, runStep.ID)
 		if err != nil {
 			return fmt.Errorf("failed to run tool call at index %d: %w", i, err)
 		}
