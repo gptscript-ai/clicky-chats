@@ -84,7 +84,7 @@ func (r *RunStepEvent) ToPublic() any {
 		&r.Input,
 		&r.Output,
 		r.RunID,
-		r.Content,
+		r.RequestID,
 		time.Unix(int64(r.CreatedAt), 0).UTC(),
 		&r.ToolResults,
 		r.ToolSubCalls,
