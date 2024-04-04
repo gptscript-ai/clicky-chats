@@ -1,0 +1,5 @@
+#!/usr/bin/env -S gptscript --daemon --ports 8000
+
+name: Clicky Chats
+
+#!sys.daemon(path=/healthz) ${GPTSCRIPT_TOOL_DIR}/bin/gptscript-go-tool server --with-agents --knowledge-retrieval-apiurl "server from github.com/gptscript-ai/knowledge-retrieval-api" --server-port "${PORT}"
