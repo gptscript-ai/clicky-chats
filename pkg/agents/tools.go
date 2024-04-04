@@ -41,7 +41,6 @@ func RunTool(ctx context.Context, l *slog.Logger, events *broadcaster.Subscripti
 	}()
 
 	output, err := runToolCall(server.ContextWithNewID(ctx), opts, prg, envs, arguments)
-	events.Close()
 	if errors.Is(err, context.DeadlineExceeded) {
 		output = "The tool call took too long to complete, aborting"
 	} else if execErr := new(exec.ExitError); errors.As(err, &execErr) {
