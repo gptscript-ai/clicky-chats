@@ -4204,6 +4204,9 @@ type XRunStepEventObject struct {
 
 // XRunToolRequest defines model for XRunToolRequest.
 type XRunToolRequest struct {
+	// Cache Whether to cache the tool
+	Cache *bool `json:"cache,omitempty"`
+
 	// EnvVars Environment variables
 	EnvVars []string `json:"env_vars,omitempty"`
 

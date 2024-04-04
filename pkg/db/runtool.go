@@ -12,6 +12,7 @@ type RunToolObject struct {
 	File    string                      `json:"file"`
 	Input   string                      `json:"input,omitempty"`
 	Subtool string                      `json:"subtool"`
+	Cache   *bool                       `json:"cache,omitempty"`
 
 	Output string `json:"output,omitempty"`
 	Status string `json:"status,omitempty"`
@@ -24,6 +25,7 @@ func (r *RunToolObject) IDPrefix() string {
 func (r *RunToolObject) ToPublic() any {
 	//nolint:govet
 	return &openai.XRunToolRequest{
+		r.Cache,
 		r.EnvVars,
 		r.File,
 		r.Input,
@@ -45,6 +47,7 @@ func (r *RunToolObject) FromPublic(obj any) error {
 			o.File,
 			o.Input,
 			o.Subtool,
+			o.Cache,
 			"",
 			string(openai.RunObjectStatusQueued),
 		}

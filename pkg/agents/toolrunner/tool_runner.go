@@ -91,10 +91,14 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 	}, nil
 }
 
-func (a *agent) newOpts(caster *broadcaster.Broadcaster[server.Event]) *gptscript.Options {
+func (a *agent) newOpts(caster *broadcaster.Broadcaster[server.Event], runTool *db.RunToolObject) *gptscript.Options {
+	withCache := z.Pointer(!a.cache)
+	if runTool.Cache != nil {
+		withCache = runTool.Cache
+	}
 	return &gptscript.Options{
 		Cache: cache.Options{
-			Cache: z.Pointer(!a.cache),
+			Cache: withCache,
 		},
 		Runner: runner.Options{
 			MonitorFactory: server.NewSessionFactory(caster),
@@ -218,7 +222,7 @@ func (a *agent) run(ctx context.Context) {
 
 	go func() {
 		defer caster.Shutdown()
-		if err := a.processToolRun(ctx, caster, a.newOpts(caster), runTool); err != nil {
+		if err := a.processToolRun(ctx, caster, a.newOpts(caster, runTool), runTool); err != nil {
 			a.logger.Error("failed to process tool run", "err", err)
 		}
 	}()

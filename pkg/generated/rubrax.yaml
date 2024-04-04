@@ -349,6 +349,10 @@ components:
           type: string
           description: The name of the sub tool to use rather than the first tool
           nullable: true
+        cache:
+          type: boolean
+          description: Whether to cache the tool
+          default: true
       type: object
       required:
         - file
