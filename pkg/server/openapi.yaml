@@ -5220,6 +5220,10 @@ components:
         XRunToolRequest:
             additionalProperties: false
             properties:
+                cache:
+                    default: true
+                    description: Whether to cache the tool
+                    type: boolean
                 env_vars:
                     description: Environment variables
                     items:
