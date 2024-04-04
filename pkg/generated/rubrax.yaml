@@ -1,4 +1,35 @@
 paths:
+  /threads/{thread_id}/runs/{run_id}/x-confirm:
+    post:
+      operationId: xConfirmRun
+      parameters:
+        - description: The ID of the [thread](/docs/api-reference/threads) to which this run belongs.
+          in: path
+          name: thread_id
+          required: true
+          schema:
+            type: string
+        - description: The ID of the run that requires the tool output submission.
+          in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/XConfirmRunToolRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '../server/openapi.yaml#/components/schemas/RunObject'
+          description: OK
+      summary: |
+        When a run has the `status: "requires_confirmation"` and `required_action.type` is `confirm`, this endpoint can be used to confirm or deny the tool call.
   /threads/{thread_id}/runs/{run_id}/x-stream:
     get:
       operationId: xStreamRun
@@ -249,9 +280,68 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/XListRunStepEventsResponse'
+  /x-tools/{tool_id}/confirm:
+    post:
+      operationId: xConfirmToolRun
+      summary: Confirm tool run
+      parameters:
+        - in: path
+          name: tool_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/XConfirmToolRunRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/XListRunStepEventsResponse'
+    summary: |
+      When a tool run has an event of type `callConfirm`, this endpoint can be used to confirm or deny the tool call.
 
 components:
   schemas:
+    XConfirmToolRunRequest:
+      additionalProperties: false
+      properties:
+        stream:
+          description: |
+            If `true`, returns a stream of events that happen during the tool run as server-sent events, terminating when the tool run enters a terminal state with a `data: [DONE]` message.
+          nullable: true
+          type: boolean
+        confirmation:
+          description: The confirmation to submit.
+          type: boolean
+      required:
+        - confirmation
+    XConfirmRunToolRequest:
+      additionalProperties: false
+      properties:
+        stream:
+          description: |
+            If `true`, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a `data: [DONE]` message.
+          nullable: true
+          type: boolean
+        confirmation:
+          description: The confirmation to submit.
+          properties:
+            confirmation:
+              description: The whether to confirm or deny the request.
+              type: boolean
+            tool_call_id:
+              description: The ID of the tool call in the `required_action` object within the run object the output is being submitted for.
+              type: string
+          type: object
+      required:
+        - confirmation
+      type: object
     XInspectToolRequest:
       additionalProperties: false
       properties:
@@ -353,6 +443,10 @@ components:
           type: boolean
           description: Whether to cache the tool
           default: true
+        dangerous_mode:
+          x-go-type-skip-optional-pointer: true
+          type: boolean
+          description: Dangerous mode enabled means that any tool calls will not be prompted for confirmation
       type: object
       required:
         - file

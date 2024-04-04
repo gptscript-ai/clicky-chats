@@ -72,23 +72,24 @@ func main() {
 		s.Components.Schemas[key] = component
 	}
 	for path, pathItem := range newS.Paths.Map() {
-		if pathItem.Get != nil {
-			if pathItem.Get.RequestBody != nil {
-				for _, val := range pathItem.Get.RequestBody.Value.Content {
+		for method, operation := range pathItem.Operations() {
+			if operation.RequestBody != nil {
+				for _, val := range operation.RequestBody.Value.Content {
 					val.Schema.Ref = strings.TrimPrefix(val.Schema.Ref, "../server/openapi.yaml")
 				}
 			}
-			if pathItem.Get.Responses != nil {
-				newResponses := openapi3.NewResponsesWithCapacity(pathItem.Get.Responses.Len())
-				for key, val := range pathItem.Get.Responses.Map() {
+			if operation.Responses != nil {
+				for key, val := range operation.Responses.Map() {
 					for _, mediaType := range val.Value.Content {
 						mediaType.Schema.Ref = strings.TrimPrefix(mediaType.Schema.Ref, "../server/openapi.yaml")
 					}
-					newResponses.Set(key, val)
+					operation.Responses.Set(key, val)
 				}
-				pathItem.Get.Responses = newResponses
 			}
+
+			pathItem.SetOperation(method, operation)
 		}
+
 		s.Paths.Set(path, pathItem)
 	}
 

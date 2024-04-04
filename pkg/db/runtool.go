@@ -8,14 +8,16 @@ import (
 type RunToolObject struct {
 	JobRequest
 
-	EnvVars datatypes.JSONSlice[string] `json:"env_vars,omitempty"`
-	File    string                      `json:"file"`
-	Input   string                      `json:"input,omitempty"`
-	Subtool string                      `json:"subtool"`
-	Cache   *bool                       `json:"cache,omitempty"`
+	EnvVars       datatypes.JSONSlice[string] `json:"env_vars,omitempty"`
+	File          string                      `json:"file"`
+	Input         string                      `json:"input,omitempty"`
+	Subtool       string                      `json:"subtool"`
+	Cache         *bool                       `json:"cache,omitempty"`
+	DangerousMode bool                        `json:"dangerous_mode,omitempty"`
 
-	Output string `json:"output,omitempty"`
-	Status string `json:"status,omitempty"`
+	Output    string `json:"output,omitempty"`
+	Status    string `json:"status,omitempty"`
+	Confirmed *bool  `json:"confirmed,omitempty"`
 }
 
 func (r *RunToolObject) IDPrefix() string {
@@ -26,6 +28,7 @@ func (r *RunToolObject) ToPublic() any {
 	//nolint:govet
 	return &openai.XRunToolRequest{
 		r.Cache,
+		r.DangerousMode,
 		r.EnvVars,
 		r.File,
 		r.Input,
@@ -48,8 +51,10 @@ func (r *RunToolObject) FromPublic(obj any) error {
 			o.Input,
 			o.Subtool,
 			o.Cache,
+			o.DangerousMode,
 			"",
 			string(openai.RunObjectStatusQueued),
+			nil,
 		}
 	}
 

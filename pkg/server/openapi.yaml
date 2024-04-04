@@ -3953,28 +3953,39 @@ components:
                                     items:
                                         $ref: '#/components/schemas/RunToolCallObject'
                                     type: array
-                            required:
-                                - tool_calls
-                            type: object
                         type:
-                            description: For now, this is always `submit_tool_outputs`.
+                            description: For now, this is either `submit_tool_outputs` or `confirm`.
                             enum:
                                 - submit_tool_outputs
+                                - confirm
                             type: string
+                        x-confirm:
+                            description: Confirm an action can be taken.
+                            properties:
+                                action:
+                                    description: The action the tool would like to take.
+                                    type: string
+                                id:
+                                    description: The ID of the tool call.
+                                    type: string
+                            required:
+                                - action
+                                - id
+                            type: object
                     required:
                         - type
-                        - submit_tool_outputs
                     type: object
                 started_at:
                     description: The Unix timestamp (in seconds) for when the run was started.
                     nullable: true
                     type: integer
                 status:
-                    description: The status of the run, which can be either `queued`, `in_progress`, `requires_action`, `cancelling`, `cancelled`, `failed`, `completed`, or `expired`.
+                    description: The status of the run, which can be either `queued`, `in_progress`, `requires_action`, `requires_confirmation`, `cancelling`, `cancelled`, `failed`, `completed`, or `expired`.
                     enum:
                         - queued
                         - in_progress
                         - requires_action
+                        - requires_confirmation
                         - cancelling
                         - cancelled
                         - failed
@@ -4380,18 +4391,21 @@ components:
         RunStepDetailsToolCallsFunctionObject:
             properties:
                 function:
-                    description: The definition of the function that was called.
+                    description: The name of the function to call.
                     properties:
                         arguments:
-                            description: The arguments passed to the function.
+                            description: The arguments to pass to the function.
                             type: string
                         name:
-                            description: The name of the function.
+                            description: The name of the function to call.
                             type: string
                         output:
                             description: The output of the function. This will be `null` if the outputs have not been [submitted](/docs/api-reference/runs/submitToolOutputs) yet.
                             nullable: true
                             type: string
+                        x-confirmation:
+                            description: Whether or not the function should be called.
+                            type: boolean
                     required:
                         - name
                         - arguments
@@ -5007,6 +5021,40 @@ components:
                 - x-tool
             title: GPTScript tool
             type: object
+        XConfirmRunToolRequest:
+            additionalProperties: false
+            properties:
+                confirmation:
+                    description: The confirmation to submit.
+                    properties:
+                        confirmation:
+                            description: The whether to confirm or deny the request.
+                            type: boolean
+                        tool_call_id:
+                            description: The ID of the tool call in the `required_action` object within the run object the output is being submitted for.
+                            type: string
+                    type: object
+                stream:
+                    description: |
+                        If `true`, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a `data: [DONE]` message.
+                    nullable: true
+                    type: boolean
+            required:
+                - confirmation
+            type: object
+        XConfirmToolRunRequest:
+            additionalProperties: false
+            properties:
+                confirmation:
+                    description: The confirmation to submit.
+                    type: boolean
+                stream:
+                    description: |
+                        If `true`, returns a stream of events that happen during the tool run as server-sent events, terminating when the tool run enters a terminal state with a `data: [DONE]` message.
+                    nullable: true
+                    type: boolean
+            required:
+                - confirmation
         XCreateToolRequest:
             additionalProperties: false
             properties:
@@ -5224,6 +5272,10 @@ components:
                     default: true
                     description: Whether to cache the tool
                     type: boolean
+                dangerous_mode:
+                    description: Dangerous mode enabled means that any tool calls will not be prompted for confirmation
+                    type: boolean
+                    x-go-type-skip-optional-pointer: true
                 env_vars:
                     description: Environment variables
                     items:
@@ -10743,6 +10795,37 @@ paths:
                 group: threads
                 name: Submit tool outputs to run
                 returns: The modified [run](/docs/api-reference/runs/object) object matching the specified ID.
+    /threads/{thread_id}/runs/{run_id}/x-confirm:
+        post:
+            operationId: xConfirmRun
+            parameters:
+                - description: The ID of the [thread](/docs/api-reference/threads) to which this run belongs.
+                  in: path
+                  name: thread_id
+                  required: true
+                  schema:
+                    type: string
+                - description: The ID of the run that requires the tool output submission.
+                  in: path
+                  name: run_id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/XConfirmRunToolRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RunObject'
+                    description: OK
+            summary: |
+                When a run has the `status: "requires_confirmation"` and `required_action.type` is `confirm`, this endpoint can be used to confirm or deny the tool call.
     /threads/{thread_id}/runs/{run_id}/x-stream:
         get:
             operationId: xStreamRun
@@ -11279,6 +11362,31 @@ paths:
                                 $ref: '#/components/schemas/XToolObject'
                     description: OK
             summary: Modify tool
+    /x-tools/{tool_id}/confirm:
+        post:
+            operationId: xConfirmToolRun
+            parameters:
+                - in: path
+                  name: tool_id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/XConfirmToolRunRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/XListRunStepEventsResponse'
+                    description: OK
+            summary: Confirm tool run
+        summary: |
+            When a tool run has an event of type `callConfirm`, this endpoint can be used to confirm or deny the tool call.
     /x-tools/inspect:
         post:
             operationId: xInspectTool

@@ -270,10 +270,63 @@ func (r *RunStep) GetRunStepFunctionCalls() ([]openai.RunStepDetailsToolCallsFun
 	return toolCalls, nil
 }
 
-type RunStepDetailsFunction struct {
-	Arguments string  `json:"arguments"`
-	Name      string  `json:"name"`
-	Output    *string `json:"output"`
+func (r *RunStep) RunStepConfirmed(id string) (bool, error) {
+	toolCalls, err := r.GetRunStepFunctionCalls()
+	if err != nil {
+		return false, err
+	}
+
+	for _, tc := range toolCalls {
+		if tc.Id == id {
+			return z.Dereference(tc.Function.XConfirmation), nil
+		}
+	}
+
+	return false, fmt.Errorf("run step does not contain tool call with id %s", id)
+}
+
+func (r *RunStep) SetConfirmed(id string, confirmed *bool) error {
+	runStepDetails, err := ExtractRunStepDetails(r.StepDetails.Data())
+	if err != nil {
+		return err
+	}
+
+	runStepDetailsToolCalls, ok := runStepDetails.(openai.RunStepDetailsToolCallsObject)
+	if !ok {
+		return fmt.Errorf("run step %s is not a tool call", r.ID)
+	}
+
+	for i, tc := range runStepDetailsToolCalls.ToolCalls {
+		fc, err := tc.AsRunStepDetailsToolCallsFunctionObject()
+		if err != nil || fc.Type != openai.RunStepDetailsToolCallsFunctionObjectTypeFunction {
+			continue
+		}
+
+		if fc.Id == id {
+			// Found the tool call.
+			fc.Function.XConfirmation = confirmed
+
+			// Put the function call back into the tool call.
+			if err = tc.FromRunStepDetailsToolCallsFunctionObject(fc); err != nil {
+				return err
+			}
+
+			// Put the tool call back into the tool calls.
+			runStepDetailsToolCalls.ToolCalls[i] = tc
+
+			// Put the tool calls back into the run step details.
+			rsd := new(openai.RunStepObject_StepDetails)
+			if err = rsd.FromRunStepDetailsToolCallsObject(runStepDetailsToolCalls); err != nil {
+				return err
+			}
+
+			// Put the run step details back into the run step.
+			r.StepDetails = datatypes.NewJSONType(*rsd)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("run step does not contain tool call with id %s", id)
 }
 
 func ExtractRunStepDetails(details openai.RunStepObject_StepDetails) (any, error) {
@@ -381,14 +434,17 @@ func runStepFromGenericToolCallInfo(info GenericToolCallInfo) (*openai.RunStepDe
 
 	//nolint:govet
 	return item, item.FromRunStepDetailsToolCallsFunctionObject(openai.RunStepDetailsToolCallsFunctionObject{
+		//nolint:govet
 		struct {
-			Arguments string  `json:"arguments"`
-			Name      string  `json:"name"`
-			Output    *string `json:"output"`
+			Arguments     string  `json:"arguments"`
+			Name          string  `json:"name"`
+			Output        *string `json:"output"`
+			XConfirmation *bool   `json:"x-confirmation,omitempty"`
 		}{
-			Arguments: info.Arguments,
-			Name:      info.Name,
-			Output:    nil,
+			info.Arguments,
+			info.Name,
+			nil,
+			nil,
 		},
 		info.ID,
 		openai.RunStepDetailsToolCallsFunctionObjectTypeFunction,

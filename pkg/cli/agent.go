@@ -43,7 +43,8 @@ type Agent struct {
 	ModelAPIKey string `usage:"API key for API calls" env:"CLICKY_CHATS_MODEL_API_KEY"`
 	AgentID     string `usage:"Agent ID to identify this agent" default:"my-agent" env:"CLICKY_CHATS_AGENT_ID"`
 
-	Cache bool `usage:"Enable the cache for Function calling" default:"true" env:"CLICKY_CHATS_CACHE"`
+	Cache   bool `usage:"Enable the cache for Function calling" default:"true" env:"CLICKY_CHATS_CACHE"`
+	Confirm bool `usage:"Enable the confirmation for Function calling" default:"false" env:"CLICKY_CHATS_CONFIRM"`
 }
 
 func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
@@ -120,6 +121,7 @@ func runAgents(ctx context.Context, wg *sync.WaitGroup, gormDB *db.DB, kbm *kb.K
 		APIKey:          apiKey,
 		AgentID:         s.AgentID,
 		Cache:           s.Cache,
+		Confirm:         s.Confirm,
 		Trigger:         triggers.RunStep,
 		RunTrigger:      triggers.Run,
 	}
@@ -170,6 +172,7 @@ func runAgents(ctx context.Context, wg *sync.WaitGroup, gormDB *db.DB, kbm *kb.K
 		APIKey:          apiKey,
 		AgentID:         s.AgentID,
 		Cache:           s.Cache,
+		Confirm:         s.Confirm,
 		Trigger:         triggers.RunTool,
 	}
 	if err = toolrunner.Start(ctx, wg, gormDB, toolRunnerCfg); err != nil {

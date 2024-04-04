@@ -10,6 +10,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"github.com/gptscript-ai/gptscript/pkg/loader"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -286,6 +287,54 @@ func (s *Server) XRunTool(w http.ResponseWriter, r *http.Request) {
 	waitForAndStreamResponse[*db.RunStepEvent](r.Context(), w, s.db.WithContext(r.Context()), runTool.ID, 0)
 }
 
+func (s *Server) XConfirmToolRun(w http.ResponseWriter, r *http.Request, toolID string) {
+	if toolID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("tool_id").Error()))
+		return
+	}
+
+	confirmToolRunRequest := new(openai.XConfirmToolRunRequest)
+	if err := readObjectFromRequest(r, confirmToolRunRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	if err := s.db.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
+		tool := new(db.RunToolObject)
+		if err := db.Get(tx, tool, toolID); err != nil {
+			return err
+		}
+
+		if tool.Status != string(openai.RunObjectStatusInProgress) {
+			return NewAPIError(fmt.Sprintf("Tool run is not in progress: %s", tool.Status), InvalidRequestErrorType)
+		}
+
+		return db.Modify(tx, tool, toolID, map[string]any{
+			"confirmed": &confirmToolRunRequest.Confirmation,
+		})
+	}); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Tool run not found: %s", toolID), InvalidRequestErrorType).Error()))
+			return
+		}
+		var apiError *APIError
+		if errors.As(err, &apiError) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(err.Error()))
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to confirm tool run: %v", err), InternalErrorType).Error()))
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+}
+
 func (s *Server) XInspectTool(w http.ResponseWriter, r *http.Request) {
 	inspectToolInput := new(openai.XInspectToolRequest)
 	if err := readObjectFromRequest(r, inspectToolInput); err != nil {
@@ -306,4 +355,101 @@ func (s *Server) XInspectTool(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeObjectToResponse(w, prg)
+}
+
+func (s *Server) XConfirmRun(w http.ResponseWriter, r *http.Request, threadID string, runID string) {
+	if runID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("run_id").Error()))
+		return
+	}
+	if threadID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(NewMustNotBeEmptyError("thread_id").Error()))
+		return
+	}
+
+	confirmRunRequest := new(openai.XConfirmRunToolRequest)
+	if err := readObjectFromRequest(r, confirmRunRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	// Get the run.
+	gormDB := s.db.WithContext(r.Context())
+	run := &db.Run{
+		Metadata: db.Metadata{
+			Base: db.Base{
+				ID: runID,
+			},
+		},
+	}
+	if err := db.Get(gormDB.Where("thread_id = ?", threadID), run, runID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(NewNotFoundError(run).Error()))
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to get run: %v", err), InternalErrorType).Error()))
+		return
+	}
+
+	// Get the latest run step.
+	var runSteps []*db.RunStep
+	if err := db.List(gormDB.Where("run_id = ?", runID).Where("status = ?", string(openai.RunObjectStatusInProgress)).Order("created_at desc").Limit(1), &runSteps); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError("Failed to get run step.", InternalErrorType).Error()))
+		return
+	}
+	if len(runSteps) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(NewAPIError("Run step not found.", InvalidRequestErrorType).Error()))
+		return
+	}
+
+	runStep := runSteps[0]
+
+	if err := runStep.SetConfirmed(z.Dereference(confirmRunRequest.Confirmation.ToolCallId), confirmRunRequest.Confirmation.Confirmation); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to confirm run: %v", err), InternalErrorType).Error()))
+		return
+	}
+
+	// Update the run and run step in the database and create a run event.
+	if err := gormDB.Transaction(func(tx *gorm.DB) error {
+		run.EventIndex++
+		// Have to use a map for the update here because we are setting required_action to nil.
+		runUpdates := map[string]any{
+			"event_index":     run.EventIndex,
+			"required_action": datatypes.NewJSONType[*db.RunRequiredAction](nil),
+			"status":          string(openai.RunObjectStatusInProgress),
+		}
+		if err := db.Modify(tx, run, run.ID, runUpdates); err != nil {
+			return err
+		}
+
+		// Can use the runStep for the update here because we are not trying to set anything to an empty value.
+		if err := db.Modify(tx, runStep, runStep.ID, runStep); err != nil {
+			return err
+		}
+
+		runEvent := &db.RunEvent{
+			EventName: string(openai.ThreadRunInProgress),
+			JobResponse: db.JobResponse{
+				RequestID: run.ID,
+			},
+			Run:         datatypes.NewJSONType(run),
+			ResponseIdx: run.EventIndex,
+		}
+		return db.Create(tx, runEvent)
+	}); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to confirm run: %v", err), InternalErrorType).Error()))
+		return
+	}
+
+	writeObjectToResponse(w, run)
 }

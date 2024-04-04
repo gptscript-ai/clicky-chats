@@ -644,19 +644,21 @@ const (
 
 // Defines values for RunObjectRequiredActionType.
 const (
+	Confirm           RunObjectRequiredActionType = "confirm"
 	SubmitToolOutputs RunObjectRequiredActionType = "submit_tool_outputs"
 )
 
 // Defines values for RunObjectStatus.
 const (
-	RunObjectStatusCancelled      RunObjectStatus = "cancelled"
-	RunObjectStatusCancelling     RunObjectStatus = "cancelling"
-	RunObjectStatusCompleted      RunObjectStatus = "completed"
-	RunObjectStatusExpired        RunObjectStatus = "expired"
-	RunObjectStatusFailed         RunObjectStatus = "failed"
-	RunObjectStatusInProgress     RunObjectStatus = "in_progress"
-	RunObjectStatusQueued         RunObjectStatus = "queued"
-	RunObjectStatusRequiresAction RunObjectStatus = "requires_action"
+	RunObjectStatusCancelled            RunObjectStatus = "cancelled"
+	RunObjectStatusCancelling           RunObjectStatus = "cancelling"
+	RunObjectStatusCompleted            RunObjectStatus = "completed"
+	RunObjectStatusExpired              RunObjectStatus = "expired"
+	RunObjectStatusFailed               RunObjectStatus = "failed"
+	RunObjectStatusInProgress           RunObjectStatus = "in_progress"
+	RunObjectStatusQueued               RunObjectStatus = "queued"
+	RunObjectStatusRequiresAction       RunObjectStatus = "requires_action"
+	RunObjectStatusRequiresConfirmation RunObjectStatus = "requires_confirmation"
 )
 
 // Defines values for RunStepDeltaObjectObject.
@@ -3381,19 +3383,28 @@ type RunObject struct {
 	// RequiredAction Details on the action required to continue the run. Will be `null` if no action is required.
 	RequiredAction *struct {
 		// SubmitToolOutputs Details on the tool outputs needed for this run to continue.
-		SubmitToolOutputs struct {
+		SubmitToolOutputs *struct {
 			// ToolCalls A list of the relevant tool calls.
-			ToolCalls []RunToolCallObject `json:"tool_calls"`
-		} `json:"submit_tool_outputs"`
+			ToolCalls *[]RunToolCallObject `json:"tool_calls,omitempty"`
+		} `json:"submit_tool_outputs,omitempty"`
 
-		// Type For now, this is always `submit_tool_outputs`.
+		// Type For now, this is either `submit_tool_outputs` or `confirm`.
 		Type RunObjectRequiredActionType `json:"type"`
+
+		// XConfirm Confirm an action can be taken.
+		XConfirm *struct {
+			// Action The action the tool would like to take.
+			Action string `json:"action"`
+
+			// Id The ID of the tool call.
+			Id string `json:"id"`
+		} `json:"x-confirm,omitempty"`
 	} `json:"required_action"`
 
 	// StartedAt The Unix timestamp (in seconds) for when the run was started.
 	StartedAt *int `json:"started_at"`
 
-	// Status The status of the run, which can be either `queued`, `in_progress`, `requires_action`, `cancelling`, `cancelled`, `failed`, `completed`, or `expired`.
+	// Status The status of the run, which can be either `queued`, `in_progress`, `requires_action`, `requires_confirmation`, `cancelling`, `cancelled`, `failed`, `completed`, or `expired`.
 	Status RunObjectStatus `json:"status"`
 
 	// ThreadId The ID of the [thread](/docs/api-reference/threads) that was executed on as a part of this run.
@@ -3412,10 +3423,10 @@ type RunObjectLastErrorCode string
 // RunObjectObject The object type, which is always `thread.run`.
 type RunObjectObject string
 
-// RunObjectRequiredActionType For now, this is always `submit_tool_outputs`.
+// RunObjectRequiredActionType For now, this is either `submit_tool_outputs` or `confirm`.
 type RunObjectRequiredActionType string
 
-// RunObjectStatus The status of the run, which can be either `queued`, `in_progress`, `requires_action`, `cancelling`, `cancelled`, `failed`, `completed`, or `expired`.
+// RunObjectStatus The status of the run, which can be either `queued`, `in_progress`, `requires_action`, `requires_confirmation`, `cancelling`, `cancelled`, `failed`, `completed`, or `expired`.
 type RunObjectStatus string
 
 // RunObject_Tools_Item defines model for RunObject.tools.Item.
@@ -3663,16 +3674,19 @@ type RunStepDetailsToolCallsCodeOutputLogsObjectType string
 
 // RunStepDetailsToolCallsFunctionObject defines model for RunStepDetailsToolCallsFunctionObject.
 type RunStepDetailsToolCallsFunctionObject struct {
-	// Function The definition of the function that was called.
+	// Function The name of the function to call.
 	Function struct {
-		// Arguments The arguments passed to the function.
+		// Arguments The arguments to pass to the function.
 		Arguments string `json:"arguments"`
 
-		// Name The name of the function.
+		// Name The name of the function to call.
 		Name string `json:"name"`
 
 		// Output The output of the function. This will be `null` if the outputs have not been [submitted](/docs/api-reference/runs/submitToolOutputs) yet.
 		Output *string `json:"output"`
+
+		// XConfirmation Whether or not the function should be called.
+		XConfirmation *bool `json:"x-confirmation,omitempty"`
 	} `json:"function"`
 
 	// Id The ID of the tool call object.
@@ -4085,6 +4099,30 @@ type XAssistantToolsGPTScript struct {
 // XAssistantToolsGPTScriptType The type of tool being defined: `gptscript`
 type XAssistantToolsGPTScriptType string
 
+// XConfirmRunToolRequest defines model for XConfirmRunToolRequest.
+type XConfirmRunToolRequest struct {
+	// Confirmation The confirmation to submit.
+	Confirmation struct {
+		// Confirmation The whether to confirm or deny the request.
+		Confirmation *bool `json:"confirmation,omitempty"`
+
+		// ToolCallId The ID of the tool call in the `required_action` object within the run object the output is being submitted for.
+		ToolCallId *string `json:"tool_call_id,omitempty"`
+	} `json:"confirmation"`
+
+	// Stream If `true`, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a `data: [DONE]` message.
+	Stream *bool `json:"stream"`
+}
+
+// XConfirmToolRunRequest defines model for XConfirmToolRunRequest.
+type XConfirmToolRunRequest struct {
+	// Confirmation The confirmation to submit.
+	Confirmation bool `json:"confirmation"`
+
+	// Stream If `true`, returns a stream of events that happen during the tool run as server-sent events, terminating when the tool run enters a terminal state with a `data: [DONE]` message.
+	Stream *bool `json:"stream"`
+}
+
 // XCreateToolRequest defines model for XCreateToolRequest.
 type XCreateToolRequest struct {
 	// Contents Contents of the tool
@@ -4206,6 +4244,9 @@ type XRunStepEventObject struct {
 type XRunToolRequest struct {
 	// Cache Whether to cache the tool
 	Cache *bool `json:"cache,omitempty"`
+
+	// DangerousMode Dangerous mode enabled means that any tool calls will not be prompted for confirmation
+	DangerousMode bool `json:"dangerous_mode,omitempty"`
 
 	// EnvVars Environment variables
 	EnvVars []string `json:"env_vars,omitempty"`
@@ -4530,6 +4571,9 @@ type ModifyRunJSONRequestBody = ModifyRunRequest
 // SubmitToolOuputsToRunJSONRequestBody defines body for SubmitToolOuputsToRun for application/json ContentType.
 type SubmitToolOuputsToRunJSONRequestBody = SubmitToolOutputsRunRequest
 
+// XConfirmRunJSONRequestBody defines body for XConfirmRun for application/json ContentType.
+type XConfirmRunJSONRequestBody = XConfirmRunToolRequest
+
 // XCreateToolJSONRequestBody defines body for XCreateTool for application/json ContentType.
 type XCreateToolJSONRequestBody = XCreateToolRequest
 
@@ -4541,6 +4585,9 @@ type XRunToolJSONRequestBody = XRunToolRequest
 
 // XModifyToolJSONRequestBody defines body for XModifyTool for application/json ContentType.
 type XModifyToolJSONRequestBody = XModifyToolRequest
+
+// XConfirmToolRunJSONRequestBody defines body for XConfirmToolRun for application/json ContentType.
+type XConfirmToolRunJSONRequestBody = XConfirmToolRunRequest
 
 // AsAssistantToolsCode returns the union data inside the AssistantObject_Tools_Item as a AssistantToolsCode
 func (t AssistantObject_Tools_Item) AsAssistantToolsCode() (AssistantToolsCode, error) {
