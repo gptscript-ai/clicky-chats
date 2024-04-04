@@ -5170,17 +5170,21 @@ components:
         XRunStepEventObject:
             additionalProperties: false
             properties:
-                chat_completion_id:
+                callContext:
+                    description: The call context
+                    type: object
+                    x-go-type-skip-optional-pointer: true
+                chatCompletionId:
                     type: string
-                chat_request:
+                chatRequest:
                     type: object
                     x-go-type: any
                     x-go-type-skip-optional-pointer: true
-                chat_response:
+                chatResponse:
                     type: object
                     x-go-type: any
                     x-go-type-skip-optional-pointer: true
-                chat_response_cached:
+                chatResponseCached:
                     type: boolean
                     x-go-type-skip-optional-pointer: true
                 content:
@@ -5191,26 +5195,26 @@ components:
                     type: string
                 output:
                     type: string
-                run_id:
+                runID:
                     type: string
-                run_step_id:
+                runStepID:
                     description: The id of the run step
                     type: string
                 time:
                     description: The time of the event
                     format: date-time
                     type: string
-                tool_results:
+                toolResults:
                     type: integer
-                tool_sub_calls:
+                toolSubCalls:
                     description: The tool sub calls
                     type: object
                     x-go-type-skip-optional-pointer: true
                 type:
                     type: string
             required:
-                - run_step_id
-                - run_id
+                - runStepID
+                - runID
                 - time
             type: object
         XRunToolRequest:

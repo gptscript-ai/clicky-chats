@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/acorn-io/z"
@@ -13,6 +14,7 @@ type RunStepEvent struct {
 	Base        `json:",inline"`
 	JobResponse `json:",inline"`
 
+	CallContext        datatypes.JSONMap       `json:"call_context,omitempty"`
 	ToolSubCalls       datatypes.JSONMap       `json:"tool_sub_calls,omitempty"`
 	ToolResults        int                     `json:"tool_results,omitempty"`
 	Type               string                  `json:"type,omitempty"`
@@ -53,6 +55,7 @@ func (r *RunStepEvent) FromPublic(obj any) error {
 				CreatedAt: int(o.Time.Unix()),
 			},
 			JobResponse{},
+			o.CallContext,
 			o.ToolSubCalls,
 			z.Dereference(o.ToolResults),
 			z.Dereference(o.Type),
@@ -61,7 +64,7 @@ func (r *RunStepEvent) FromPublic(obj any) error {
 			datatypes.NewJSONType(o.ChatResponse),
 			o.ChatResponseCached,
 			z.Dereference(o.Content),
-			o.RunId,
+			o.RunID,
 			z.Dereference(o.Input),
 			z.Dereference(o.Output),
 			z.Dereference(o.Err),
@@ -75,6 +78,7 @@ func (r *RunStepEvent) FromPublic(obj any) error {
 func (r *RunStepEvent) ToPublic() any {
 	//nolint:govet
 	return &openai.XRunStepEventObject{
+		r.CallContext,
 		&r.ChatCompletionID,
 		r.ChatRequest,
 		r.ChatResponse,
@@ -98,14 +102,29 @@ func FromGPTScriptEvent(event server.Event, runID, runStepID string, index int, 
 		toolSubCals[k] = v
 	}
 
+	var errStr *string
+	if event.Err != "" {
+		errStr = &event.Err
+	}
+
+	callContext := make(map[string]any)
+	if event.CallContext != nil {
+		b, err := event.CallContext.MarshalJSON()
+		if err != nil && errStr == nil {
+			errStr = z.Pointer(err.Error())
+		}
+		if err == nil {
+			err = json.Unmarshal(b, &callContext)
+			if err != nil && errStr == nil {
+				errStr = z.Pointer(err.Error())
+			}
+		}
+	}
+
 	if runID == "" {
 		runID = event.RunID
 	}
 
-	var err *string
-	if event.Err != "" {
-		err = &event.Err
-	}
 	//nolint:govet
 	return &RunStepEvent{
 		Base{
@@ -113,9 +132,10 @@ func FromGPTScriptEvent(event server.Event, runID, runStepID string, index int, 
 		},
 		JobResponse{
 			RequestID: runStepID,
-			Error:     err,
+			Error:     errStr,
 			Done:      done,
 		},
+		callContext,
 		toolSubCals,
 		event.ToolResults,
 		string(event.Type),

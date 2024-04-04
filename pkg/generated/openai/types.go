@@ -4178,25 +4178,27 @@ type XModifyToolRequest struct {
 
 // XRunStepEventObject defines model for XRunStepEventObject.
 type XRunStepEventObject struct {
-	ChatCompletionId   *string `json:"chat_completion_id,omitempty"`
-	ChatRequest        any     `json:"chat_request,omitempty"`
-	ChatResponse       any     `json:"chat_response,omitempty"`
-	ChatResponseCached bool    `json:"chat_response_cached,omitempty"`
-	Content            *string `json:"content,omitempty"`
-	Err                *string `json:"err,omitempty"`
-	Input              *string `json:"input,omitempty"`
-	Output             *string `json:"output,omitempty"`
-	RunId              string  `json:"run_id"`
+	// CallContext The call context
+	CallContext        map[string]interface{} `json:"callContext,omitempty"`
+	ChatCompletionId   *string                `json:"chatCompletionId,omitempty"`
+	ChatRequest        any                    `json:"chatRequest,omitempty"`
+	ChatResponse       any                    `json:"chatResponse,omitempty"`
+	ChatResponseCached bool                   `json:"chatResponseCached,omitempty"`
+	Content            *string                `json:"content,omitempty"`
+	Err                *string                `json:"err,omitempty"`
+	Input              *string                `json:"input,omitempty"`
+	Output             *string                `json:"output,omitempty"`
+	RunID              string                 `json:"runID"`
 
-	// RunStepId The id of the run step
-	RunStepId string `json:"run_step_id"`
+	// RunStepID The id of the run step
+	RunStepID string `json:"runStepID"`
 
 	// Time The time of the event
 	Time        time.Time `json:"time"`
-	ToolResults *int      `json:"tool_results,omitempty"`
+	ToolResults *int      `json:"toolResults,omitempty"`
 
 	// ToolSubCalls The tool sub calls
-	ToolSubCalls map[string]interface{} `json:"tool_sub_calls,omitempty"`
+	ToolSubCalls map[string]interface{} `json:"toolSubCalls,omitempty"`
 	Type         *string                `json:"type,omitempty"`
 }
 
