@@ -2,6 +2,9 @@ GO_TAGS ?= netgo
 build:
 	CGO_ENABLED=0 go build -o bin/clicky-chats -tags "${GO_TAGS}" -ldflags "-s -w" .
 
+tool-build:
+	go build -o ./bin/gptscript-go-tool
+
 tidy:
 	go mod tidy
 

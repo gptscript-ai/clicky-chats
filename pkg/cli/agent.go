@@ -54,7 +54,10 @@ func (s *Agent) Run(cmd *cobra.Command, _ []string) error {
 
 	var kbm *kb.KnowledgeBaseManager
 	if s.Config.KnowledgeRetrievalAPIURL != "" {
-		kbm = kb.NewKnowledgeBaseManager(s.Config, gormDB)
+		kbm, err = kb.NewKnowledgeBaseManager(cmd.Context(), s.Config, gormDB)
+		if err != nil {
+			return err
+		}
 	} else {
 		slog.Warn("No knowledge retrieval API URL provided, knowledge base manager will not be started - assistants using the `retrieval` tool won't work")
 	}
