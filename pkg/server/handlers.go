@@ -1724,6 +1724,7 @@ func (s *Server) SubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, t
 			return err
 		}
 
+		// Create the run step event.
 		run.EventIndex++
 		runEvent := &db.RunEvent{
 			EventName: string(openai.ThreadRunStepCompleted),
@@ -1739,6 +1740,22 @@ func (s *Server) SubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, t
 		}
 
 		eventIndexStart = run.EventIndex
+
+		// Create the run event.
+		run.EventIndex++
+		runEvent = &db.RunEvent{
+			EventName: string(openai.ThreadRunQueued),
+			JobResponse: db.JobResponse{
+				RequestID: run.ID,
+			},
+			Run:         datatypes.NewJSONType(run),
+			ResponseIdx: run.EventIndex,
+		}
+
+		if err := db.Create(tx, runEvent); err != nil {
+			return err
+		}
+
 		return tx.Model(run).Clauses(clause.Returning{}).Where("id = ?", runID).Updates(map[string]any{"event_index": run.EventIndex}).Error
 	}); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1751,6 +1768,7 @@ func (s *Server) SubmitToolOuputsToRun(w http.ResponseWriter, r *http.Request, t
 		return
 	}
 
+	// Start streaming from the index we just created.
 	waitForAndStreamResponse[*db.RunEvent](r.Context(), w, s.db.WithContext(r.Context()), runID, eventIndexStart)
 }
 
@@ -2033,6 +2051,7 @@ func waitForAndWriteResponse(ctx context.Context, readyIndicator <-chan struct{}
 	}
 }
 
+// waitForAndStreamResponse waits for the stream responses to come through and will pass them as SSE to the client.
 func waitForAndStreamResponse[T JobRespondStreamer](ctx context.Context, w http.ResponseWriter, gormDB *gorm.DB, id string, index int) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")

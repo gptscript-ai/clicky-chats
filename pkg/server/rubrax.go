@@ -301,8 +301,9 @@ func (s *Server) XConfirmToolRun(w http.ResponseWriter, r *http.Request, toolID 
 		return
 	}
 
+	var startingIndex int
+	tool := new(db.RunToolObject)
 	if err := s.db.WithContext(r.Context()).Transaction(func(tx *gorm.DB) error {
-		tool := new(db.RunToolObject)
 		if err := db.Get(tx, tool, toolID); err != nil {
 			return err
 		}
@@ -310,6 +311,13 @@ func (s *Server) XConfirmToolRun(w http.ResponseWriter, r *http.Request, toolID 
 		if tool.Status != string(openai.RunObjectStatusInProgress) {
 			return NewAPIError(fmt.Sprintf("Tool run is not in progress: %s", tool.Status), InvalidRequestErrorType)
 		}
+
+		latestRunEvent := new(db.RunStepEvent)
+		if err := tx.Model(latestRunEvent).Where("request_id = ?", tool.ID).Order("response_idx desc").First(latestRunEvent).Error; err != nil {
+			return err
+		}
+
+		startingIndex = latestRunEvent.ResponseIdx + 1
 
 		return db.Modify(tx, tool, toolID, map[string]any{
 			"confirmed": &confirmToolRunRequest.Confirmation,
@@ -323,7 +331,7 @@ func (s *Server) XConfirmToolRun(w http.ResponseWriter, r *http.Request, toolID 
 		var apiError *APIError
 		if errors.As(err, &apiError) {
 			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(err.Error()))
+			_, _ = w.Write([]byte(apiError.Error()))
 			return
 		}
 
@@ -332,7 +340,12 @@ func (s *Server) XConfirmToolRun(w http.ResponseWriter, r *http.Request, toolID 
 		return
 	}
 
-	w.WriteHeader(http.StatusAccepted)
+	if !z.Dereference(confirmToolRunRequest.Stream) {
+		w.WriteHeader(http.StatusAccepted)
+		return
+	}
+
+	waitForAndStreamResponse[*db.RunStepEvent](r.Context(), w, s.db.WithContext(r.Context()), tool.ID, startingIndex)
 }
 
 func (s *Server) XInspectTool(w http.ResponseWriter, r *http.Request) {
@@ -449,6 +462,11 @@ func (s *Server) XConfirmRun(w http.ResponseWriter, r *http.Request, threadID st
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(NewAPIError(fmt.Sprintf("Failed to confirm run: %v", err), InternalErrorType).Error()))
 		return
+	}
+
+	if z.Dereference(confirmRunRequest.Stream) {
+		// Start streaming at the latest run event.
+		waitForAndStreamResponse[*db.RunEvent](r.Context(), w, gormDB, run.ID, run.EventIndex)
 	}
 
 	writeObjectToResponse(w, run)
