@@ -19,6 +19,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
 	"github.com/gptscript-ai/gptscript/pkg/cache"
+	"github.com/gptscript-ai/gptscript/pkg/confirm"
 	"github.com/gptscript-ai/gptscript/pkg/gptscript"
 	"github.com/gptscript-ai/gptscript/pkg/loader"
 	gptopenai "github.com/gptscript-ai/gptscript/pkg/openai"
@@ -39,7 +40,7 @@ type Config struct {
 	Logger                           *slog.Logger
 	PollingInterval, RetentionPeriod time.Duration
 	APIURL, APIKey, AgentID          string
-	Cache                            bool
+	Cache, Confirm                   bool
 	Trigger                          trigger.Trigger
 }
 
@@ -61,7 +62,7 @@ type agent struct {
 	logger                           *slog.Logger
 	pollingInterval, retentionPeriod time.Duration
 	id, apiKey, url                  string
-	cache                            bool
+	cache, confirm                   bool
 	client                           *http.Client
 	db                               *db.DB
 	trigger                          trigger.Trigger
@@ -82,6 +83,7 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 		pollingInterval: cfg.PollingInterval,
 		retentionPeriod: cfg.RetentionPeriod,
 		cache:           cfg.Cache,
+		confirm:         cfg.Confirm,
 		client:          http.DefaultClient,
 		apiKey:          cfg.APIKey,
 		db:              db,
@@ -228,7 +230,7 @@ func (a *agent) run(ctx context.Context) {
 	}()
 }
 
-func (a *agent) processToolRun(ctx context.Context, caster *broadcaster.Broadcaster[server.Event], opts *gptscript.Options, runTool *db.RunToolObject) error {
+func (a *agent) processToolRun(ctx context.Context, events *broadcaster.Broadcaster[server.Event], opts *gptscript.Options, runTool *db.RunToolObject) error {
 	timeoutCtx, cancel := context.WithTimeout(ctx, toolCallTimeout)
 	defer cancel()
 
@@ -242,7 +244,8 @@ func (a *agent) processToolRun(ctx context.Context, caster *broadcaster.Broadcas
 	envs := append(os.Environ(), runTool.EnvVars...)
 
 	gdb := a.db.WithContext(ctx)
-	runTool.Output, err = agents.RunTool(timeoutCtx, l, caster.Subscribe(), gdb, opts, prg, envs, runTool.Input, "", runTool.ID)
+	confirmCtx := confirm.WithConfirm(timeoutCtx, &toolRunnerConfirm{confirm: a.confirm && !runTool.DangerousMode, db: gdb, tool: runTool, events: events})
+	runTool.Output, err = agents.RunTool(confirmCtx, l, events.Subscribe(), gdb, opts, prg, envs, runTool.Input, "", runTool.ID)
 	if err != nil {
 		return fmt.Errorf("failed to run tool: %w", err)
 	}

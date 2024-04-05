@@ -12,9 +12,15 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"github.com/gptscript-ai/gptscript/pkg/gptscript"
+	"github.com/gptscript-ai/gptscript/pkg/runner"
 	"github.com/gptscript-ai/gptscript/pkg/server"
 	"github.com/gptscript-ai/gptscript/pkg/types"
 	"gorm.io/gorm"
+)
+
+const (
+	EventTypeCallConfirm         runner.EventType = "callConfirm"
+	EventTypeCallConfirmResponse runner.EventType = "callConfirmResponse"
 )
 
 type Statuser interface {
@@ -23,8 +29,30 @@ type Statuser interface {
 
 func RunTool(ctx context.Context, l *slog.Logger, events *broadcaster.Subscription[server.Event], gdb *gorm.DB, opts *gptscript.Options, prg types.Program, envs []string, arguments, runID, runStepID string) (string, error) {
 	go func() {
-		var index int
+		var (
+			index       int
+			lastRunID   string
+			eventBuffer []server.Event
+		)
 		for e := range events.C {
+			// Ensure that the callConfirm event is after an event with the same runID.
+			if (len(eventBuffer) > 0 || e.Type == EventTypeCallConfirm) && lastRunID != e.RunID {
+				eventBuffer = append(eventBuffer, e)
+				lastRunID = e.RunID
+				continue
+			}
+
+			for _, ev := range eventBuffer {
+				runStepEvent := db.FromGPTScriptEvent(ev, runID, runStepID, index, false)
+				if err := db.Create(gdb, runStepEvent); err != nil {
+					l.Error("failed to create run step event", "error", err)
+				}
+				index++
+			}
+
+			eventBuffer = nil
+			lastRunID = e.RunID
+
 			runStepEvent := db.FromGPTScriptEvent(e, runID, runStepID, index, false)
 			if err := db.Create(gdb, runStepEvent); err != nil {
 				l.Error("failed to create run step event", "error", err)

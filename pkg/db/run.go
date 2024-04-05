@@ -76,7 +76,7 @@ func (r *Run) FromPublic(obj any) error {
 		var requiredAction *RunRequiredAction
 		if o.RequiredAction != nil {
 			requiredAction = &RunRequiredAction{
-				SubmitToolOutputs: o.RequiredAction.SubmitToolOutputs.ToolCalls,
+				SubmitToolOutputs: z.Dereference(o.RequiredAction.SubmitToolOutputs.ToolCalls),
 				Type:              o.RequiredAction.Type,
 			}
 		}
@@ -168,30 +168,60 @@ func (r *RunLastError) toPublic() *struct {
 
 type RunRequiredAction struct {
 	SubmitToolOutputs []openai.RunToolCallObject         `json:"submit_tool_outputs"`
+	XConfirm          *RunRequiredActionXConfirm         `json:"x-confirm"`
 	Type              openai.RunObjectRequiredActionType `json:"type"`
 }
 
 func (r *RunRequiredAction) toPublic() *struct {
-	SubmitToolOutputs struct {
-		ToolCalls []openai.RunToolCallObject `json:"tool_calls"`
-	} `json:"submit_tool_outputs"`
+	SubmitToolOutputs *struct {
+		ToolCalls *[]openai.RunToolCallObject `json:"tool_calls,omitempty"`
+	} `json:"submit_tool_outputs,omitempty"`
 	Type openai.RunObjectRequiredActionType `json:"type"`
+	//nolint:revive
+	XConfirm *struct {
+		Action string `json:"action"`
+		Id     string `json:"id"`
+	} `json:"x-confirm,omitempty"`
 } {
-	if r == nil || len(r.SubmitToolOutputs) == 0 {
+	if r == nil || (len(r.SubmitToolOutputs) == 0 && r.XConfirm == nil) {
 		return nil
 	}
 
-	return &struct {
-		SubmitToolOutputs struct {
-			ToolCalls []openai.RunToolCallObject `json:"tool_calls"`
-		} `json:"submit_tool_outputs"`
+	output := &struct {
+		SubmitToolOutputs *struct {
+			ToolCalls *[]openai.RunToolCallObject `json:"tool_calls,omitempty"`
+		} `json:"submit_tool_outputs,omitempty"`
 		Type openai.RunObjectRequiredActionType `json:"type"`
-	}{
-		SubmitToolOutputs: struct {
-			ToolCalls []openai.RunToolCallObject `json:"tool_calls"`
+		//nolint:revive
+		XConfirm *struct {
+			Action string `json:"action"`
+			Id     string `json:"id"`
+		} `json:"x-confirm,omitempty"`
+	}{}
+
+	if len(r.SubmitToolOutputs) != 0 {
+		output.SubmitToolOutputs = &struct {
+			ToolCalls *[]openai.RunToolCallObject `json:"tool_calls,omitempty"`
 		}{
-			ToolCalls: r.SubmitToolOutputs,
-		},
-		Type: r.Type,
+			ToolCalls: &r.SubmitToolOutputs,
+		}
 	}
+
+	if r.XConfirm != nil {
+		//nolint:revive
+		output.XConfirm = &struct {
+			Action string `json:"action"`
+			Id     string `json:"id"`
+		}{
+			Action: r.XConfirm.Action,
+			Id:     r.XConfirm.ID,
+		}
+	}
+
+	return output
+}
+
+type RunRequiredActionXConfirm struct {
+	Action string `json:"action"`
+	ID     string `json:"id"`
 }

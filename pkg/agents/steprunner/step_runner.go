@@ -22,6 +22,7 @@ import (
 	"github.com/gptscript-ai/clicky-chats/pkg/tools"
 	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
 	"github.com/gptscript-ai/gptscript/pkg/cache"
+	"github.com/gptscript-ai/gptscript/pkg/confirm"
 	"github.com/gptscript-ai/gptscript/pkg/gptscript"
 	"github.com/gptscript-ai/gptscript/pkg/loader"
 	gptopenai "github.com/gptscript-ai/gptscript/pkg/openai"
@@ -44,7 +45,7 @@ type Config struct {
 	Logger                  *slog.Logger
 	PollingInterval         time.Duration
 	APIURL, APIKey, AgentID string
-	Cache                   bool
+	Cache, Confirm          bool
 	Trigger, RunTrigger     trigger.Trigger
 }
 
@@ -83,7 +84,7 @@ type agent struct {
 	logger              *slog.Logger
 	pollingInterval     time.Duration
 	id, apiKey, url     string
-	cache               bool
+	cache, confirm      bool
 	client              *http.Client
 	db                  *db.DB
 	kbm                 *kb.KnowledgeBaseManager
@@ -110,6 +111,7 @@ func newAgent(db *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) (*agent, erro
 		logger:          cfg.Logger,
 		pollingInterval: cfg.PollingInterval,
 		cache:           cfg.Cache,
+		confirm:         cfg.Confirm,
 		client:          http.DefaultClient,
 		apiKey:          cfg.APIKey,
 		db:              db,
@@ -178,7 +180,7 @@ func (a *agent) run(ctx context.Context) {
 	// Look for a new run and claim it. Also, query for the other objects we need.
 	run, runStep := new(db.Run), new(db.RunStep)
 	if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(run).Where("system_status = ?", "requires_action").Where("system_claimed_by IS NULL OR system_claimed_by = ?", a.id).Order("created_at desc").First(run).Error; err != nil {
+		if err := tx.Model(run).Where("system_status = ?", string(openai.RunObjectStatusRequiresAction)).Where("system_claimed_by IS NULL OR system_claimed_by = ?", a.id).Order("created_at desc").First(run).Error; err != nil {
 			return err
 		}
 
@@ -220,13 +222,13 @@ func (a *agent) run(ctx context.Context) {
 
 	go func() {
 		defer caster.Shutdown()
-		if err := a.processRunStep(ctx, caster, a.newOpts(caster), run, runStep); err != nil {
+		if err := a.processRunStep(ctx, caster.Subscribe(), a.newOpts(caster), run, runStep); err != nil {
 			a.logger.Error("failed to process run step", "err", err)
 		}
 	}()
 }
 
-func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcaster[server.Event], opts *gptscript.Options, run *db.Run, runStep *db.RunStep) (err error) {
+func (a *agent) processRunStep(ctx context.Context, events *broadcaster.Subscription[server.Event], opts *gptscript.Options, run *db.Run, runStep *db.RunStep) (err error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, toolCallTimeout)
 	defer cancel()
 
@@ -248,7 +250,7 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 
 	for i := range toolCalls {
 		tc := &toolCalls[i]
-		functionName, arguments, err := determineFunctionAndArguments(tc)
+		id, functionName, arguments, err := determineFunctionAndArguments(tc)
 		if err != nil {
 			return fmt.Errorf("failed to determine function and arguments: %w", err)
 		}
@@ -280,7 +282,8 @@ func (a *agent) processRunStep(ctx context.Context, caster *broadcaster.Broadcas
 		}
 
 		gdb := a.db.WithContext(ctx)
-		output, err := agents.RunTool(timeoutCtx, l, caster.Subscribe(), gdb, opts, prg, envs, arguments, run.ID, runStep.ID)
+		confirmCtx := confirm.WithConfirm(timeoutCtx, &stepConfirmer{db: gdb, run: run, runStep: runStep, toolCallID: id, confirm: a.confirm})
+		output, err := agents.RunTool(confirmCtx, l, events, gdb, opts, prg, envs, arguments, run.ID, runStep.ID)
 		if err != nil {
 			return fmt.Errorf("failed to run tool call at index %d: %w", i, err)
 		}
@@ -434,11 +437,11 @@ func extractToolCalls(runStepDetails *openai.RunStepObject_StepDetails) ([]opena
 	return toolCallDetails.ToolCalls, nil
 }
 
-func determineFunctionAndArguments(toolCall *openai.RunStepDetailsToolCallsObject_ToolCalls_Item) (string, string, error) {
+func determineFunctionAndArguments(toolCall *openai.RunStepDetailsToolCallsObject_ToolCalls_Item) (string, string, string, error) {
 	info, err := db.GetOutputForRunStepToolCall(toolCall)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
-	return strings.TrimPrefix(info.Name, tools.GPTScriptToolNamePrefix), info.Arguments, nil
+	return info.ID, strings.TrimPrefix(info.Name, tools.GPTScriptToolNamePrefix), info.Arguments, nil
 }
