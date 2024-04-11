@@ -23,8 +23,8 @@ func toolToProgram(ctx context.Context, tool *db.Tool) (string, string, []byte, 
 	)
 
 	if url != "" {
-		if !strings.HasSuffix(url, ".gpt") {
-			url = strings.TrimPrefix(strings.TrimPrefix(url, "https://"), "http://")
+		if strings.HasSuffix(url, "https://github.com") && !strings.HasSuffix(url, ".gpt") {
+			url = strings.TrimPrefix(url, "https://")
 			tool.URL = &url
 		}
 		prg, err = loader.Program(ctx, url, z.Dereference(tool.Subtool))

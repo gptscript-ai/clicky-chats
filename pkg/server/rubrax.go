@@ -356,8 +356,8 @@ func (s *Server) XInspectTool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !strings.HasSuffix(inspectToolInput.Url, ".gpt") {
-		inspectToolInput.Url = strings.TrimPrefix(strings.TrimPrefix(inspectToolInput.Url, "https://"), "http://")
+	if strings.HasPrefix(inspectToolInput.Url, "https://github.com") && !strings.HasSuffix(inspectToolInput.Url, ".gpt") {
+		inspectToolInput.Url = strings.TrimPrefix(inspectToolInput.Url, "https://")
 	}
 
 	prg, err := loader.Program(r.Context(), inspectToolInput.Url, inspectToolInput.Subtool)
