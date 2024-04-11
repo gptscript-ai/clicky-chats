@@ -126,7 +126,7 @@ func newAgent(db *db.DB, kbm *kb.KnowledgeBaseManager, cfg Config) (*agent, erro
 func (a *agent) newOpts(caster *broadcaster.Broadcaster[server.Event]) *gptscript.Options {
 	return &gptscript.Options{
 		Cache: cache.Options{
-			Cache: z.Pointer(!a.cache),
+			DisableCache: !a.cache,
 		},
 		Runner: runner.Options{
 			MonitorFactory: server.NewSessionFactory(caster),

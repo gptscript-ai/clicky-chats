@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/acorn-io/broadcaster"
-	"github.com/acorn-io/z"
 	"github.com/adrg/xdg"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
@@ -94,13 +93,13 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 }
 
 func (a *agent) newOpts(caster *broadcaster.Broadcaster[server.Event], runTool *db.RunToolObject) *gptscript.Options {
-	withCache := z.Pointer(!a.cache)
+	disableCache := !a.cache
 	if runTool.Cache != nil {
-		withCache = runTool.Cache
+		disableCache = *runTool.Cache
 	}
 	return &gptscript.Options{
 		Cache: cache.Options{
-			Cache: withCache,
+			DisableCache: disableCache,
 		},
 		Runner: runner.Options{
 			MonitorFactory: server.NewSessionFactory(caster),
