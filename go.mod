@@ -13,7 +13,7 @@ require (
 	github.com/getkin/kin-openapi v0.123.0
 	github.com/glebarez/sqlite v1.10.0
 	github.com/google/uuid v1.6.0
-	github.com/gptscript-ai/gptscript v0.4.2-0.20240411191732-a35a6f0dfb39
+	github.com/gptscript-ai/gptscript v0.5.1-0.20240413002020-2558f6567508
 	github.com/invopop/yaml v0.2.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.1.1
@@ -32,6 +32,8 @@ require (
 	github.com/bodgit/plumbing v1.3.0 // indirect
 	github.com/bodgit/sevenzip v1.5.0 // indirect
 	github.com/bodgit/windows v1.0.1 // indirect
+	github.com/docker/cli v26.0.0+incompatible // indirect
+	github.com/docker/docker-credential-helpers v0.8.1 // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
