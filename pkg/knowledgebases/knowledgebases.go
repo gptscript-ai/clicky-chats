@@ -39,7 +39,7 @@ func (m *KnowledgeBaseManager) NewSharedKnowledgeBase(ctx context.Context) (stri
 }
 
 type CreateKnowledgeBaseRequest struct {
-	Name     string `json:"name"`
+	ID       string `json:"id"`
 	EmbedDim int    `json:"embed_dim"`
 }
 
@@ -52,7 +52,7 @@ func (m *KnowledgeBaseManager) CreateKnowledgeBase(ctx context.Context, id strin
 
 	url := m.KnowledgeRetrievalAPIURL + "/datasets/create"
 	payload := CreateKnowledgeBaseRequest{
-		Name:     id,
+		ID:       id,
 		EmbedDim: 0,
 	}
 
@@ -89,7 +89,7 @@ func (m *KnowledgeBaseManager) CreateKnowledgeBase(ctx context.Context, id strin
 		return "", err
 	}
 
-	return response.Name, nil
+	return response.ID, nil
 }
 
 func (m *KnowledgeBaseManager) DeleteKnowledgeBase(ctx context.Context, id string) error {
