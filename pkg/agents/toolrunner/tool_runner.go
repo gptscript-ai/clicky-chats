@@ -243,6 +243,11 @@ func runTool(ctx context.Context, l *slog.Logger, gdb *gorm.DB, runToolObject *d
 		buffer      = bufio.NewScanner(events)
 	)
 	for buffer.Scan() {
+		if len(buffer.Bytes()) == 0 {
+			// If there is no event, then continue.
+			continue
+		}
+
 		e := server.Event{}
 		err := json.Unmarshal(buffer.Bytes(), &e)
 		if err != nil {

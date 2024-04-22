@@ -13,7 +13,7 @@ type RunToolObject struct {
 	Input         string                      `json:"input,omitempty"`
 	Subtool       string                      `json:"subtool"`
 	Chdir         string                      `json:"chdir,omitempty"`
-	DisableCache  bool                        `json:"cache,omitempty"`
+	DisableCache  bool                        `json:"disable_cache,omitempty"`
 	DangerousMode bool                        `json:"dangerous_mode,omitempty"`
 
 	Output    string `json:"output,omitempty"`
