@@ -1,31 +1,25 @@
 package toolrunner
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
-	"os"
-	"path/filepath"
+	"os/exec"
 	"sync"
 	"time"
 
 	"github.com/acorn-io/broadcaster"
-	"github.com/adrg/xdg"
 	"github.com/gptscript-ai/clicky-chats/pkg/agents"
 	"github.com/gptscript-ai/clicky-chats/pkg/db"
 	"github.com/gptscript-ai/clicky-chats/pkg/generated/openai"
 	"github.com/gptscript-ai/clicky-chats/pkg/trigger"
-	"github.com/gptscript-ai/gptscript/pkg/cache"
-	"github.com/gptscript-ai/gptscript/pkg/confirm"
-	"github.com/gptscript-ai/gptscript/pkg/gptscript"
-	"github.com/gptscript-ai/gptscript/pkg/loader"
-	gptopenai "github.com/gptscript-ai/gptscript/pkg/openai"
-	"github.com/gptscript-ai/gptscript/pkg/repos/runtimes"
-	"github.com/gptscript-ai/gptscript/pkg/runner"
+	gogptscript "github.com/gptscript-ai/go-gptscript"
 	"github.com/gptscript-ai/gptscript/pkg/server"
-	"github.com/gptscript-ai/gptscript/pkg/version"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -90,26 +84,6 @@ func newAgent(db *db.DB, cfg Config) (*agent, error) {
 		url:             cfg.APIURL,
 		trigger:         cfg.Trigger,
 	}, nil
-}
-
-func (a *agent) newOpts(caster *broadcaster.Broadcaster[server.Event], runTool *db.RunToolObject) *gptscript.Options {
-	disableCache := !a.cache
-	if runTool.Cache != nil {
-		disableCache = *runTool.Cache
-	}
-	return &gptscript.Options{
-		Cache: cache.Options{
-			DisableCache: disableCache,
-		},
-		Runner: runner.Options{
-			MonitorFactory: server.NewSessionFactory(caster),
-			RuntimeManager: runtimes.Default(filepath.Join(xdg.CacheHome, version.ProgramName)),
-		},
-		OpenAI: gptopenai.Options{
-			APIKey:  a.apiKey,
-			BaseURL: a.url,
-		},
-	}
 }
 
 func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
@@ -200,9 +174,9 @@ func (a *agent) Start(ctx context.Context, wg *sync.WaitGroup) {
 func (a *agent) run(ctx context.Context) {
 	a.logger.Debug("Checking for a tool to run")
 	// Look for a new run tool and claim it.
-	runTool := new(db.RunToolObject)
+	runToolObject := new(db.RunToolObject)
 	if err := a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(runTool).Where("status = ?", "queued").Where("claimed_by IS NULL OR claimed_by = ?", a.id).Order("created_at desc").First(runTool).Error; err != nil {
+		if err := tx.Model(runToolObject).Where("status = ?", "queued").Where("claimed_by IS NULL OR claimed_by = ?", a.id).Order("created_at desc").First(runToolObject).Error; err != nil {
 			return err
 		}
 
@@ -210,7 +184,7 @@ func (a *agent) run(ctx context.Context) {
 			"claimed_by": a.id,
 			"status":     string(openai.RunObjectStatusInProgress),
 		}
-		return tx.Model(runTool).Clauses(clause.Returning{}).Where("id = ?", runTool.ID).Updates(updates).Error
+		return tx.Model(runToolObject).Clauses(clause.Returning{}).Where("id = ?", runToolObject.ID).Updates(updates).Error
 	}); err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			a.logger.Error("failed to get run", "error", err)
@@ -223,43 +197,131 @@ func (a *agent) run(ctx context.Context) {
 
 	go func() {
 		defer caster.Shutdown()
-		if err := a.processToolRun(ctx, caster, a.newOpts(caster, runTool), runTool); err != nil {
+		if err := a.processToolRun(ctx, runToolObject); err != nil {
 			a.logger.Error("failed to process tool run", "err", err)
 		}
 	}()
 }
 
-func (a *agent) processToolRun(ctx context.Context, events *broadcaster.Broadcaster[server.Event], opts *gptscript.Options, runTool *db.RunToolObject) error {
+func (a *agent) processToolRun(ctx context.Context, runToolObject *db.RunToolObject) error {
+	var err error
 	timeoutCtx, cancel := context.WithTimeout(ctx, toolCallTimeout)
 	defer cancel()
 
-	l := a.logger.With("run_tool_id", runTool.ID)
-
-	prg, err := loader.Program(timeoutCtx, runTool.File, runTool.Subtool)
-	if err != nil {
-		return fmt.Errorf("failed to load program for tool %s: %w", runTool.ID, err)
-	}
-
-	envs := append(os.Environ(), runTool.EnvVars...)
-
+	l := a.logger.With("run_tool_id", runToolObject.ID)
 	gdb := a.db.WithContext(ctx)
-	confirmCtx := confirm.WithConfirm(timeoutCtx, &toolRunnerConfirm{confirm: a.confirm && !runTool.DangerousMode, db: gdb, tool: runTool, events: events})
-	runTool.Output, err = agents.RunTool(confirmCtx, l, events.Subscribe(), gdb, opts, prg, envs, runTool.Input, "", runTool.ID)
+	runToolObject.Output, err = runTool(timeoutCtx, l, gdb, runToolObject)
 	if err != nil {
 		return fmt.Errorf("failed to run tool: %w", err)
 	}
 
 	// Update the run tool with the output
-	if err = gdb.Model(runTool).Where("id = ?", runTool.ID).Updates(
+	if err = gdb.Model(runToolObject).Where("id = ?", runToolObject.ID).Updates(
 		map[string]any{
-			"output": runTool.Output,
+			"output": runToolObject.Output,
 			"status": string(openai.RunObjectStatusCompleted),
 			"done":   true,
 		}).Error; err != nil {
 		return err
 	}
 
-	a.trigger.Ready(runTool.ID)
+	a.trigger.Ready(runToolObject.ID)
 
 	return nil
+}
+
+func runTool(ctx context.Context, l *slog.Logger, gdb *gorm.DB, runToolObject *db.RunToolObject) (string, error) {
+	stdOut, stdErr, events, wait := gogptscript.StreamExecFileWithEvents(ctx, runToolObject.File, runToolObject.Input, gogptscript.Opts{
+		DisableCache: runToolObject.DisableCache,
+		Chdir:        runToolObject.Chdir,
+	})
+
+	var (
+		index       int
+		lastRunID   string
+		eventBuffer []server.Event
+		buffer      = bufio.NewScanner(events)
+	)
+	for buffer.Scan() {
+		e := server.Event{}
+		err := json.Unmarshal(buffer.Bytes(), &e)
+		if err != nil {
+			l.Error("failed to unmarshal event", "error", err, "event", buffer.Text())
+			continue
+		}
+		// Ensure that the callConfirm event is after an event with the same runID.
+		if (len(eventBuffer) > 0 || e.Type == agents.EventTypeCallConfirm) && lastRunID != e.RunID {
+			eventBuffer = append(eventBuffer, e)
+			lastRunID = e.RunID
+			continue
+		}
+
+		for _, ev := range eventBuffer {
+			runStepEvent := db.FromGPTScriptEvent(ev, "", runToolObject.ID, index, false)
+			if err := db.Create(gdb, runStepEvent); err != nil {
+				l.Error("failed to create run step event", "error", err)
+			}
+			index++
+		}
+
+		eventBuffer = nil
+		lastRunID = e.RunID
+
+		runStepEvent := db.FromGPTScriptEvent(e, "", runToolObject.ID, index, false)
+		if err := db.Create(gdb, runStepEvent); err != nil {
+			l.Error("failed to create run step event", "error", err)
+			continue
+		}
+
+		index++
+	}
+	l.Debug("done receiving events")
+
+	// Read the output of the script.
+	out, err := io.ReadAll(stdOut)
+	if err != nil {
+		return "", fmt.Errorf("failed to read output: %w", err)
+	}
+
+	output := string(out)
+
+	stderr, err := io.ReadAll(stdErr)
+	if err != nil {
+		return output, fmt.Errorf("failed to read stderr: %w", err)
+	}
+
+	if index == 0 {
+		// If no events were created, then an error occurred when trying to run the tool.
+		// Create an event with the error and the run tool object ID.
+		runStepEvent := &db.RunStepEvent{
+			JobResponse: db.JobResponse{
+				RequestID: runToolObject.ID,
+			},
+			Err:         string(stderr),
+			ResponseIdx: index,
+		}
+
+		if err = db.Create(gdb, runStepEvent); err != nil {
+			l.Error("failed to create run step event", "error", err)
+		} else {
+			index++
+		}
+	}
+
+	// Create final event that just says we're done with this run step.
+	runStepEvent := db.FromGPTScriptEvent(server.Event{}, "", runToolObject.ID, index, true)
+	if err := db.Create(gdb, runStepEvent); err != nil {
+		l.Error("failed to create run step event", "error", err)
+	}
+
+	err = wait()
+	if errors.Is(err, context.DeadlineExceeded) {
+		output = "The tool call took too long to complete, aborting"
+	} else if execErr := new(exec.ExitError); errors.As(err, &execErr) {
+		output = fmt.Sprintf("The tool call returned an exit code of %d with message %q and output %q, aborting", execErr.ExitCode(), execErr.String(), stderr)
+	} else if err != nil {
+		return string(stderr), fmt.Errorf("failed to wait: %w, error output: %s", err, stderr)
+	}
+
+	return output, nil
 }

@@ -4242,11 +4242,14 @@ type XRunStepEventObject struct {
 
 // XRunToolRequest defines model for XRunToolRequest.
 type XRunToolRequest struct {
-	// Cache Whether to cache the tool
-	Cache *bool `json:"cache,omitempty"`
+	// Chdir The working directory to use when running the tool
+	Chdir string `json:"chdir,omitempty"`
 
 	// DangerousMode Dangerous mode enabled means that any tool calls will not be prompted for confirmation
 	DangerousMode bool `json:"dangerous_mode,omitempty"`
+
+	// DisableCache Disable cache when running the tool
+	DisableCache bool `json:"disable_cache,omitempty"`
 
 	// EnvVars Environment variables
 	EnvVars []string `json:"env_vars,omitempty"`

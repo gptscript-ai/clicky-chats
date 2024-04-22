@@ -13,7 +13,8 @@ require (
 	github.com/getkin/kin-openapi v0.123.0
 	github.com/glebarez/sqlite v1.10.0
 	github.com/google/uuid v1.6.0
-	github.com/gptscript-ai/gptscript v0.5.1-0.20240413002020-2558f6567508
+	github.com/gptscript-ai/go-gptscript v0.0.0-20240422153126-b3d7cf7f2d7e
+	github.com/gptscript-ai/gptscript v0.5.1-0.20240422152718-4ea6fa1b3783
 	github.com/invopop/yaml v0.2.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.1.1
