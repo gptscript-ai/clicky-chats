@@ -2075,7 +2075,7 @@ func waitForAndStreamResponse[T JobRespondStreamer](ctx context.Context, w http.
 			break
 		} else if errStr := respObj.GetErrorString(); errStr != "" {
 			slog.Error("Failed to get response chunk", "err", errStr)
-			_, _ = w.Write([]byte(fmt.Sprintf(`data: %v`, NewAPIError(errStr, InternalErrorType).Error())))
+			_, _ = w.Write([]byte(fmt.Sprintf("data: %v\n\n", NewAPIError(errStr, InternalErrorType).Error())))
 			break
 		}
 
@@ -2089,7 +2089,7 @@ func waitForAndStreamResponse[T JobRespondStreamer](ctx context.Context, w http.
 		if err != nil {
 			slog.Error("Failed to marshal response", "err", err)
 			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(fmt.Sprintf(`data: %v`, NewAPIError(fmt.Sprintf("Failed to process streamed response: %v", err), InternalErrorType).Error())))
+			_, _ = w.Write([]byte(fmt.Sprintf("data: %v\n\n", NewAPIError(fmt.Sprintf("Failed to process streamed response: %v", err), InternalErrorType).Error())))
 			break
 		}
 

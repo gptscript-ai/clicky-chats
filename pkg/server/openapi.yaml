@@ -5268,12 +5268,17 @@ components:
         XRunToolRequest:
             additionalProperties: false
             properties:
-                cache:
-                    default: true
-                    description: Whether to cache the tool
-                    type: boolean
+                chdir:
+                    description: The working directory to use when running the tool
+                    type: string
+                    x-go-type-skip-optional-pointer: true
                 dangerous_mode:
                     description: Dangerous mode enabled means that any tool calls will not be prompted for confirmation
+                    type: boolean
+                    x-go-type-skip-optional-pointer: true
+                disable_cache:
+                    default: false
+                    description: Disable cache when running the tool
                     type: boolean
                     x-go-type-skip-optional-pointer: true
                 env_vars:

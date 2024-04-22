@@ -107,9 +107,9 @@ func FromGPTScriptEvent(event server.Event, runID, runStepID string, index int, 
 		errStr = &event.Err
 	}
 
-	callContext := make(map[string]any)
+	var callContext map[string]any
 	if event.CallContext != nil {
-		b, err := event.CallContext.MarshalJSON()
+		b, err := json.Marshal(event.CallContext)
 		if err != nil && errStr == nil {
 			errStr = z.Pointer(err.Error())
 		}
