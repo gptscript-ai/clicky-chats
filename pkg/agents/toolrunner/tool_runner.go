@@ -234,6 +234,7 @@ func runTool(ctx context.Context, l *slog.Logger, gdb *gorm.DB, runToolObject *d
 	stdOut, stdErr, events, wait := gogptscript.StreamExecFileWithEvents(ctx, runToolObject.File, runToolObject.Input, gogptscript.Opts{
 		DisableCache: runToolObject.DisableCache,
 		Chdir:        runToolObject.Chdir,
+		SubTool:      runToolObject.Subtool,
 	})
 
 	var (
